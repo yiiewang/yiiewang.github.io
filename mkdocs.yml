@@ -225,10 +225,9 @@ not_in_nav: |
 nav:
   - 首页:
       - index.md
-      # - about.md
-      # - 共享文本: https://privatebin.icloudnative.io/
-  - 往期精粹:
-      - 高级架构师:
+      - 关于我: about.md
+  - 学习笔记:
+      - 软考·架构师:
           - ruankao/index.md
           - 基础知识:
               - ruankao/basics computer.md
@@ -264,7 +263,7 @@ nav:
               - design-patterns/creational-patterns/prototype.md
               - design-patterns/creational-patterns/factory.md
               - design-patterns/creational-patterns/abstract-factory.md
-          - 建造者模式:
+          - 结构型模式:
               - design-patterns/structural-patterns/adapter.md
               - design-patterns/structural-patterns/facade.md
               - design-patterns/structural-patterns/composite.md
@@ -323,4 +322,3 @@ nav:
                   - refactoring/techniques/simplifying-method-calls/rename-method.md
   - 博客:
       - blog/index.md
-  # - 社区: https://phpbb.itycu.cn
