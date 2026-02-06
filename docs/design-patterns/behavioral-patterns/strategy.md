@@ -7,209 +7,293 @@ tag:
   - 行为模式
 ---
 
-策略模式是一种行为设计模式， 它能让你定义一系列算法， 并将每种算法分别放入独立的类中， 以使算法的对象能够相互替换。
+# 策略模式：换个"大脑"就换种玩法
+
+导航软件问你：走高速还是走国道？打车还是坐地铁？同样是从 A 到 B，不同的"策略"给出完全不同的路线。策略模式就是这个意思——**定义一系列算法，让它们可以互相替换**。
+
+**策略模式**将算法封装成独立的类，使算法可以独立于使用它的客户端变化。
+
+## 为什么需要策略模式？
+
+假设你在开发一个缓存系统，需要支持多种淘汰策略：
+
+```go
+// ❌ 糟糕的写法：用 switch 处理所有策略
+func (c *Cache) Evict() {
+    switch c.strategy {
+    case "LRU":
+        // 最近最少使用
+        c.evictLRU()
+    case "LFU":
+        // 最不常用
+        c.evictLFU()
+    case "FIFO":
+        // 先进先出
+        c.evictFIFO()
+    // 每加一种策略就要改这里...
+    }
+}
+```
+
+这样写的问题：
+
+- **违反开闭原则**：每新增策略都要修改核心代码
+- **代码膨胀**：所有算法堆在一起，越来越臃肿
+- **难以测试**：无法单独测试某个算法
+
+策略模式的解法：**把每种算法封装成独立的类，用接口统一调用**。
 
 ## 模式结构
 
-![](https://refactoringguru.cn/images/patterns/diagrams/strategy/structure.png)
+![策略模式结构](https://refactoringguru.cn/images/patterns/diagrams/strategy/structure.png)
 
-1. **上下文 （Context）** 维护指向具体策略的引用， 且仅通过策略接口与该对象进行交流。
-2. **策略 （Strategy）** 接口是所有具体策略的通用接口， 它声明了一个上下文用于执行策略的方法。
-3. **具体策略 （Concrete Strategies）** 实现了上下文所用算法的各种不同变体。
-4. 当上下文需要运行算法时， 它会在其已连接的策略对象上调用执行方法。 上下文不清楚其所涉及的策略类型与算法的执行方式。
-5. **客户端 （Client）** 会创建一个特定策略对象并将其传递给上下文。 上下文则会提供一个设置器以便客户端在运行时替换相关联的策略。
+| 角色 | 职责 | 类比 |
+|------|------|------|
+| **Context（上下文）** | 持有策略对象，把工作委托给策略 | 导航 App |
+| **Strategy（策略接口）** | 定义算法的统一接口 | 路线规划能力 |
+| **ConcreteStrategy（具体策略）** | 实现具体的算法 | 高速优先/省钱优先/步行... |
 
-## 应用场景
+## 动手实现：缓存淘汰策略
 
-* **当你想使用对象中各种不同的算法变体， 并希望能在运行时切换算法时， 可使用策略模式。**
+用缓存系统的淘汰策略来演示策略模式。
 
-    策略模式让你能够将对象关联至可以不同方式执行特定子任务的不同子对象， 从而以间接方式在运行时更改对象行为。
+### 第一步：定义策略接口
 
-* **当你有许多仅在执行某些行为时略有不同的相似类时， 可使用策略模式。**
+=== "📄 eviction_strategy.go: 策略接口"
 
-    策略模式让你能将不同行为抽取到一个独立类层次结构中， 并将原始类组合成同一个， 从而减少重复代码。
-    
-* **如果算法在上下文的逻辑中不是特别重要， 使用该模式能将类的业务逻辑与其算法实现细节隔离开来。**
+    ```go
+    package main
 
-    策略模式让你能将各种算法的代码、 内部数据和依赖关系与其他代码隔离开来。 不同客户端可通过一个简单接口执行算法， 并能在运行时进行切换。
+    // EvictionStrategy 缓存淘汰策略接口
+    type EvictionStrategy interface {
+        Evict(cache *Cache)
+    }
+    ```
 
-* **当类中使用了复杂条件运算符以在同一算法的不同变体中切换时， 可使用该模式。**
+### 第二步：实现具体策略
 
-    策略模式将所有继承自同样接口的算法抽取到独立类中， 因此不再需要条件语句。 原始对象并不实现所有算法的变体， 而是将执行工作委派给其中的一个独立算法对象。
+=== "📄 lru_strategy.go: LRU 策略"
 
-## 实现方式
+    ```go
+    package main
 
-思考一下构建内存缓存的情形。 由于处在内存中， 故其大小会存在限制。 在达到其上限后， 一些条目就必须被移除以留出空间。 此类操作可通过多种算法进行实现。 一些流行的算法有：
+    import "fmt"
 
-* 最少最近使用 （LRU）： 移除最近使用最少的一条条目。
-* 先进先出 （FIFO）： 移除最早创建的条目。
-* 最少使用 （LFU）： 移除使用频率最低一条条目。
+    // LRU 最近最少使用策略
+    type LRU struct{}
 
-问题在于如何将我们的缓存类与这些算法解耦， 以便在运行时更改算法。 此外， 在添加新算法时， 缓存类不应改变。
+    func (l *LRU) Evict(cache *Cache) {
+        fmt.Println("🔄 执行 LRU 策略：淘汰最久未访问的数据")
+        // 实际实现中会根据访问时间淘汰
+    }
+    ```
 
-这就是策略模式发挥作用的场景。 可创建一系列的算法， 每个算法都有自己的类。 这些类中的每一个都遵循相同的接口， 这使得系列算法之间可以互换。 假设通用接口名称为 `eviction­Algo` **移除算法** 。
+=== "📄 lfu_strategy.go: LFU 策略"
 
-现在， 我们的主要缓存类将嵌入至 `eviction­Algo` 接口中。 缓存类会将全部类型的移除算法委派给 `eviction­Algo` 接口， 而不是自行实现。 鉴于 `eviction­Algo` 是一个接口， 我们可在运行时将算法更改为 LRU、 FIFO 或者 LFU， 而不需要对缓存类做出任何更改。
+    ```go
+    package main
 
-1. 从上下文类中找出修改频率较高的算法 （也可能是用于在运行时选择某个算法变体的复杂条件运算符）。
-2. 声明该算法所有变体的通用策略接口。
+    import "fmt"
 
-    === "evictionAlgo.go: 策略接口"
+    // LFU 最不常用策略
+    type LFU struct{}
 
-        ```go 
-        package main
+    func (l *LFU) Evict(cache *Cache) {
+        fmt.Println("📊 执行 LFU 策略：淘汰访问次数最少的数据")
+        // 实际实现中会根据访问频率淘汰
+    }
+    ```
 
-        type EvictionAlgo interface {
-            evict(c *Cache)
+=== "📄 fifo_strategy.go: FIFO 策略"
+
+    ```go
+    package main
+
+    import "fmt"
+
+    // FIFO 先进先出策略
+    type FIFO struct{}
+
+    func (f *FIFO) Evict(cache *Cache) {
+        fmt.Println("➡️ 执行 FIFO 策略：淘汰最早进入的数据")
+        // 实际实现中会按照插入顺序淘汰
+    }
+    ```
+
+### 第三步：实现上下文（缓存）
+
+=== "📄 cache.go: 上下文"
+
+    ```go
+    package main
+
+    import "fmt"
+
+    // Cache 缓存，使用可替换的淘汰策略
+    type Cache struct {
+        storage   map[string]string
+        strategy  EvictionStrategy
+        capacity  int
+        maxSize   int
+    }
+
+    // NewCache 创建缓存
+    func NewCache(maxSize int, strategy EvictionStrategy) *Cache {
+        return &Cache{
+            storage:  make(map[string]string),
+            strategy: strategy,
+            maxSize:  maxSize,
         }
-        ```
+    }
 
-3. 将算法逐一抽取到各自的类中， 它们都必须实现策略接口。
+    // SetStrategy 运行时切换策略
+    func (c *Cache) SetStrategy(strategy EvictionStrategy) {
+        c.strategy = strategy
+        fmt.Println("🔧 策略已切换")
+    }
 
-    === "fifo.go: 具体策略"
-
-        ```go 
-        package main
-
-        import "fmt"
-
-        type Fifo struct {
+    // Add 添加数据
+    func (c *Cache) Add(key, value string) {
+        if c.capacity >= c.maxSize {
+            fmt.Printf("⚠️ 缓存已满（%d/%d），触发淘汰...\n", c.capacity, c.maxSize)
+            c.strategy.Evict(c)
         }
+        c.storage[key] = value
+        c.capacity++
+        fmt.Printf("✅ 已添加：%s = %s\n", key, value)
+    }
 
-        func (l *Fifo) evict(c *Cache) {
-            fmt.Println("Evicting by fifo strtegy")
-        }
-        ```
+    // Get 获取数据
+    func (c *Cache) Get(key string) (string, bool) {
+        val, ok := c.storage[key]
+        return val, ok
+    }
+    ```
 
-    === "lru.go: 具体策略"
+### 第四步：使用缓存
 
-        ```go 
-        package main
+=== "📄 main.go: 客户端代码"
 
-        import "fmt"
+    ```go
+    package main
 
-        type Lru struct {
-        }
+    import "fmt"
 
-        func (l *Lru) evict(c *Cache) {
-            fmt.Println("Evicting by lru strtegy")
-        }
-        ```
+    func main() {
+        // 创建缓存，初始使用 LFU 策略
+        cache := NewCache(2, &LFU{})
 
-    === "lfu.go: 具体策略"
+        fmt.Println("=== 使用 LFU 策略 ===")
+        cache.Add("a", "1")
+        cache.Add("b", "2")
+        cache.Add("c", "3")  // 触发淘汰
 
-        ```go 
-        package main
+        fmt.Println("\n=== 切换到 LRU 策略 ===")
+        cache.SetStrategy(&LRU{})
+        cache.Add("d", "4")  // 使用新策略
 
-        import "fmt"
+        fmt.Println("\n=== 切换到 FIFO 策略 ===")
+        cache.SetStrategy(&FIFO{})
+        cache.Add("e", "5")
+    }
+    ```
 
-        type Lfu struct {
-        }
+=== "📄 output.txt: 执行结果"
 
-        func (l *Lfu) evict(c *Cache) {
-            fmt.Println("Evicting by lfu strtegy")
-        }
-        ```
+    ```
+    === 使用 LFU 策略 ===
+    ✅ 已添加：a = 1
+    ✅ 已添加：b = 2
+    ⚠️ 缓存已满（2/2），触发淘汰...
+    📊 执行 LFU 策略：淘汰访问次数最少的数据
+    ✅ 已添加：c = 3
 
-4. 在上下文类中添加一个成员变量用于保存对于策略对象的引用。 然后提供设置器以修改该成员变量。 上下文仅可通过策略接口同策略对象进行交互， 如有需要还可定义一个接口来让策略访问其数据。
+    === 切换到 LRU 策略 ===
+    🔧 策略已切换
+    ⚠️ 缓存已满（3/2），触发淘汰...
+    🔄 执行 LRU 策略：淘汰最久未访问的数据
+    ✅ 已添加：d = 4
 
-    === "cache.go: 背景"
+    === 切换到 FIFO 策略 ===
+    🔧 策略已切换
+    ⚠️ 缓存已满（4/2），触发淘汰...
+    ➡️ 执行 FIFO 策略：淘汰最早进入的数据
+    ✅ 已添加：e = 5
+    ```
 
-        ```go cache.go: 背景
-        package main
+## 策略模式的威力：运行时切换
 
-        type Cache struct {
-            storage      map[string]string
-            evictionAlgo EvictionAlgo
-            capacity     int
-            maxCapacity  int
-        }
+策略模式最大的优势是可以在**运行时**切换算法，而不需要修改任何代码：
 
-        func initCache(e EvictionAlgo) *Cache {
-            storage := make(map[string]string)
-            return &Cache{
-                storage:      storage,
-                evictionAlgo: e,
-                capacity:     0,
-                maxCapacity:  2,
-            }
-        }
+```go
+// 根据用户配置选择策略
+func getStrategy(config string) EvictionStrategy {
+    switch config {
+    case "lru":
+        return &LRU{}
+    case "lfu":
+        return &LFU{}
+    default:
+        return &FIFO{}
+    }
+}
 
-        func (c *Cache) setEvictionAlgo(e EvictionAlgo) {
-            c.evictionAlgo = e
-        }
+// 也可以用工厂模式创建策略
+```
 
-        func (c *Cache) add(key, value string) {
-            if c.capacity == c.maxCapacity {
-                c.evict()
-            }
-            c.capacity++
-            c.storage[key] = value
-        }
+## 什么时候该用策略模式？
 
-        func (c *Cache) get(key string) {
-            delete(c.storage, key)
-        }
+| 场景 | 说明 |
+|------|------|
+| **多种算法可选** | 排序、压缩、加密等有多种实现方式 |
+| **需要运行时切换** | 根据用户偏好或系统状态选择算法 |
+| **消除条件分支** | 避免大量 if-else 或 switch |
+| **算法需要独立变化** | 算法的修改不应影响使用它的代码 |
 
-        func (c *Cache) evict() {
-            c.evictionAlgo.evict(c)
-            c.capacity--
-        }
-        ```
+**常见应用**：
 
-5. 客户端必须将上下文类与相应策略进行关联， 使上下文可以预期的方式完成其主要工作。
+- **支付系统**：微信支付/支付宝/银行卡
+- **排序算法**：快排/归并/堆排序
+- **压缩工具**：ZIP/RAR/7Z
+- **表单验证**：不同字段的验证规则
+- **日志系统**：输出到文件/控制台/远程服务器
 
+## 优缺点分析
 
-    === "main.go: 客户端代码"
+| ✅ 优点 | ❌ 缺点 |
+|---------|---------|
+| **运行时切换**：可以动态改变对象行为 | **客户端需了解策略**：必须知道有哪些策略可选 |
+| **开闭原则**：新增策略无需修改现有代码 | **策略数量多时**：类的数量会增加 |
+| **消除条件分支**：代码更清晰 | **简单场景过度设计**：只有两三种选择时用 if-else 更简单 |
+| **算法可复用**：同一策略可用于多个上下文 | |
 
-        ```go 
-        package main
+## 策略模式 vs 其他模式
 
-        func main() {
-            lfu := &Lfu{}
-            cache := initCache(lfu)
+| 模式对比 | 说明 |
+|----------|------|
+| **策略 vs 状态** | 策略是外部指定，状态是内部自动切换 |
+| **策略 vs 命令** | 策略是"怎么做"，命令是"做什么" |
+| **策略 vs 模板方法** | 模板方法用继承，策略用组合 |
 
-            cache.add("a", "1")
-            cache.add("b", "2")
+## 函数式替代方案
 
-            cache.add("c", "3")
+在支持函数式编程的语言中，可以用函数代替策略类：
 
-            lru := &Lru{}
-            cache.setEvictionAlgo(lru)
+```go
+// 用函数类型代替接口
+type EvictFunc func(cache *Cache)
 
-            cache.add("d", "4")
+// 定义策略函数
+func lruEvict(cache *Cache) {
+    fmt.Println("LRU 淘汰")
+}
 
-            fifo := &Fifo{}
-            cache.setEvictionAlgo(fifo)
+func lfuEvict(cache *Cache) {
+    fmt.Println("LFU 淘汰")
+}
 
-            cache.add("e", "5")
+// 使用
+cache.evictFunc = lruEvict
+```
 
-        }
-        ```
-
-    === "output.txt: 执行结果"
-
-        ```go 
-        Evicting by lfu strtegy
-        Evicting by lru strtegy
-        Evicting by fifo strtegy
-        ```
-
-## 优缺点
-
-| 优点                                                  | 缺点                                                                                                                                                                         |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 你可以在运行时切换对象内的算法。                      | 如果你的算法极少发生改变， 那么没有任何理由引入新的类和接口。 使用该模式只会让程序过于复杂。                                                                                 |
-| 你可以将算法的实现和使用算法的代码隔离开来。          | 客户端必须知晓策略间的不同——它需要选择合适的策略。                                                                                                                           |
-| 你可以使用组合来代替继承。                            | 许多现代编程语言支持函数类型功能， 允许你在一组匿名函数中实现不同版本的算法。 这样， 你使用这些函数的方式就和使用策略对象时完全相同， 无需借助额外的类和接口来保持代码简洁。 |
-| 开闭原则。 你无需对上下文进行修改就能够引入新的策略。 |                                                                                                                                                                              |
-
-## 与其他模式的关系
-
-* **桥接模式**、 **状态模式** 和 **策略模式** （在某种程度上包括 **适配器模式** ） 模式的接口非常相似。 实际上， 它们都基于 **组合模式** ——即将工作委派给其他对象， 不过也各自解决了不同的问题。 模式并不只是以特定方式组织代码的配方， 你还可以使用它们来和其他开发者讨论模式所解决的问题。
-* **命令模式** 和 **策略** 看上去很像， 因为两者都能通过某些行为来参数化对象。 但是， 它们的意图有非常大的不同。
-  * 你可以使用命令来将任何操作转换为对象。 操作的参数将成为对象的成员变量。 你可以通过转换来延迟操作的执行、 将操作放入队列、 保存历史命令或者向远程服务发送命令等。
-  * 另一方面， 策略通常可用于描述完成某件事的不同方式， 让你能够在同一个上下文类中切换算法。
-* **装饰模式** 可让你更改对象的外表， **策略** 则让你能够改变其本质。
-* **模板方法模式** 基于继承机制： 它允许你通过扩展子类中的部分内容来改变部分算法。 **策略** 基于 **组合** 机制： 你可以通过对相应行为提供不同的策略来改变对象的部分行为。 模板方法在类层次上运作， 因此它是静态的。 策略在对象层次上运作， 因此允许在运行时切换行为。
-* **状态** 可被视为 **策略** 的扩展。 两者都基于 **组合** 机制： 它们都通过将部分工作委派给 “帮手” 对象来改变其在不同情景下的行为。 策略使得这些对象相互之间完全独立， 它们不知道其他对象的存在。 但状态模式没有限制具体状态之间的依赖， 且允许它们自行改变在不同情景下的状态。
+> **一句话总结**：策略模式就像手机换 SIM 卡——同一部手机，换张卡就能用不同的号码和套餐，但打电话的方式没变。

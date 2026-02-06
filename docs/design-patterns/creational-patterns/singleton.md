@@ -7,367 +7,51 @@ tag:
   - 创建型模式
 ---
 
-> 引自·[REFACTORING·GURU](https://refactoringguru.cn/)
+# 单例模式：全局只此一家
 
-单例模式是一种创建型设计模式， 让你能够保证一个类只有一个实例， 并提供一个访问该实例的全局节点。
+有些东西天生就只能有一个：一个国家只有一个首都，一个公司只有一个 CEO，一个系统只有一个配置管理器。单例模式就是确保**某个类在整个程序中只有一个实例，并提供一个全局访问点**。
 
-单例模式同时解决了两个问题， 所以违反了单一职责原则：
+## 为什么需要单例？
 
-1. 保证一个类只有一个实例。 为什么会有人想要控制一个类所拥有的实例数量？ 最常见的原因是控制某些共享资源 （例如数据库或文件） 的访问权限。
+假设你的程序需要访问数据库：
 
-    它的运作方式是这样的： 如果你创建了一个对象， 同时过一会儿后你决定再创建一个新对象， 此时你会获得之前已创建的对象， 而不是一个新对象。
+```go
+// ❌ 糟糕的写法：每次都创建新连接
+func doSomething() {
+    db := NewDBConnection()  // 创建连接 1
+    db.Query("SELECT ...")
+}
 
-    注意， 普通构造函数无法实现上述行为， 因为构造函数的设计决定了它必须总是返回一个新对象。
-
-2. 为该实例提供一个全局访问节点。 还记得你 （好吧， 其实是我自己） 用过的那些存储重要对象的全局变量吗？ 它们在使用上十分方便， 但同时也非常不安全， 因为任何代码都有可能覆盖掉那些变量的内容， 从而引发程序崩溃。
-
-    和全局变量一样， 单例模式也允许在程序的任何地方访问特定对象。 但是它可以保护该实例不被其他代码覆盖。
-
-    还有一点： 你不会希望解决同一个问题的代码分散在程序各处的。 因此更好的方式是将其放在同一个类中， 特别是当其他代码已经依赖这个类时更应该如此。
-
-如今， 单例模式已经变得非常流行， 以至于人们会将只解决上文描述中任意一个问题的东西称为单例。
-
----
-
-所有单例的实现都包含以下两个相同的步骤：
-
-* 将默认构造函数设为私有， 防止其他对象使用单例类的 new运算符。
-* 新建一个静态构建方法作为构造函数。 该函数会 “偷偷” 调用私有构造函数来创建对象， 并将其保存在一个静态成员变量中。 此后所有对于该函数的调用都将返回这一缓存对象。
-
-如果你的代码能够访问单例类， 那它就能调用单例类的静态方法。 无论何时调用该方法， 它总是会返回相同的对象。
-
-## 逻辑结构
-
-![](https://refactoringguru.cn/images/patterns/diagrams/singleton/structure-zh-2x.png)
-
-## 伪代码
-
-在本例中， 数据库连接类即是一个单例。 该类不提供公有构造函数， 因此获取该对象的唯一方式是调用 获取实例方法。 该方法将缓存首次生成的对象， 并为所有后续调用返回该对象。
-
-```java
-// 数据库类会对`getInstance（获取实例）`方法进行定义以让客户端在程序各处
-// 都能访问相同的数据库连接实例。
-class Database is
-    // 保存单例实例的成员变量必须被声明为静态类型。
-    private static field instance: Database
-
-    // 单例的构造函数必须永远是私有类型，以防止使用`new`运算符直接调用构
-    // 造方法。
-    private constructor Database() is
-        // 部分初始化代码（例如到数据库服务器的实际连接）。
-        // ……
-
-    // 用于控制对单例实例的访问权限的静态方法。
-    public static method getInstance() is
-        if (Database.instance == null) then
-            acquireThreadLock() and then
-                // 确保在该线程等待解锁时，其他线程没有初始化该实例。
-                if (Database.instance == null) then
-                    Database.instance = new Database()
-        return Database.instance
-
-    // 最后，任何单例都必须定义一些可在其实例上执行的业务逻辑。
-    public method query(sql) is
-        // 比如应用的所有数据库查询请求都需要通过该方法进行。因此，你可以
-        // 在这里添加限流或缓冲逻辑。
-        // ……
-
-class Application is
-    method main() is
-        Database foo = Database.getInstance()
-        foo.query("SELECT ……")
-        // ……
-        Database bar = Database.getInstance()
-        bar.query("SELECT ……")
-        // 变量 `bar` 和 `foo` 中将包含同一个对象。
+func doAnotherThing() {
+    db := NewDBConnection()  // 创建连接 2
+    db.Query("SELECT ...")
+}
+// 连接泛滥！资源浪费！
 ```
 
-## 应用场景
+这样写的问题：
 
-* 如果程序中的某个类对于所有客户端只有一个可用的实例， 可以使用单例模式。
+- **资源浪费**：每次都创建新连接，系统资源很快耗尽
+- **状态不一致**：多个实例可能有不同的状态
+- **难以管理**：无法统一控制访问
 
-单例模式禁止通过除特殊构建方法以外的任何方式来创建自身类的对象。 该方法可以创建一个新对象， 但如果该对象已经被创建， 则返回已有的对象。
+单例模式的解法：**只创建一个实例，所有人共享这个实例**。
 
-* 如果你需要更加严格地控制全局变量， 可以使用单例模式。
+## 模式结构
 
-单例模式与全局变量不同， 它保证类只存在一个实例。 除了单例类自己以外， 无法通过任何方式替换缓存的实例。
+![单例模式结构](https://refactoringguru.cn/images/patterns/diagrams/singleton/structure-zh-2x.png)
 
-`请注意，你可以随时调整限制并设定生成单例实例的数量，只需修改 获取实例方法，即 getInstance 中的代码即可实现。`
+单例模式的核心很简单：
 
-## 实现方式
+1. **私有构造函数**：防止外部 `new`
+2. **静态实例变量**：保存唯一实例
+3. **公共获取方法**：提供全局访问点
 
-1. 在类中添加一个私有静态成员变量用于保存单例实例。
-2. 声明一个公有静态构建方法用于获取单例实例。
-3. 在静态方法中实现"延迟初始化"。 该方法会在首次被调用时创建一个新对象， 并将其存储在静态成员变量中。 此后该方法每次被调用时都返回该实例。
-4. 将类的构造函数设为私有。 类的静态方法仍能调用构造函数， 但是其他对象不能调用。
-5. 检查客户端代码， 将对单例的构造函数的调用替换为对其静态构建方法的调用。
+## 动手实现：数据库连接池
 
-## 优缺点
+### Go 语言实现（线程安全）
 
-**优点**
-
-* 你可以保证一个类只有一个实例。
-* 你获得了一个指向该实例的全局访问节点。
-* 仅在首次请求单例对象时对其进行初始化。
-
-**缺点**
-
-* 违反了单一职责原则。 该模式同时解决了两个问题。
-* 单例模式可能掩盖不良设计， 比如程序各组件之间相互了解过多等。
-* 该模式在多线程环境下需要进行特殊处理， 避免多个线程多次创建单例对象。
-* 单例的客户端代码单元测试可能会比较困难， 因为许多测试框架以基于继承的方式创建模拟对象。 由于单例类的构造函数是私有的， 而且绝大部分语言无法重写静态方法， 所以你需要想出仔细考虑模拟单例的方法。 要么干脆不编写测试代码， 或者不使用单例模式。
-
-## 与其他模式的关系
-
-* 外观模式类通常可以转换为单例模式类， 因为在大部分情况下一个外观对象就足够了。
-
-* 如果你能将对象的所有共享状态简化为一个享元对象， 那么享元模式就和单例类似了。 但这两个模式有两个根本性的不同。
-
-  1. 只会有一个单例实体， 但是享元类可以有多个实体， 各实体的内在状态也可以不同。
-  2. 单例对象可以是可变的。 享元对象是不可变的。
-
-* 抽象工厂模式、 生成器模式和原型模式都可以用单例来实现。
-
-## 代码示例
-
-### Java
-
-#### 基础单例（单线程）
-
-实现一个粗糙的单例非常简单。 你仅需隐藏构造函数并实现一个静态的构建方法即可。
-
-=== "📄Singleton.java: 单例"
-
-    ```java
-    package refactoring_guru.singleton.example.non_thread_safe;
-
-    public final class Singleton {
-        private static Singleton instance;
-        public String value;
-
-        private Singleton(String value) {
-            // The following code emulates slow initialization.
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                ex.printStackTrace();
-            }
-            this.value = value;
-        }
-
-        public static Singleton getInstance(String value) {
-            if (instance == null) {
-                instance = new Singleton(value);
-            }
-            return instance;
-        }
-    }
-    ```
-
-=== "📄DemoSingleThread.java: 客户端代码"
-
-    ```java
-    package refactoring_guru.singleton.example.non_thread_safe;
-
-    public class DemoSingleThread {
-        public static void main(String[] args) {
-            System.out.println("If you see the same value, then singleton was reused (yay!)" + "\n" +
-                    "If you see different values, then 2 singletons were created (booo!!)" + "\n\n" +
-                    "RESULT:" + "\n");
-            Singleton singleton = Singleton.getInstance("FOO");
-            Singleton anotherSingleton = Singleton.getInstance("BAR");
-            System.out.println(singleton.value);
-            System.out.println(anotherSingleton.value);
-        }
-    }
-    ```
-
-=== "📄OutputDemoSingleThread.txt: 执行结果"
-
-    ```java
-    If you see the same value, then singleton was reused (yay!)
-    If you see different values, then 2 singletons were created (booo!!)
-
-    RESULT:
-
-    FOO
-    FOO
-    ```
-
-#### 基础单例（多线程）
-
-相同的类在多线程环境中会出错。 多线程可能会同时调用构建方法并获取多个单例类的实例。
-
-=== "📄Singleton.java: 单例"
-
-    ```java
-    package refactoring_guru.singleton.example.non_thread_safe;
-
-    public final class Singleton {
-        private static Singleton instance;
-        public String value;
-
-        private Singleton(String value) {
-            // The following code emulates slow initialization.
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-                ex.printStackTrace();
-            }
-            this.value = value;
-        }
-
-        public static Singleton getInstance(String value) {
-            if (instance == null) {
-                instance = new Singleton(value);
-            }
-            return instance;
-        }
-    }
-    ```
-
-=== "📄DemoMultiThread.java: 客户端代码"
-
-    ```java
-    package refactoring_guru.singleton.example.non_thread_safe;
-
-    public class DemoMultiThread {
-        public static void main(String[] args) {
-            System.out.println("If you see the same value, then singleton was reused (yay!)" + "\n" +
-                    "If you see different values, then 2 singletons were created (booo!!)" + "\n\n" +
-                    "RESULT:" + "\n");
-            Thread threadFoo = new Thread(new ThreadFoo());
-            Thread threadBar = new Thread(new ThreadBar());
-            threadFoo.start();
-            threadBar.start();
-        }
-
-        static class ThreadFoo implements Runnable {
-            @Override
-            public void run() {
-                Singleton singleton = Singleton.getInstance("FOO");
-                System.out.println(singleton.value);
-            }
-        }
-
-        static class ThreadBar implements Runnable {
-            @Override
-            public void run() {
-                Singleton singleton = Singleton.getInstance("BAR");
-                System.out.println(singleton.value);
-            }
-        }
-    }
-    ```
-
-=== "📄OutputDemoSingleThread.txt: 执行结果"
-
-    ```java
-    If you see the same value, then singleton was reused (yay!)
-    If you see different values, then 2 singletons were created (booo!!)
-
-    RESULT:
-
-    FOO
-    BAR
-    ```
-
-#### 采用延迟加载的线程安全单例
-
-为了解决这个问题， 你必须在创建首个单例对象时对线程进行同步。
-
-=== "📄Singleton.java: 单例"
-
-    ```java
-    package refactoring_guru.singleton.example.thread_safe;
-
-    public final class Singleton {
-        // The field must be declared volatile so that double check lock would work
-        // correctly.
-        private static volatile Singleton instance;
-
-        public String value;
-
-        private Singleton(String value) {
-            this.value = value;
-        }
-
-        public static Singleton getInstance(String value) {
-            // The approach taken here is called double-checked locking (DCL). It
-            // exists to prevent race condition between multiple threads that may
-            // attempt to get singleton instance at the same time, creating separate
-            // instances as a result.
-            //
-            // It may seem that having the `result` variable here is completely
-            // pointless. There is, however, a very important caveat when
-            // implementing double-checked locking in Java, which is solved by
-            // introducing this local variable.
-            //
-            // You can read more info DCL issues in Java here:
-            // https://refactoring.guru/java-dcl-issue
-            Singleton result = instance;
-            if (result != null) {
-                return result;
-            }
-            synchronized(Singleton.class) {
-                if (instance == null) {
-                    instance = new Singleton(value);
-                }
-                return instance;
-            }
-        }
-    }
-    ```
-
-=== "📄DemoMultiThread.java: 客户端代码"
-
-    ```java
-    package refactoring_guru.singleton.example.thread_safe;
-
-    public class DemoMultiThread {
-        public static void main(String[] args) {
-            System.out.println("If you see the same value, then singleton was reused (yay!)" + "\n" +
-                    "If you see different values, then 2 singletons were created (booo!!)" + "\n\n" +
-                    "RESULT:" + "\n");
-            Thread threadFoo = new Thread(new ThreadFoo());
-            Thread threadBar = new Thread(new ThreadBar());
-            threadFoo.start();
-            threadBar.start();
-        }
-
-        static class ThreadFoo implements Runnable {
-            @Override
-            public void run() {
-                Singleton singleton = Singleton.getInstance("FOO");
-                System.out.println(singleton.value);
-            }
-        }
-
-        static class ThreadBar implements Runnable {
-            @Override
-            public void run() {
-                Singleton singleton = Singleton.getInstance("BAR");
-                System.out.println(singleton.value);
-            }
-        }
-    }
-    ```
-
-=== "📄OutputDemoSingleThread.txt: 执行结果"
-
-    ```java
-    If you see the same value, then singleton was reused (yay!)
-    If you see different values, then 2 singletons were created (booo!!)
-
-    RESULT:
-
-    BAR
-    BAR
-    ```
-
-### Go
-
-=== "📄single.go: 单例"
+=== "📄 singleton.go: 单例实现"
 
     ```go
     package main
@@ -377,83 +61,176 @@ class Application is
         "sync"
     )
 
-    var lock = &sync.Mutex{}
-
-    type single struct {
+    // Database 数据库连接单例
+    type Database struct {
+        connection string
     }
 
-    var singleInstance *single
+    var (
+        instance *Database
+        once     sync.Once
+    )
 
-    func getInstance() *single {
-        if singleInstance == nil {
-            lock.Lock()
-            defer lock.Unlock()
-            if singleInstance == nil {
-                fmt.Println("Creating single instance now.")
-                singleInstance = &single{}
-            } else {
-                fmt.Println("Single instance already created.")
+    // GetInstance 获取数据库单例
+    func GetInstance() *Database {
+        once.Do(func() {
+            fmt.Println("🔧 首次创建数据库连接...")
+            instance = &Database{
+                connection: "mysql://localhost:3306/mydb",
             }
-        } else {
-            fmt.Println("Single instance already created.")
-        }
+        })
+        return instance
+    }
 
-        return singleInstance
+    // Query 执行查询
+    func (db *Database) Query(sql string) {
+        fmt.Printf("📊 执行查询: %s\n", sql)
     }
     ```
 
-=== "📄main.go: 客户端代码"
+=== "📄 main.go: 客户端代码"
 
     ```go
     package main
 
     import (
         "fmt"
+        "sync"
     )
 
     func main() {
+        var wg sync.WaitGroup
 
-        for i := 0; i < 30; i++ {
-            go getInstance()
+        // 并发获取单例 10 次
+        for i := 0; i < 10; i++ {
+            wg.Add(1)
+            go func(id int) {
+                defer wg.Done()
+                db := GetInstance()
+                db.Query(fmt.Sprintf("SELECT * FROM users WHERE id = %d", id))
+            }(i)
         }
 
-        // Scanln is similar to Scan, but stops scanning at a newline and
-        // after the final item there must be a newline or EOF.
-        fmt.Scanln()
+        wg.Wait()
+        fmt.Println("\n✅ 所有查询完成，始终使用同一个数据库实例")
     }
     ```
 
-=== "📄output.txt: 执行结果"
+=== "📄 output.txt: 执行结果"
 
-    ```go
-    Creating single instance now.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
-    Single instance already created.
     ```
+    🔧 首次创建数据库连接...
+    📊 执行查询: SELECT * FROM users WHERE id = 0
+    📊 执行查询: SELECT * FROM users WHERE id = 3
+    📊 执行查询: SELECT * FROM users WHERE id = 1
+    📊 执行查询: SELECT * FROM users WHERE id = 2
+    📊 执行查询: SELECT * FROM users WHERE id = 4
+    📊 执行查询: SELECT * FROM users WHERE id = 5
+    📊 执行查询: SELECT * FROM users WHERE id = 6
+    📊 执行查询: SELECT * FROM users WHERE id = 7
+    📊 执行查询: SELECT * FROM users WHERE id = 8
+    📊 执行查询: SELECT * FROM users WHERE id = 9
+
+    ✅ 所有查询完成，始终使用同一个数据库实例
+    ```
+
+### Java 语言实现（双重检查锁）
+
+```java
+public final class Database {
+    private static volatile Database instance;
+    
+    private Database() {
+        // 私有构造函数
+    }
+    
+    public static Database getInstance() {
+        if (instance == null) {                // 第一次检查
+            synchronized (Database.class) {
+                if (instance == null) {        // 第二次检查
+                    instance = new Database();
+                }
+            }
+        }
+        return instance;
+    }
+}
+```
+
+!!! warning "为什么需要双重检查？"
+    - **第一次检查**：避免每次都加锁（性能优化）
+    - **第二次检查**：防止多个线程同时通过第一次检查后重复创建
+    - **volatile**：防止指令重排序导致返回未初始化完成的对象
+
+## 单例的几种实现方式
+
+| 方式 | 线程安全 | 延迟加载 | 实现复杂度 |
+|------|---------|---------|-----------|
+| **饿汉式** | ✅ | ❌ | 简单 |
+| **懒汉式（加锁）** | ✅ | ✅ | 简单 |
+| **双重检查锁** | ✅ | ✅ | 中等 |
+| **sync.Once（Go）** | ✅ | ✅ | 简单 |
+| **静态内部类（Java）** | ✅ | ✅ | 简单 |
+| **枚举（Java）** | ✅ | ❌ | 最简单 |
+
+### Go 的 sync.Once 为什么最优雅？
+
+```go
+var once sync.Once
+
+func GetInstance() *Database {
+    once.Do(func() {
+        // 这里的代码只会执行一次，无论多少 goroutine 调用
+        instance = &Database{}
+    })
+    return instance
+}
+```
+
+`sync.Once` 内部使用了原子操作和锁，既保证线程安全，又保证只执行一次。
+
+## 什么时候该用单例？
+
+| 场景 | 说明 |
+|------|------|
+| **资源管理器** | 数据库连接池、线程池、缓存 |
+| **配置管理** | 全局配置对象 |
+| **日志系统** | 日志记录器 |
+| **硬件访问** | 打印机、串口 |
+
+## 单例模式的争议
+
+单例模式是设计模式中**最具争议**的模式：
+
+| ✅ 优点 | ❌ 缺点 |
+|---------|---------|
+| **保证唯一性**：全局只有一个实例 | **违反单一职责**：既管业务又管生命周期 |
+| **节省资源**：避免重复创建 | **隐藏依赖**：代码中直接调用 `GetInstance()` |
+| **全局访问**：任何地方都能使用 | **难以测试**：无法轻松替换为 mock |
+| | **不利于并行**：多线程环境需要额外处理 |
+
+### 替代方案：依赖注入
+
+```go
+// 不用单例，而是通过参数传入
+func ProcessOrder(db *Database, order Order) error {
+    // 使用传入的 db 实例
+}
+
+// 在程序入口创建并传递
+func main() {
+    db := NewDatabase()  // 只创建一次
+    ProcessOrder(db, order1)
+    ProcessOrder(db, order2)
+}
+```
+
+## 与其他模式的关系
+
+| 模式组合 | 说明 |
+|----------|------|
+| **单例 + 工厂** | 工厂类通常是单例 |
+| **单例 vs 享元** | 享元可以有多个实例，单例只有一个 |
+| **单例 + 外观** | 外观类通常是单例 |
+
+> **一句话总结**：单例模式就像地球上的太阳——只有一个，所有人都能看到它，但没人能再造一个。

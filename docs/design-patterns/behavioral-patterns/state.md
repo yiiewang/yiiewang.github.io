@@ -7,363 +7,365 @@ tag:
   - 行为模式
 ---
 
-状态模式是一种行为设计模式， 让你能在一个对象的内部状态变化时改变其行为， 使其看上去就像改变了自身所属的类一样。
+# 状态模式：让对象"变身"
+
+你有没有注意过手机的行为会随着"状态"变化？静音模式下来电不响铃，飞行模式下无法上网。同一部手机，不同状态下表现完全不同。这就是状态模式的核心思想。
+
+**状态模式**让一个对象在内部状态改变时，改变它的行为。看起来就像对象换了一个类一样。
+
+## 为什么需要状态模式？
+
+假设你在开发一个自动售货机，它有多种状态：
+
+```go
+// ❌ 糟糕的写法：用 if-else 处理所有状态
+func (m *VendingMachine) InsertMoney() {
+    if m.state == "NO_ITEM" {
+        fmt.Println("没货，退钱")
+    } else if m.state == "HAS_ITEM" {
+        fmt.Println("请先选择商品")
+    } else if m.state == "ITEM_SELECTED" {
+        fmt.Println("收到钱，出货")
+        m.state = "HAS_MONEY"
+    } else if m.state == "HAS_MONEY" {
+        fmt.Println("已收过钱了")
+    }
+    // 每个方法都要这样写一遍...
+}
+```
+
+这样写的问题：
+
+- **代码臃肿**：每个方法都有大量 if-else
+- **难以维护**：新增状态要改所有方法
+- **状态转换不清晰**：很难看出完整的状态流转图
+
+状态模式的解法：**把每种状态封装成独立的类，让状态类自己决定如何响应操作**。
 
 ## 模式结构
 
-![](https://refactoringguru.cn/images/patterns/diagrams/state/structure-zh.png?id=9d132abe67abef895172aad954f1daaf)
+![状态模式结构](https://refactoringguru.cn/images/patterns/diagrams/state/structure-zh.png?id=9d132abe67abef895172aad954f1daaf)
 
-1. **上下文 （Context）** 保存了对于一个具体状态对象的引用， 并会将所有与该状态相关的工作委派给它。 上下文通过状态接口与状态对象交互， 且会提供一个设置器用于传递新的状态对象。
-2. **状态 （State）** 接口会声明特定于状态的方法。 这些方法应能被其他所有具体状态所理解， 因为你不希望某些状态所拥有的方法永远不会被调用。
-3. **具体状态 （Concrete States）** 会自行实现特定于状态的方法。 为了避免多个状态中包含相似代码， 你可以提供一个封装有部分通用行为的中间抽象类。
+| 角色 | 职责 | 类比 |
+|------|------|------|
+| **Context（上下文）** | 持有当前状态对象，把请求委托给状态处理 | 售货机本体 |
+| **State（状态接口）** | 定义所有状态共有的行为 | 售货机的操作面板 |
+| **ConcreteState（具体状态）** | 实现特定状态下的行为 | 各种状态：有货、无货、已投币... |
 
-    状态对象可存储对于上下文对象的反向引用。 状态可以通过该引用从上下文处获取所需信息， 并且能触发状态转移。
-4. 上下文和具体状态都可以设置上下文的下个状态， 并可通过替换连接到上下文的状态对象来完成实际的状态转换。
+## 动手实现：自动售货机
 
-## 应用场景
+用自动售货机来演示状态模式。售货机有四种状态：**有货 → 已选商品 → 已投币 → 出货**。
 
-* **如果对象需要根据自身当前状态进行不同行为， 同时状态的数量非常多且与状态相关的代码会频繁变更的话， 可使用状态模式。**
+### 第一步：定义状态接口
 
-    模式建议你将所有特定于状态的代码抽取到一组独立的类中。 这样一来， 你可以在独立于其他状态的情况下添加新状态或修改已有状态， 从而减少维护成本。
+=== "📄 state.go: 状态接口"
 
-* **如果某个类需要根据成员变量的当前值改变自身行为， 从而需要使用大量的条件语句时， 可使用该模式。**
+    ```go
+    package main
 
-    状态模式会将这些条件语句的分支抽取到相应状态类的方法中。 同时， 你还可以清除主要类中与特定状态相关的临时成员变量和帮手方法代码。
+    // State 状态接口，定义售货机的所有操作
+    type State interface {
+        SelectItem() error   // 选择商品
+        InsertMoney() error  // 投入钱币
+        Dispense() error     // 出货
+        AddItem() error      // 补货
+    }
+    ```
 
-* **当相似状态和基于条件的状态机转换中存在许多重复代码时， 可使用状态模式。**
+### 第二步：实现各种具体状态
 
-    状态模式让你能够生成状态类层次结构， 通过将公用代码抽取到抽象基类中来减少重复。
+=== "📄 has_item_state.go: 有货状态"
 
-## 实现方式
+    ```go
+    package main
 
-让我们在一台自动售货机上使用状态设计模式。 为简单起见， 让我们假设自动售货机仅会销售一种类型的商品。 同时， 依然为了简单起见， 我们假设自动售货机可处于 4 种不同的状态中：
+    import "fmt"
 
-* 有商品 （has­Item）
-* 无商品 （no­Item）
-* 商品已请求 （item­Requested）
-* 收到纸币 （has­Money）
+    // HasItemState 有货状态
+    type HasItemState struct {
+        machine *VendingMachine
+    }
 
-同时， 自动售货机也会有不同的操作。 再一次的， 为了简单起见， 我们假设其只会执行 4 种操作：
+    func (s *HasItemState) SelectItem() error {
+        fmt.Println("🛒 商品已选择")
+        s.machine.SetState(s.machine.itemSelected)
+        return nil
+    }
 
-* 选择商品
-* 添加商品
-* 插入纸币
-* 提供商品
+    func (s *HasItemState) InsertMoney() error {
+        return fmt.Errorf("❌ 请先选择商品")
+    }
 
-当对象可以处于许多不同的状态中时应使用状态设计模式， 同时根据传入请求的不同， 对象需要变更其当前状态。
+    func (s *HasItemState) Dispense() error {
+        return fmt.Errorf("❌ 请先选择商品并付款")
+    }
 
-在我们的例子中， 自动售货机可以有多种不同的状态， 同时会在这些状态之间持续不断地互相转换。 我们假设自动售货机处于 **商品已请求** 状态中。 在 “插入纸币” 的操作发生后， 机器将自动转换至 **收到纸币** 状态。
+    func (s *HasItemState) AddItem() error {
+        fmt.Println("📦 补货成功")
+        s.machine.itemCount++
+        return nil
+    }
+    ```
 
-根据其当前状态， 机器可就相同请求采取不同的行为。 例如， 如果用户想要购买一件商品， 机器将在 **有商品状态** 时继续操作， 而在 **无商品状态** 时拒绝操作。
+=== "📄 item_selected_state.go: 已选商品状态"
 
-自动售货机的代码不会被这一逻辑污染； 所有依赖于状态的代码都存在于各自的状态实现中。
+    ```go
+    package main
 
-1. 确定哪些类是上下文。 它可能是包含依赖于状态的代码的已有类； 如果特定于状态的代码分散在多个类中， 那么它可能是一个新的类。
-2. 声明状态接口。 虽然你可能会需要完全复制上下文中声明的所有方法， 但最好是仅把关注点放在那些可能包含特定于状态的行为的方法上。
+    import "fmt"
 
-    === "state.go: 状态接口"
+    // ItemSelectedState 已选商品状态
+    type ItemSelectedState struct {
+        machine *VendingMachine
+    }
 
-        ```go 
-        package main
+    func (s *ItemSelectedState) SelectItem() error {
+        return fmt.Errorf("❌ 已选择商品，请投币")
+    }
 
-        type State interface {
-            addItem(int) error
-            requestItem() error
-            insertMoney(money int) error
-            dispenseItem() error
+    func (s *ItemSelectedState) InsertMoney() error {
+        fmt.Println("💰 收到付款")
+        s.machine.SetState(s.machine.hasMoney)
+        return nil
+    }
+
+    func (s *ItemSelectedState) Dispense() error {
+        return fmt.Errorf("❌ 请先付款")
+    }
+
+    func (s *ItemSelectedState) AddItem() error {
+        return fmt.Errorf("❌ 交易进行中，无法补货")
+    }
+    ```
+
+=== "📄 has_money_state.go: 已投币状态"
+
+    ```go
+    package main
+
+    import "fmt"
+
+    // HasMoneyState 已投币状态
+    type HasMoneyState struct {
+        machine *VendingMachine
+    }
+
+    func (s *HasMoneyState) SelectItem() error {
+        return fmt.Errorf("❌ 已付款，正在出货")
+    }
+
+    func (s *HasMoneyState) InsertMoney() error {
+        return fmt.Errorf("❌ 已付过款")
+    }
+
+    func (s *HasMoneyState) Dispense() error {
+        fmt.Println("🎁 出货中...")
+        s.machine.itemCount--
+        if s.machine.itemCount == 0 {
+            fmt.Println("⚠️ 商品已售罄")
+            s.machine.SetState(s.machine.noItem)
+        } else {
+            s.machine.SetState(s.machine.hasItem)
         }
-        ```
+        return nil
+    }
 
-3. 为每个实际状态创建一个继承于状态接口的类。 然后检查上下文中的方法并将与特定状态相关的所有代码抽取到新建的类中。
+    func (s *HasMoneyState) AddItem() error {
+        return fmt.Errorf("❌ 交易进行中，无法补货")
+    }
+    ```
 
+=== "📄 no_item_state.go: 无货状态"
 
-    === "noItemState.go: 具体状态"
+    ```go
+    package main
 
-        ```go 
-        package main
+    import "fmt"
 
-        import "fmt"
+    // NoItemState 无货状态
+    type NoItemState struct {
+        machine *VendingMachine
+    }
 
-        type NoItemState struct {
-            vendingMachine *VendingMachine
+    func (s *NoItemState) SelectItem() error {
+        return fmt.Errorf("❌ 商品已售罄")
+    }
+
+    func (s *NoItemState) InsertMoney() error {
+        return fmt.Errorf("❌ 商品已售罄，无法付款")
+    }
+
+    func (s *NoItemState) Dispense() error {
+        return fmt.Errorf("❌ 无商品可出")
+    }
+
+    func (s *NoItemState) AddItem() error {
+        fmt.Println("📦 补货成功")
+        s.machine.itemCount++
+        s.machine.SetState(s.machine.hasItem)
+        return nil
+    }
+    ```
+
+### 第三步：实现上下文（售货机）
+
+=== "📄 vending_machine.go: 上下文"
+
+    ```go
+    package main
+
+    import "fmt"
+
+    // VendingMachine 自动售货机
+    type VendingMachine struct {
+        hasItem      State
+        itemSelected State
+        hasMoney     State
+        noItem       State
+
+        currentState State
+        itemCount    int
+    }
+
+    // NewVendingMachine 创建售货机
+    func NewVendingMachine(itemCount int) *VendingMachine {
+        m := &VendingMachine{itemCount: itemCount}
+        
+        // 初始化所有状态
+        m.hasItem = &HasItemState{machine: m}
+        m.itemSelected = &ItemSelectedState{machine: m}
+        m.hasMoney = &HasMoneyState{machine: m}
+        m.noItem = &NoItemState{machine: m}
+
+        // 设置初始状态
+        if itemCount > 0 {
+            m.currentState = m.hasItem
+        } else {
+            m.currentState = m.noItem
         }
+        return m
+    }
 
-        func (i *NoItemState) requestItem() error {
-            return fmt.Errorf("Item out of stock")
-        }
+    func (m *VendingMachine) SetState(s State) {
+        m.currentState = s
+    }
 
-        func (i *NoItemState) addItem(count int) error {
-            i.vendingMachine.incrementItemCount(count)
-            i.vendingMachine.setState(i.vendingMachine.hasItem)
-            return nil
-        }
+    func (m *VendingMachine) SelectItem() error {
+        return m.currentState.SelectItem()
+    }
 
-        func (i *NoItemState) insertMoney(money int) error {
-            return fmt.Errorf("Item out of stock")
-        }
-        func (i *NoItemState) dispenseItem() error {
-            return fmt.Errorf("Item out of stock")
-        }
-        ```
+    func (m *VendingMachine) InsertMoney() error {
+        return m.currentState.InsertMoney()
+    }
 
-    === "hasItemState.go: 具体状态"
+    func (m *VendingMachine) Dispense() error {
+        return m.currentState.Dispense()
+    }
 
-        ```go 
-        package main
+    func (m *VendingMachine) AddItem() error {
+        return m.currentState.AddItem()
+    }
 
-        import "fmt"
+    func (m *VendingMachine) PrintStatus() {
+        fmt.Printf("📊 库存: %d 件\n", m.itemCount)
+    }
+    ```
 
-        type HasItemState struct {
-            vendingMachine *VendingMachine
-        }
+### 第四步：使用售货机
 
-        func (i *HasItemState) requestItem() error {
-            if i.vendingMachine.itemCount == 0 {
-                i.vendingMachine.setState(i.vendingMachine.noItem)
-                return fmt.Errorf("No item present")
-            }
-            fmt.Printf("Item requestd\n")
-            i.vendingMachine.setState(i.vendingMachine.itemRequested)
-            return nil
-        }
+=== "📄 main.go: 客户端代码"
 
-        func (i *HasItemState) addItem(count int) error {
-            fmt.Printf("%d items added\n", count)
-            i.vendingMachine.incrementItemCount(count)
-            return nil
-        }
+    ```go
+    package main
 
-        func (i *HasItemState) insertMoney(money int) error {
-            return fmt.Errorf("Please select item first")
-        }
-        func (i *HasItemState) dispenseItem() error {
-            return fmt.Errorf("Please select item first")
-        }
-        ```
+    import "fmt"
 
-    === "itemRequestedState.go: 具体状态"
+    func main() {
+        // 创建售货机，初始库存 1 件
+        machine := NewVendingMachine(1)
+        machine.PrintStatus()
 
-        ```go 
-        package main
+        fmt.Println("\n=== 正常购买流程 ===")
+        machine.SelectItem()    // 选择商品
+        machine.InsertMoney()   // 投币
+        machine.Dispense()      // 出货
+        machine.PrintStatus()
 
-        import "fmt"
-
-        type ItemRequestedState struct {
-            vendingMachine *VendingMachine
-        }
-
-        func (i *ItemRequestedState) requestItem() error {
-            return fmt.Errorf("Item already requested")
-        }
-
-        func (i *ItemRequestedState) addItem(count int) error {
-            return fmt.Errorf("Item Dispense in progress")
-        }
-
-        func (i *ItemRequestedState) insertMoney(money int) error {
-            if money < i.vendingMachine.itemPrice {
-                return fmt.Errorf("Inserted money is less. Please insert %d", i.vendingMachine.itemPrice)
-            }
-            fmt.Println("Money entered is ok")
-            i.vendingMachine.setState(i.vendingMachine.hasMoney)
-            return nil
-        }
-        func (i *ItemRequestedState) dispenseItem() error {
-            return fmt.Errorf("Please insert money first")
-        }
-        ```
-
-    === "hasMoneyState.go: 具体状态"
-
-        ```go 
-        package main
-
-        import "fmt"
-
-        type HasMoneyState struct {
-            vendingMachine *VendingMachine
-        }
-
-        func (i *HasMoneyState) requestItem() error {
-            return fmt.Errorf("Item dispense in progress")
-        }
-
-        func (i *HasMoneyState) addItem(count int) error {
-            return fmt.Errorf("Item dispense in progress")
-        }
-
-        func (i *HasMoneyState) insertMoney(money int) error {
-            return fmt.Errorf("Item out of stock")
-        }
-        func (i *HasMoneyState) dispenseItem() error {
-            fmt.Println("Dispensing Item")
-            i.vendingMachine.itemCount = i.vendingMachine.itemCount - 1
-            if i.vendingMachine.itemCount == 0 {
-                i.vendingMachine.setState(i.vendingMachine.noItem)
-            } else {
-                i.vendingMachine.setState(i.vendingMachine.hasItem)
-            }
-            return nil
-        }
-        ```
-
-4. 在将代码移动到状态类的过程中， 你可能会发现它依赖于上下文中的一些私有成员。 你可以采用以下几种变通方式：
-   * 将这些成员变量或方法设为公有。
-   * 将需要抽取的上下文行为更改为上下文中的公有方法， 然后在状态类中调用。 这种方式简陋却便捷， 你可以稍后再对其进行修补。
-   * 将状态类嵌套在上下文类中。 这种方式需要你所使用的编程语言支持嵌套类。
-5. 在上下文类中添加一个状态接口类型的引用成员变量， 以及一个用于修改该成员变量值的公有设置器。
-
-    === "vendingMachine.go: 背景"
-
-        ```go 
-        package main
-
-        import "fmt"
-
-        type VendingMachine struct {
-            hasItem       State
-            itemRequested State
-            hasMoney      State
-            noItem        State
-
-            currentState State
-
-            itemCount int
-            itemPrice int
-        }
-
-        func newVendingMachine(itemCount, itemPrice int) *VendingMachine {
-            v := &VendingMachine{
-                itemCount: itemCount,
-                itemPrice: itemPrice,
-            }
-            hasItemState := &HasItemState{
-                vendingMachine: v,
-            }
-            itemRequestedState := &ItemRequestedState{
-                vendingMachine: v,
-            }
-            hasMoneyState := &HasMoneyState{
-                vendingMachine: v,
-            }
-            noItemState := &NoItemState{
-                vendingMachine: v,
-            }
-
-            v.setState(hasItemState)
-            v.hasItem = hasItemState
-            v.itemRequested = itemRequestedState
-            v.hasMoney = hasMoneyState
-            v.noItem = noItemState
-            return v
-        }
-
-        func (v *VendingMachine) requestItem() error {
-            return v.currentState.requestItem()
-        }
-
-        func (v *VendingMachine) addItem(count int) error {
-            return v.currentState.addItem(count)
+        fmt.Println("\n=== 售罄后尝试购买 ===")
+        err := machine.SelectItem()
+        if err != nil {
+            fmt.Println(err)
         }
 
-        func (v *VendingMachine) insertMoney(money int) error {
-            return v.currentState.insertMoney(money)
-        }
+        fmt.Println("\n=== 补货后继续购买 ===")
+        machine.AddItem()
+        machine.SelectItem()
+        machine.InsertMoney()
+        machine.Dispense()
+    }
+    ```
 
-        func (v *VendingMachine) dispenseItem() error {
-            return v.currentState.dispenseItem()
-        }
+=== "📄 output.txt: 执行结果"
 
-        func (v *VendingMachine) setState(s State) {
-            v.currentState = s
-        }
+    ```
+    📊 库存: 1 件
 
-        func (v *VendingMachine) incrementItemCount(count int) {
-            fmt.Printf("Adding %d items\n", count)
-            v.itemCount = v.itemCount + count
-        }
-        ```
+    === 正常购买流程 ===
+    🛒 商品已选择
+    💰 收到付款
+    🎁 出货中...
+    ⚠️ 商品已售罄
+    📊 库存: 0 件
 
-6. 再次检查上下文中的方法， 将空的条件语句替换为相应的状态对象方法。
-7. 为切换上下文状态， 你需要创建某个状态类实例并将其传递给上下文。 你可以在上下文、 各种状态或客户端中完成这项工作。 无论在何处完成这项工作， 该类都将依赖于其所实例化的具体类。
+    === 售罄后尝试购买 ===
+    ❌ 商品已售罄
 
-    === "main.go: 客户端代码"
+    === 补货后继续购买 ===
+    📦 补货成功
+    🛒 商品已选择
+    💰 收到付款
+    🎁 出货中...
+    ```
 
-        ```go 
-        package main
+## 状态模式 vs 策略模式
 
-        import (
-            "fmt"
-            "log"
-        )
+这两个模式结构相似，但意图不同：
 
-        func main() {
-            vendingMachine := newVendingMachine(1, 10)
+| 特性 | 状态模式 | 策略模式 |
+|------|---------|---------|
+| **切换时机** | 自动切换（内部触发） | 手动切换（外部指定） |
+| **状态之间** | 知道彼此存在，可以互相切换 | 互不知道，完全独立 |
+| **典型场景** | 有限状态机、工作流 | 算法选择、行为参数化 |
 
-            err := vendingMachine.requestItem()
-            if err != nil {
-                log.Fatalf(err.Error())
-            }
+## 什么时候该用状态模式？
 
-            err = vendingMachine.insertMoney(10)
-            if err != nil {
-                log.Fatalf(err.Error())
-            }
+| 场景 | 说明 |
+|------|------|
+| **对象行为依赖状态** | 不同状态下同一操作有不同表现 |
+| **状态数量多** | 大量条件分支判断当前状态 |
+| **状态转换逻辑复杂** | 需要清晰的状态转换图 |
 
-            err = vendingMachine.dispenseItem()
-            if err != nil {
-                log.Fatalf(err.Error())
-            }
+**常见应用**：
 
-            fmt.Println()
+- **订单系统**：待支付 → 已支付 → 已发货 → 已收货
+- **游戏角色**：正常 → 受伤 → 死亡
+- **TCP 连接**：监听 → 已建立 → 关闭
+- **文档审批**：草稿 → 审核中 → 已批准/已拒绝
 
-            err = vendingMachine.addItem(2)
-            if err != nil {
-                log.Fatalf(err.Error())
-            }
+## 优缺点分析
 
-            fmt.Println()
-
-            err = vendingMachine.requestItem()
-            if err != nil {
-                log.Fatalf(err.Error())
-            }
-
-            err = vendingMachine.insertMoney(10)
-            if err != nil {
-                log.Fatalf(err.Error())
-            }
-
-            err = vendingMachine.dispenseItem()
-            if err != nil {
-                log.Fatalf(err.Error())
-            }
-        }
-        ```
-
-    === "output.txt: 执行结果"
-
-        ```go 
-        Item requestd
-        Money entered is ok
-        Dispensing Item
-
-        Adding 2 items
-
-        Item requestd
-        Money entered is ok
-        Dispensing Item
-        ```
-
-## 优缺点
-
-| 优点                                                  | 缺点                                                                                 |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| 单一职责原则。 将与特定状态相关的代码放在单独的类中。 | 如果状态机只有很少的几个状态， 或者很少发生改变， 那么应用该模式可能会显得小题大作。 |
-| 开闭原则。 无需修改已有状态类和上下文就能引入新状态。 |                                                                                      |
-| 通过消除臃肿的状态机条件语句简化上下文代码。          |                                                                                      |
+| ✅ 优点 | ❌ 缺点 |
+|---------|---------|
+| **消除条件分支**：每个状态类职责单一 | **类数量增加**：每个状态一个类 |
+| **开闭原则**：新增状态无需修改现有代码 | **状态少时过度设计**：简单情况用 if-else 更直接 |
+| **状态转换清晰**：每个状态知道下一个状态是谁 | |
 
 ## 与其他模式的关系
 
-* **桥接模式**、 **状态模式** 和 **策略模式** （在某种程度上包括 **适配器模式** ） 模式的接口非常相似。 实际上， 它们都基于 **组合模式** ——即将工作委派给其他对象， 不过也各自解决了不同的问题。 模式并不只是以特定方式组织代码的配方， 你还可以使用它们来和其他开发者讨论模式所解决的问题。
-* **状态** 可被视为 **策略** 的扩展。 两者都基于 **组合** 机制： 它们都通过将部分工作委派给 “帮手” 对象来改变其在不同情景下的行为。 策略使得这些对象相互之间完全独立， 它们不知道其他对象的存在。 但状态模式没有限制具体状态之间的依赖， 且允许它们自行改变在不同情景下的状态。
+| 模式组合 | 说明 |
+|----------|------|
+| **状态 vs 策略** | 策略是"怎么做"，状态是"现在是什么情况" |
+| **状态 + 单例** | 状态对象通常可以做成单例 |
+| **状态 + 享元** | 共享状态对象以节省内存 |
+
+> **一句话总结**：状态模式就像变形金刚——同一个机器人，在不同模式下有完全不同的形态和能力。

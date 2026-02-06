@@ -1,163 +1,343 @@
-# 装饰模式
+---
+title: 装饰模式
+date: 2023-02-25 17:18:47
+category:
+  - 设计模式
+tag:
+  - 结构型模式
+---
 
-装饰模式是一种结构型设计模式， 允许你通过将对象放入包含行为的特殊封装对象中来为原对象绑定新的行为。
+# 🎁 装饰模式：给对象"穿衣服"
 
-!!! tip "2009 综合知识 60"
+> 装饰模式是一种结构型设计模式，允许你通过将对象放入包含行为的特殊封装对象中来为原对象绑定新的行为——就像给人穿衣服一样，可以层层叠加。
 
-    根据题干描述，可以看出其基础是一个图形界面，并要求为图形界面提供一些定制的特效，例如带滚动条的图形界面，能够显示艺术字体且透明的图形界面等。这要求能够动态地对一个对象进行功能上的扩展，也可以对其子类进行功能上的扩展。对照选项中的 4 种设计模式，装饰模式最符合这一要求。
+## 从生活场景说起
 
-!!! tip "2013 综合知识 35,36"
+想象你去披萨店点餐：
 
-    装饰（Decorator）模式可以再不修改对象外观和功能的情况下添加或考删除对象功能。它可以使用一种对客户端来说是透明的方法来修改对象的功能，也就是使用初始类的子类实例对初始对象进行授权。装饰模式还为对象动态地添加了额外的:重任，这样就在不使用静态继承的情况下，为修改对象功能提供了灵活的选择。在以下情况中，应该使用装饰模式：
-    
-    * 想要在单个对象中动态并且透明地添加责任，而这样并不会影响其他对象；
-    * 想要在以后可能要修改的对象中添加责任；
-    * 当无法通过静态子类化实现扩展时。
+1. **基础披萨**：15 元的蔬菜披萨
+2. **加芝士**：+10 元
+3. **加番茄**：+7 元
+4. **加培根**：+12 元
+
+你的最终订单是：**蔬菜披萨 + 芝士 + 番茄 = 32 元**
+
+关键问题：如果用继承来实现所有组合，需要多少个类？
+
+- 蔬菜披萨
+- 蔬菜披萨+芝士
+- 蔬菜披萨+番茄
+- 蔬菜披萨+芝士+番茄
+- 蔬菜披萨+芝士+培根
+- ... **组合爆炸！** 😱
+
+装饰模式的解法：**把配料做成可以层层包装的"装饰器"**。
+
+```
+┌──────────────────────────────────┐
+│        番茄装饰器 (+7元)          │
+│  ┌──────────────────────────┐   │
+│  │    芝士装饰器 (+10元)      │   │
+│  │  ┌────────────────────┐  │   │
+│  │  │   蔬菜披萨 (15元)   │  │   │
+│  │  └────────────────────┘  │   │
+│  └──────────────────────────┘   │
+└──────────────────────────────────┘
+
+总价 = 15 + 10 + 7 = 32 元
+```
+
+## 为什么需要装饰模式？
+
+### 😩 用继承的问题
+
+```go
+// 继承方式：类爆炸
+type VeggiePizza struct{}
+type VeggiePizzaWithCheese struct{}
+type VeggiePizzaWithTomato struct{}
+type VeggiePizzaWithCheeseAndTomato struct{}
+type VeggiePizzaWithCheeseAndBacon struct{}
+// ... 每种组合都要一个类！
+
+// 新增一种配料？所有组合类都要翻倍！
+```
+
+### 😊 装饰模式的优雅解法
+
+```go
+// 基础披萨
+pizza := &VeggieMania{}                    // 15 元
+
+// 动态添加配料（装饰）
+pizzaWithCheese := &CheeseTopping{pizza}   // +10 元
+pizzaWithAll := &TomatoTopping{pizzaWithCheese}  // +7 元
+
+fmt.Println(pizzaWithAll.getPrice())       // 32 元
+```
 
 ## 模式结构
 
-![](https://refactoringguru.cn/images/patterns/diagrams/decorator/structure.png)
+```
+┌────────────────────────────────────────────────────────────────┐
+│                                                                │
+│                    ┌──────────────┐                            │
+│                    │  Component   │ ◀─── 定义统一接口          │
+│                    │  (部件接口)   │                           │
+│                    └──────┬───────┘                            │
+│                           │                                    │
+│              ┌────────────┴────────────┐                       │
+│              ▼                         ▼                       │
+│    ┌──────────────────┐      ┌──────────────────┐             │
+│    │ConcreteComponent │      │    Decorator     │             │
+│    │  (具体部件)       │      │   (装饰基类)     │             │
+│    │   🍕 披萨        │      │    🧀 配料      │             │
+│    └──────────────────┘      └────────┬─────────┘             │
+│                                       │                        │
+│                              ┌────────┴────────┐              │
+│                              ▼                 ▼              │
+│                    ┌──────────────┐   ┌──────────────┐        │
+│                    │CheeseTopping │   │TomatoTopping │        │
+│                    │   芝士装饰    │   │   番茄装饰   │        │
+│                    └──────────────┘   └──────────────┘        │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
 
-1. **部件 （Component）** 声明封装器和被封装对象的公用接口。
-2. **具体部件 （Concrete Component）** 类是被封装对象所属的类。 它定义了基础行为， 但装饰类可以改变这些行为。
-3. **基础装饰 （Base Decorator）** 类拥有一个指向被封装对象的引用成员变量。 该变量的类型应当被声明为通用部件接口， 这样它就可以引用具体的部件和装饰。 装饰基类会将所有操作委派给被封装的对象。
-4. **具体装饰类 （Concrete Decorators）** 定义了可动态添加到部件的额外行为。 具体装饰类会重写装饰基类的方法， 并在调用父类方法之前或之后进行额外的行为。
-5. **客户端 （Client）** 可以使用多层装饰来封装部件， 只要它能使用通用接口与所有对象互动即可。
+### 角色说明
 
-## 应用场景
+| 角色 | 职责 | 示例 |
+|------|------|------|
+| **部件** (Component) | 定义被装饰对象的接口 | `IPizza` 接口 |
+| **具体部件** (Concrete Component) | 被装饰的原始对象 | `VeggieMania` 披萨 |
+| **装饰** (Decorator) | 持有部件引用，实现相同接口 | 配料装饰器 |
+| **具体装饰** (Concrete Decorator) | 添加具体的装饰行为 | `CheeseTopping`、`TomatoTopping` |
 
-* **如果你希望在无需修改代码的情况下即可使用对象， 且希望在运行时为对象新增额外的行为， 可以使用装饰模式。**
+## 完整实现
 
-    装饰能将业务逻辑组织为层次结构， 你可为各层创建一个装饰， 在运行时将各种不同逻辑组合成对象。 由于这些对象都遵循通用接口， 客户端代码能以相同的方式使用这些对象。
+=== "pizza.go: 部件接口"
 
-* **如果用继承来扩展对象行为的方案难以实现或者根本不可行， 你可以使用该模式。**
-
-    许多编程语言使用 `final` 最终关键字来限制对某个类的进一步扩展。 复用最终类已有行为的唯一方法是使用装饰模式： 用封装器对其进行封装。
-
-## 实现方式
-
-1. 确保业务逻辑可用一个基本组件及多个额外可选层次表示。
-2. 找出基本组件和可选层次的通用方法。 创建一个组件接口并在其中声明这些方法。
-
-=== "pizza.go: 零件接口"
-
-    ```go 
+    ```go
     package main
 
+    // IPizza 披萨接口
     type IPizza interface {
         getPrice() int
+        getDescription() string
     }
     ```
 
-3. 创建一个具体组件类， 并定义其基础行为。
+=== "veggieMania.go: 具体部件"
 
-=== "veggieMania.go: 具体零件"
-
-    ```go 
+    ```go
     package main
 
-    type VeggeMania struct {
-    }
+    // VeggieMania 蔬菜披萨（基础产品）
+    type VeggieMania struct{}
 
-    func (p *VeggeMania) getPrice() int {
+    func (p *VeggieMania) getPrice() int {
         return 15
     }
-    ```
 
-4. 创建装饰基类， 使用一个成员变量存储指向被封装对象的引用。 该成员变量必须被声明为组件接口类型， 从而能在运行时连接具体组件和装饰。 装饰基类必须将所有工作委派给被封装的对象。
-
-=== "tomatoTopping.go: 具体装饰"
-
-    ```go 
-    package main
-
-    type TomatoTopping struct {
-        pizza IPizza
-    }
-
-    func (c *TomatoTopping) getPrice() int {
-        pizzaPrice := c.pizza.getPrice()
-        return pizzaPrice + 7
+    func (p *VeggieMania) getDescription() string {
+        return "🍕 蔬菜披萨"
     }
     ```
 
 === "cheeseTopping.go: 具体装饰"
 
-    ```go 
+    ```go
     package main
 
+    // CheeseTopping 芝士配料装饰器
     type CheeseTopping struct {
-        pizza IPizza
+        pizza IPizza  // 持有被装饰对象的引用
     }
 
     func (c *CheeseTopping) getPrice() int {
-        pizzaPrice := c.pizza.getPrice()
-        return pizzaPrice + 10
+        return c.pizza.getPrice() + 10  // 在原价基础上加价
+    }
+
+    func (c *CheeseTopping) getDescription() string {
+        return c.pizza.getDescription() + " + 🧀 芝士"
     }
     ```
 
-5. 确保所有类实现组件接口。
-6. 将装饰基类扩展为具体装饰。 具体装饰必须在调用父类方法 （总是委派给被封装对象） 之前或之后执行自身的行为。
-7. 客户端代码负责创建装饰并将其组合成客户端所需的形式。
+=== "tomatoTopping.go: 具体装饰"
+
+    ```go
+    package main
+
+    // TomatoTopping 番茄配料装饰器
+    type TomatoTopping struct {
+        pizza IPizza
+    }
+
+    func (c *TomatoTopping) getPrice() int {
+        return c.pizza.getPrice() + 7
+    }
+
+    func (c *TomatoTopping) getDescription() string {
+        return c.pizza.getDescription() + " + 🍅 番茄"
+    }
+    ```
+
+=== "baconTopping.go: 具体装饰"
+
+    ```go
+    package main
+
+    // BaconTopping 培根配料装饰器
+    type BaconTopping struct {
+        pizza IPizza
+    }
+
+    func (c *BaconTopping) getPrice() int {
+        return c.pizza.getPrice() + 12
+    }
+
+    func (c *BaconTopping) getDescription() string {
+        return c.pizza.getDescription() + " + 🥓 培根"
+    }
+    ```
 
 === "main.go: 客户端代码"
 
-    ```go 
+    ```go
     package main
 
     import "fmt"
 
     func main() {
+        // 基础披萨
+        fmt.Println("=== 基础披萨 ===")
+        pizza := &VeggieMania{}
+        fmt.Printf("%s = %d 元\n", pizza.getDescription(), pizza.getPrice())
 
-        pizza := &VeggeMania{}
+        // 加芝士
+        fmt.Println("\n=== 加芝士 ===")
+        pizzaWithCheese := &CheeseTopping{pizza: pizza}
+        fmt.Printf("%s = %d 元\n", 
+            pizzaWithCheese.getDescription(), 
+            pizzaWithCheese.getPrice())
 
-        //Add cheese topping
-        pizzaWithCheese := &CheeseTopping{
-            pizza: pizza,
+        // 再加番茄
+        fmt.Println("\n=== 再加番茄 ===")
+        pizzaWithCheeseAndTomato := &TomatoTopping{pizza: pizzaWithCheese}
+        fmt.Printf("%s = %d 元\n", 
+            pizzaWithCheeseAndTomato.getDescription(), 
+            pizzaWithCheeseAndTomato.getPrice())
+
+        // 豪华套餐：芝士 + 番茄 + 培根
+        fmt.Println("\n=== 豪华套餐 ===")
+        deluxePizza := &BaconTopping{
+            pizza: &TomatoTopping{
+                pizza: &CheeseTopping{
+                    pizza: &VeggieMania{},
+                },
+            },
         }
-
-        //Add tomato topping
-        pizzaWithCheeseAndTomato := &TomatoTopping{
-            pizza: pizzaWithCheese,
-        }
-
-        fmt.Printf("Price of veggeMania with tomato and cheese topping is %d\n", pizzaWithCheeseAndTomato.getPrice())
+        fmt.Printf("%s = %d 元\n", 
+            deluxePizza.getDescription(), 
+            deluxePizza.getPrice())
     }
     ```
 
 === "output.txt: 执行结果"
 
-    ```plain
-    Price of veggeMania with tomato and cheese topping is 32
+    ```
+    === 基础披萨 ===
+    🍕 蔬菜披萨 = 15 元
+
+    === 加芝士 ===
+    🍕 蔬菜披萨 + 🧀 芝士 = 25 元
+
+    === 再加番茄 ===
+    🍕 蔬菜披萨 + 🧀 芝士 + 🍅 番茄 = 32 元
+
+    === 豪华套餐 ===
+    🍕 蔬菜披萨 + 🧀 芝士 + 🍅 番茄 + 🥓 培根 = 44 元
     ```
 
-## 优缺点
+## 装饰模式 vs 继承
 
-| 优点                                                                    | 缺点                                       |
-| ----------------------------------------------------------------------- | ------------------------------------------ |
-| 你无需创建新子类即可扩展对象的行为。                                    | 在封装器栈中删除特定封装器比较困难。       |
-| 你可以在运行时添加或删除对象的功能。                                    | 实现行为不受装饰栈顺序影响的装饰比较困难。 |
-| 你可以用多个装饰封装对象来组合几种行为。                                | 各层的初始化配置代码看上去可能会很糟糕。   |
-| 单一职责原则。 你可以将实现了许多不同行为的一个大类拆分为多个较小的类。 |                                            |
+| 特性 | 装饰模式 | 继承 |
+|------|----------|------|
+| **组合方式** | 运行时动态组合 | 编译时静态确定 |
+| **扩展性** | 新增装饰器即可 | 需要修改类层次 |
+| **组合数量** | N 个装饰器可任意组合 | 需要 2^N 个子类 |
+| **灵活性** | 可以添加/移除装饰 | 继承关系固定 |
+
+## 什么时候使用装饰模式？
+
+| 场景 | 说明 |
+|------|------|
+| 🎨 **动态扩展** | 需要在运行时为对象添加功能 |
+| 🔒 **无法继承** | 类使用了 `final` 关键字，无法被继承 |
+| 📦 **功能组合** | 有多种可选功能需要自由组合 |
+| 🧱 **单一职责** | 希望将复杂功能拆分成独立的装饰器 |
+
+## 实际应用场景
+
+### 1. I/O 流（Java 经典示例）
+
+```java
+// Java 的 I/O 流就是装饰模式的典型应用
+InputStream input = new FileInputStream("file.txt");
+input = new BufferedInputStream(input);      // 添加缓冲功能
+input = new DataInputStream(input);          // 添加数据类型读取功能
+```
+
+### 2. HTTP 中间件
+
+```go
+// 给 HTTP Handler 添加功能
+handler := http.HandlerFunc(myHandler)
+handler = loggingMiddleware(handler)    // 日志装饰
+handler = authMiddleware(handler)       // 认证装饰
+handler = rateLimitMiddleware(handler)  // 限流装饰
+```
+
+### 3. 数据加密/压缩
+
+```go
+type DataSource interface {
+    WriteData(data string)
+    ReadData() string
+}
+
+type FileDataSource struct{ filename string }
+type EncryptionDecorator struct{ source DataSource }  // 加密装饰
+type CompressionDecorator struct{ source DataSource } // 压缩装饰
+```
+
+## 优缺点分析
+
+| ✅ 优点 | ❌ 缺点 |
+|---------|---------|
+| **无需继承即可扩展** | **装饰顺序可能影响结果** |
+| **运行时添加/移除功能** | **多层装饰难以调试** |
+| **单一职责，每个装饰器职责明确** | **初始化代码可能很"丑"** |
+| **可以组合多种装饰** | **删除中间某个装饰比较麻烦** |
 
 ## 与其他模式的关系
 
-* **适配器模式** 可以对已有对象的接口进行修改， **装饰模式** 则能在不改变对象接口的前提下强化对象功能。 此外， 装饰还支持递归组合， 适配器则无法实现。
+| 模式 | 关系 |
+|------|------|
+| **适配器** | 适配器改变接口，装饰器保持接口不变 |
+| **代理** | 代理控制访问，装饰器增强功能 |
+| **组合** | 组合是树形结构，装饰只有单个子组件 |
+| **责任链** | 结构相似，但责任链可以中断，装饰器不能中断 |
+| **策略** | 策略改变对象内核，装饰器改变对象外壳 |
 
-* **适配器** 能为被封装对象提供不同的接口， **代理模式** 能为对象提供相同的接口， **装饰** 则能为对象提供加强的接口。
+!!! tip "2009 综合知识 60"
+    装饰（Decorator）模式可以在不修改对象外观和功能的情况下添加或删除对象功能。在以下情况中应该使用装饰模式：
+    
+    * 想要在单个对象中动态并且透明地添加责任
+    * 想要在以后可能要修改的对象中添加责任
+    * 当无法通过静态子类化实现扩展时
 
-* **责任链模式** 和 **装饰模式** 的类结构非常相似。 两者都依赖递归组合将需要执行的操作传递给一系列对象。 但是， 两者有几点重要的不同之处。
+---
 
-    *责任链* 的管理者可以相互独立地执行一切操作， 还可以随时停止传递请求。 另一方面， 各种 *装饰* 可以在遵循基本接口的情况下扩展对象的行为。 此外， *装饰* 无法中断请求的传递。
-
-* **组合模式** 和 **装饰** 的结构图很相似， 因为两者都依赖递归组合来组织无限数量的对象。
-
-    *装饰* 类似于组合， 但其只有一个子组件。 此外还有一个明显不同： *装饰* 为被封装对象添加了额外的职责， *组合* 仅对其子节点的结果进行了 “求和”。
-
-    但是， 模式也可以相互合作： 你可以使用 *装饰* 来扩展 *组合* 树中特定对象的行为。
-
-* 大量使用 **组合** 和 **装饰** 的设计通常可从对于 **原型模式** 的使用中获益。 你可以通过该模式来复制复杂结构， 而非从零开始重新构造。
-
-* **装饰** 可让你更改对象的外表， **策略模式** 则让你能够改变其本质。
-
-* **装饰** 和 **代理** 有着相似的结构， 但是其意图却非常不同。 这两个模式的构建都基于 **组合** 原则， 也就是说一个对象应该将部分工作委派给另一个对象。 两者之间的不同之处在于 *代理* 通常自行管理其服务对象的生命周期， 而 *装饰* 的生成则总是由客户端进行控制。
+!!! tip "一句话总结"
+    **装饰模式就是"穿衣服"**：你可以给一个人穿 T 恤、外套、围巾，每件衣服都是一个装饰器，可以随意穿脱，人还是那个人，但功能（保暖、美观）增强了。
