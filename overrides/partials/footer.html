@@ -89,22 +89,6 @@
     <div class="md-footer-meta__inner md-grid">
       {% include "partials/copyright.html" %}
 
-      <!-- Site Visits 访客统计 -->
-      <style>
-      .site-visit-count {
-        padding: 0 12px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 0.85rem;
-        /* color: black; */
-      }
-      </style>
-      <script async src="//finicounter.eu.org/finicounter.js"></script>
-      <div class="site-visit-count">
-        <span>本站访问量：</span><span id="finicount_views"></span>
-      </div>
-
       <!-- Social links -->
       {% if config.extra.social %}
         {% include "partials/social.html" %}

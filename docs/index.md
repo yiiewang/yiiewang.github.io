@@ -24,7 +24,7 @@ hide:
 
     技术博客，记录学习与实践
 
-    [:octicons-arrow-right-24: 前往博客](blog/)
+    [:octicons-arrow-right-24: 前往博客](blog/index.md)
 
 -   :material-palette:{ .lg .middle } **设计模式**
 
@@ -32,7 +32,7 @@ hide:
 
     23 种经典设计模式详解
 
-    [:octicons-arrow-right-24: 查看](design-patterns/)
+    [:octicons-arrow-right-24: 查看](design-patterns/index.md)
 
 -   :material-wrench:{ .lg .middle } **代码重构**
 
@@ -40,6 +40,6 @@ hide:
 
     提升代码质量的实践指南
 
-    [:octicons-arrow-right-24: 查看](refactoring/)
+    [:octicons-arrow-right-24: 查看](refactoring/index.md)
 
 </div>
