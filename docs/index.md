@@ -215,7 +215,7 @@ hide:
   <p style="color: var(--md-default-fg-color--light); margin-bottom: 1rem;">
     💬 有问题或想法？欢迎在文章下方留言交流
   </p>
-  <a href="https://github.com/cloakscn/cloakscn.github.io" target="_blank" style="color: var(--md-default-fg-color--light); font-size: 0.85rem;">
+  <a href="https://github.com/yiiewang/yiiewang.github.io" target="_blank" style="color: var(--md-default-fg-color--light); font-size: 0.85rem;">
     :fontawesome-brands-github: 本站源码
   </a>
 </div>
