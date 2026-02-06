@@ -1,0 +1,129 @@
+<!-- 扩展默认 head 标签，添加 SEO 和 AI 检索优化 -->
+
+<!-- 基础 SEO Meta 标签 -->
+<meta name="author" content="{{ config.site_author }}">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<meta name="googlebot" content="index, follow">
+<meta name="baiduspider" content="index, follow">
+
+<!-- AI 爬虫友好标记 -->
+<meta name="ai-content-declaration" content="human-created">
+<meta name="llms" content="allowed">
+
+<!-- Open Graph 增强 -->
+<meta property="og:site_name" content="{{ config.site_name }}">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:type" content="{% if page and page.meta and page.meta.date %}article{% else %}website{% endif %}">
+{% if page and page.meta and page.meta.description %}
+<meta property="og:description" content="{{ page.meta.description }}">
+{% else %}
+<meta property="og:description" content="{{ config.site_description | truncate(200) }}">
+{% endif %}
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@yiiewang">
+{% if page and page.meta and page.meta.description %}
+<meta name="twitter:description" content="{{ page.meta.description }}">
+{% endif %}
+
+<!-- JSON-LD 结构化数据 -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "{{ config.site_name }}",
+  "url": "{{ config.site_url }}",
+  "description": "{{ config.site_description | truncate(200) | e }}",
+  "author": {
+    "@type": "Person",
+    "name": "{{ config.site_author }}",
+    "url": "https://github.com/yiiewang"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "{{ config.site_author }}"
+  },
+  "inLanguage": "zh-CN",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "{{ config.site_url }}?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+
+{% if page and page.meta and page.meta.date %}
+<!-- 博客文章结构化数据 -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "{{ page.title | e }}",
+  "description": "{% if page.meta.description %}{{ page.meta.description | e }}{% else %}{{ page.title | e }}{% endif %}",
+  "url": "{{ config.site_url }}{{ page.url }}",
+  "datePublished": "{{ page.meta.date }}",
+  "dateModified": "{{ page.meta.date }}",
+  "author": {
+    "@type": "Person",
+    "name": "{% if page.meta.authors %}{{ page.meta.authors[0] }}{% else %}{{ config.site_author }}{% endif %}"
+  },
+  "publisher": {
+    "@type": "Person",
+    "name": "{{ config.site_author }}",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "{{ config.site_url }}/assets/favicon.ico"
+    }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "{{ config.site_url }}{{ page.url }}"
+  },
+  "inLanguage": "zh-CN"
+  {% if page.meta.categories %},
+  "articleSection": "{{ page.meta.categories | join(', ') }}"
+  {% endif %}
+  {% if page.meta.tags %},
+  "keywords": "{{ page.meta.tags | join(', ') }}"
+  {% endif %}
+}
+</script>
+{% endif %}
+
+<!-- 面包屑导航结构化数据 -->
+{% if page and page.url != '/' %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "首页",
+      "item": "{{ config.site_url }}"
+    }
+    {% if 'blog' in page.url %},
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "博客",
+      "item": "{{ config.site_url }}/blog/"
+    }
+    {% endif %}
+  ]
+}
+</script>
+{% endif %}
+
+<!-- Canonical URL -->
+<link rel="canonical" href="{{ config.site_url }}{{ page.url }}">
+
+<!-- 预连接优化 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<!-- DNS 预解析 -->
+<link rel="dns-prefetch" href="https://www.googletagmanager.com">
+<link rel="dns-prefetch" href="https://giscus.app">

@@ -8,12 +8,12 @@ site_description: >-
   感谢你的访问，希望你在这里找到你感兴趣的内容！
 
 # Repository
-repo_name: cloakscn/cloakscn.github.io
-repo_url: https://github.com/cloakscn/cloakscn.github.io
+repo_name: yiiewang/yiiewang.github.io
+repo_url: https://github.com/yiiewang/yiiewang.github.io
 
 # Copyright
 copyright: |
-  Copyright &copy; 2018 - 2024 Cloaks <a href="https://beian.miit.gov.cn/" target="_blank">晋ICP备19014927号-3</a><br/>
+  Copyright &copy; 2018 - 2026 Cloaks <a href="https://beian.miit.gov.cn/" target="_blank">晋ICP备19014927号-3</a><br/>
   <span id="busuanzi_container_site_pv">
     本站总访问量<span id="busuanzi_value_site_pv"></span>次
   </span> |
@@ -89,6 +89,8 @@ theme:
 plugins:
   - glightbox
   - tags
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - blog:
       blog_toc: true
       post_slugify: !!python/object/apply:pymdownx.slugs.slugify
@@ -109,8 +111,6 @@ plugins:
       cards_layout_options:
         font_family: Noto Sans SC
         logo: assets/favicon.ico
-  - search:
-      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - minify:
       minify_html: true
 
@@ -150,15 +150,11 @@ extra:
     - icon: simple/rss
       link: https://cloaks.cn/feed_rss_created.xml
     - icon: fontawesome/brands/github
-      link: https://github.com/cloakscn
+      link: https://github.com/yiiewang
     - icon: fontawesome/brands/docker
       link: https://hub.docker.com/u/cloaks
     - icon: material/email
       link: mailto:cloaks@qq.com
-    - icon: material/google-analytics
-      link: https://analytics.google.com/analytics/web/#/p299634585/reports/intelligenthome?params=_u..nav%3Dmaui
-    - icon: simple/googleadsense
-      link: https://www.google.com/adsense/new/u/0/pub-3907145727941275/onboarding
 # Extensions
 markdown_extensions:
   - abbr
