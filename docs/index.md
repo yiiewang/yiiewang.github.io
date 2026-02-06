@@ -116,10 +116,6 @@ hide:
     <div class="stat-number">23 种</div>
     <div class="stat-label">设计模式</div>
   </div>
-  <div class="stat-item">
-    <div class="stat-number">50+</div>
-    <div class="stat-label">重构技巧</div>
-  </div>
 </div>
 
 ---
@@ -150,16 +146,6 @@ hide:
 
     [:octicons-arrow-right-24: 开始学习](design-patterns/index.md)
 
--   :material-wrench:{ .lg .middle } **代码重构**
-
-    ---
-
-    如何把「能跑」的代码变成「好」的代码？
-    
-    识别代码异味，掌握重构手法，写出优雅代码。
-
-    [:octicons-arrow-right-24: 查看指南](refactoring/index.md)
-
 -   :material-certificate:{ .lg .middle } **软考笔记**
 
     ---
@@ -183,7 +169,6 @@ hide:
     | 文章 | 简介 |
     |------|------|
     | [单例模式详解](design-patterns/creational-patterns/singleton.md) | 最简单也最容易用错的设计模式 |
-    | [什么是技术债务](refactoring/what-is-refactoring/technical-debt.md) | 理解代码腐化的根源 |
     | [软件架构设计](ruankao/medium%20software%20architecture.md) | 架构师必备的设计思维 |
 
 === ":material-map-marker-path: 学习路径"
@@ -192,12 +177,6 @@ hide:
     
     ```
     单例模式 → 工厂模式 → 策略模式 → 观察者模式
-    ```
-    
-    **学习代码重构**
-    
-    ```
-    技术债务 → 代码异味 → 重构技巧 → 实践应用
     ```
 
 === ":material-tools: 我的技术栈"

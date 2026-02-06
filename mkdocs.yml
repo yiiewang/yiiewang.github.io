@@ -263,6 +263,7 @@ nav:
               - design-patterns/creational-patterns/prototype.md
               - design-patterns/creational-patterns/factory.md
               - design-patterns/creational-patterns/abstract-factory.md
+              - design-patterns/creational-patterns/builder.md
           - 结构型模式:
               - design-patterns/structural-patterns/adapter.md
               - design-patterns/structural-patterns/facade.md
@@ -270,6 +271,7 @@ nav:
               - design-patterns/structural-patterns/proxy.md
               - design-patterns/structural-patterns/decorator.md
               - design-patterns/structural-patterns/bridge.md
+              - design-patterns/structural-patterns/flyweight.md
           - 行为模式:
               - design-patterns/behavioral-patterns/template-method.md
               - design-patterns/behavioral-patterns/state.md
@@ -280,5 +282,6 @@ nav:
               - design-patterns/behavioral-patterns/mediator.md
               - design-patterns/behavioral-patterns/visitor.md
               - design-patterns/behavioral-patterns/iterator.md
+              - design-patterns/behavioral-patterns/memento.md
   - 博客:
       - blog/index.md
