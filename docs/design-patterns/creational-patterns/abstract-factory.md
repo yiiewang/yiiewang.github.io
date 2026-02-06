@@ -7,316 +7,279 @@ tag:
   - 创建型模式
 ---
 
-抽象工厂模式是一种创建型设计模式， 它能创建一系列相关的对象， 而无需指定其具体类。
+# 抽象工厂模式：生产"全家桶"的工厂
+
+去麦当劳点餐，你可能会点"麦辣鸡腿堡套餐"——汉堡、薯条、可乐，全是麦当劳风味。去肯德基，同样是套餐，但风味就变成了肯德基的。这就是抽象工厂的精髓： **同一个工厂生产的产品必须"配套"**。
+
+**抽象工厂模式** 能创建一系列相关的对象，而无需指定它们的具体类。它保证你不会把麦当劳的汉堡和肯德基的可乐混搭在一起。
+
+## 为什么需要抽象工厂？
+
+假设你在开发一个运动品牌电商系统，卖鞋子和衣服：
+
+```go
+// ❌ 糟糕的写法：可能产生不匹配的组合
+func createProducts(brand string) (Shoe, Shirt) {
+    var shoe Shoe
+    var shirt Shirt
+    
+    // 不小心写错了：耐克的鞋配阿迪的衣服
+    shoe = &NikeShoe{}
+    shirt = &AdidasShirt{}  // 品牌不匹配！
+    
+    return shoe, shirt
+}
+```
+
+这样写的问题：
+
+- **容易出错** ：手动创建产品时可能搭配错误
+- **难以扩展** ：新增品牌需要改很多地方
+- **违反开闭原则** ：每次新增产品线都要改核心代码
+
+抽象工厂的解法： **让工厂负责生产"全家桶"，保证同一工厂的产品必定匹配**。
 
 ## 模式结构
 
-![](images/image.png)
+![抽象工厂结构](images/image.png)
 
-1. 抽象产品 （Abstract Product） 为构成系列产品的一组不同但相关的产品声明接口。
-2. 具体产品 （Concrete Product） 是抽象产品的多种不同类型实现。 所有变体 （维多利亚/现代） 都必须实现相应的抽象产品 （椅子/沙发）。
-3. 抽象工厂 （Abstract Factory） 接口声明了一组创建各种抽象产品的方法。
-4. 具体工厂 （Concrete Factory） 实现抽象工厂的构建方法。 每个具体工厂都对应特定产品变体， 且仅创建此种产品变体。
-5. 尽管具体工厂会对具体产品进行初始化， 其构建方法签名必须返回相应的抽象产品。 这样， 使用工厂类的客户端代码就不会与工厂创建的特定产品变体耦合。 客户端 （Client） 只需通过抽象接口调用工厂和产品对象， 就能与任何具体工厂/产品变体交互。
+| 角色 | 职责 | 类比 |
+|------|------|------|
+| **AbstractFactory（抽象工厂）** | 声明创建产品族的方法 | 运动品牌（能生产鞋和衣服） |
+| **ConcreteFactory（具体工厂）** | 生产特定品牌的产品 | Nike 工厂、Adidas 工厂 |
+| **AbstractProduct（抽象产品）** | 定义产品接口 | 鞋子接口、衣服接口 |
+| **ConcreteProduct（具体产品）** | 实现具体产品 | Nike 鞋、Adidas 衣服 |
 
-## 适用场景
+## 动手实现：运动品牌生产线
 
-* **如果代码需要与多个不同系列的相关产品交互， 但是由于无法提前获取相关信息， 或者出于对未来扩展性的考虑， 你不希望代码基于产品的具体类进行构建， 在这种情况下， 你可以使用抽象工厂。**
+用运动品牌的鞋子和衣服来演示抽象工厂模式。
 
-    抽象工厂为你提供了一个接口， 可用于创建每个系列产品的对象。 只要代码通过该接口创建对象， 那么你就不会生成与应用程序已生成的产品类型不一致的产品。
+### 第一步：画出产品矩阵
 
-* **如果你有一个基于一组抽象方法的类， 且其主要功能因此变得不明确， 那么在这种情况下可以考虑使用抽象工厂模式。**
+|  | 鞋子 (Shoe) | 衣服 (Shirt) |
+|--|-------------|--------------|
+| **Nike** | NikeShoe | NikeShirt |
+| **Adidas** | AdidasShoe | AdidasShirt |
 
-    在设计良好的程序中， 每个类仅负责一件事。 如果一个类与多种类型产品交互， 就可以考虑将工厂方法抽取到独立的工厂类或具备完整功能的抽象工厂类中。
+### 第二步：定义抽象产品
 
-## 实现方式
+=== "📄 shoe.go: 鞋子接口"
 
-1. 以不同的产品类型与产品变体为维度绘制矩阵。
+    ```go
+    package main
 
-    ||Shoe|Shirt|
-    |-|-|-|
-    |**Nike**|NikeShoe|NikeShirt|
-    |**Adidas**|AdidasShoe|adidasShirt|
+    // IShoe 鞋子接口
+    type IShoe interface {
+        SetLogo(logo string)
+        SetSize(size int)
+        GetLogo() string
+        GetSize() int
+    }
 
-    抽象出以下接口：
+    // Shoe 鞋子基类
+    type Shoe struct {
+        logo string
+        size int
+    }
 
-    * 产品接口：(Model 层)
-        * IShoe 接口
-            * Shoe 实现构建方法
-                * NikeShoe 继承 Shoe
-                * AdidasShoe 继承 Shoe
-        * IShirt 接口
-            * Shirt 实现构建方法
-                * NikeShirt 继承 Shirt
-                * AdidasShirt 继承 Shirt
-    * 抽象工厂接口，声明制造两种产品的能力（Service 层）
-        * Nike 实现抽象工厂的构建方法
-        * Adidas 实现抽象工厂的构建方法
+    func (s *Shoe) SetLogo(logo string) { s.logo = logo }
+    func (s *Shoe) GetLogo() string     { return s.logo }
+    func (s *Shoe) SetSize(size int)    { s.size = size }
+    func (s *Shoe) GetSize() int        { return s.size }
+    ```
 
-1. 为所有产品声明抽象产品接口。 然后让所有具体产品类实现这些接口。
+=== "📄 shirt.go: 衣服接口"
 
-    === "iShoe.go: 抽象产品"
+    ```go
+    package main
 
-        ```go 
-        package main
+    // IShirt 衣服接口
+    type IShirt interface {
+        SetLogo(logo string)
+        SetSize(size int)
+        GetLogo() string
+        GetSize() int
+    }
 
-        type IShoe interface {
-            setLogo(logo string)
-            setSize(size int)
-            getLogo() string
-            getSize() int
+    // Shirt 衣服基类
+    type Shirt struct {
+        logo string
+        size int
+    }
+
+    func (s *Shirt) SetLogo(logo string) { s.logo = logo }
+    func (s *Shirt) GetLogo() string     { return s.logo }
+    func (s *Shirt) SetSize(size int)    { s.size = size }
+    func (s *Shirt) GetSize() int        { return s.size }
+    ```
+
+### 第三步：实现具体产品
+
+=== "📄 nike_shoe.go & nike_shirt.go"
+
+    ```go
+    // Nike 鞋
+    type NikeShoe struct{ Shoe }
+
+    // Nike 衣服
+    type NikeShirt struct{ Shirt }
+    ```
+
+=== "📄 adidas_shoe.go & adidas_shirt.go"
+
+    ```go
+    // Adidas 鞋
+    type AdidasShoe struct{ Shoe }
+
+    // Adidas 衣服
+    type AdidasShirt struct{ Shirt }
+    ```
+
+### 第四步：定义抽象工厂
+
+=== "📄 sports_factory.go: 抽象工厂接口"
+
+    ```go
+    package main
+
+    import "fmt"
+
+    // ISportsFactory 运动品牌工厂接口
+    type ISportsFactory interface {
+        MakeShoe() IShoe
+        MakeShirt() IShirt
+    }
+
+    // GetSportsFactory 根据品牌返回对应工厂
+    func GetSportsFactory(brand string) (ISportsFactory, error) {
+        switch brand {
+        case "nike":
+            return &Nike{}, nil
+        case "adidas":
+            return &Adidas{}, nil
+        default:
+            return nil, fmt.Errorf("未知品牌: %s", brand)
         }
+    }
+    ```
 
-        type Shoe struct {
-            logo string
-            size int
+### 第五步：实现具体工厂
+
+=== "📄 nike.go: Nike 工厂"
+
+    ```go
+    package main
+
+    // Nike 工厂，生产 Nike 全系列产品
+    type Nike struct{}
+
+    func (n *Nike) MakeShoe() IShoe {
+        return &NikeShoe{
+            Shoe: Shoe{logo: "✓ Nike", size: 42},
         }
+    }
 
-        func (s *Shoe) setLogo(logo string) {
-            s.logo = logo
+    func (n *Nike) MakeShirt() IShirt {
+        return &NikeShirt{
+            Shirt: Shirt{logo: "✓ Nike", size: 180},
         }
+    }
+    ```
 
-        func (s *Shoe) getLogo() string {
-            return s.logo
+=== "📄 adidas.go: Adidas 工厂"
+
+    ```go
+    package main
+
+    // Adidas 工厂，生产 Adidas 全系列产品
+    type Adidas struct{}
+
+    func (a *Adidas) MakeShoe() IShoe {
+        return &AdidasShoe{
+            Shoe: Shoe{logo: "三道杠 Adidas", size: 43},
         }
+    }
 
-        func (s *Shoe) setSize(size int) {
-            s.size = size
+    func (a *Adidas) MakeShirt() IShirt {
+        return &AdidasShirt{
+            Shirt: Shirt{logo: "三道杠 Adidas", size: 175},
         }
+    }
+    ```
 
-        func (s *Shoe) getSize() int {
-            return s.size
-        }
-        ```
+### 第六步：使用抽象工厂
 
+=== "📄 main.go: 客户端代码"
 
-    === "adidasShoe.go: 具体产品 继承 Shoe"
+    ```go
+    package main
 
-        ```go 
-        package main
+    import "fmt"
 
-        type AdidasShoe struct {
-            Shoe
-        }
-        ```
+    func main() {
+        // 获取 Nike 工厂
+        nikeFactory, _ := GetSportsFactory("nike")
+        nikeShoe := nikeFactory.MakeShoe()
+        nikeShirt := nikeFactory.MakeShirt()
 
-    === "nikeShoe.go: 具体产品 继承 Shoe"
+        fmt.Println("=== Nike 套装 ===")
+        fmt.Printf("鞋子: %s, 尺码: %d\n", nikeShoe.GetLogo(), nikeShoe.GetSize())
+        fmt.Printf("衣服: %s, 尺码: %d\n", nikeShirt.GetLogo(), nikeShirt.GetSize())
 
-        ```go 
-        package main
+        // 获取 Adidas 工厂
+        adidasFactory, _ := GetSportsFactory("adidas")
+        adidasShoe := adidasFactory.MakeShoe()
+        adidasShirt := adidasFactory.MakeShirt()
 
-        type NikeShoe struct {
-            Shoe
-        }
-        ```
+        fmt.Println("\n=== Adidas 套装 ===")
+        fmt.Printf("鞋子: %s, 尺码: %d\n", adidasShoe.GetLogo(), adidasShoe.GetSize())
+        fmt.Printf("衣服: %s, 尺码: %d\n", adidasShirt.GetLogo(), adidasShirt.GetSize())
+    }
+    ```
 
-    === "iShirt.go: 抽象产品"
+=== "📄 output.txt: 执行结果"
 
-        ```go 
-        package main
+    ```
+    === Nike 套装 ===
+    鞋子: ✓ Nike, 尺码: 42
+    衣服: ✓ Nike, 尺码: 180
 
-        type IShirt interface {
-            setLogo(logo string)
-            setSize(size int)
-            getLogo() string
-            getSize() int
-        }
+    === Adidas 套装 ===
+    鞋子: 三道杠 Adidas, 尺码: 43
+    衣服: 三道杠 Adidas, 尺码: 175
+    ```
 
-        type Shirt struct {
-            logo string
-            size int
-        }
+## 抽象工厂 vs 工厂方法
 
-        func (s *Shirt) setLogo(logo string) {
-            s.logo = logo
-        }
+| 特性 | 工厂方法 | 抽象工厂 |
+|------|---------|---------|
+| **产品数量** | 一种产品 | 一系列相关产品 |
+| **关注点** | 创建单个对象 | 创建产品族 |
+| **扩展方式** | 新增产品类 | 新增工厂类 |
+| **典型场景** | 日志记录器工厂 | UI 组件工厂（按风格） |
 
-        func (s *Shirt) getLogo() string {
-            return s.logo
-        }
+## 什么时候该用抽象工厂？
 
-        func (s *Shirt) setSize(size int) {
-            s.size = size
-        }
+| 场景 | 说明 |
+|------|------|
+| **产品有多个系列** | 如 Windows/Mac/Linux 风格的 UI 组件 |
+| **产品必须配套使用** | 如同品牌的鞋子和衣服 |
+| **需要切换产品系列** | 如切换数据库（MySQL 全家桶 / PostgreSQL 全家桶） |
 
-        func (s *Shirt) getSize() int {
-            return s.size
-        }
-        ```
+## 优缺点分析
 
-    === "adidasShirt.go: 具体产品 继承 Shirt"
-
-        ```go 
-        package main
-
-        type AdidasShirt struct {
-            Shirt
-        }
-        ```
-
-    === "nikeShirt.go: 具体产品 继承 Shirt"
-
-        ```go 
-        package main
-
-        type NikeShirt struct {
-            Shirt
-        }
-        ```
-
-2. 声明抽象工厂接口， 并且在接口中为所有抽象产品提供一组构建方法。
-
-    === "iSportsFactory.go: 抽象工厂接口"
-
-        ```go  
-        package main
-
-        import "fmt"
-
-        type ISportsFactory interface {
-            makeShoe() IShoe
-            makeShirt() IShirt
-        }
-
-        func GetSportsFactory(brand string) (ISportsFactory, error) {
-            if brand == "adidas" {
-                return &Adidas{}, nil
-            }
-
-            if brand == "nike" {
-                return &Nike{}, nil
-            }
-
-            return nil, fmt.Errorf("Wrong brand type passed")
-        }
-        ```
-
-3. 为每种产品变体实现一个具体工厂类。
-
-    === "adidas.go: 具体工厂"
-
-        ```go 
-        package main
-
-        type Adidas struct {
-        }
-
-        func (a *Adidas) makeShoe() IShoe {
-            return &AdidasShoe{
-                Shoe: Shoe{
-                    logo: "adidas",
-                    size: 14,
-                },
-            }
-        }
-
-        func (a *Adidas) makeShirt() IShirt {
-            return &AdidasShirt{
-                Shirt: Shirt{
-                    logo: "adidas",
-                    size: 14,
-                },
-            }
-        }
-        ```
-
-    === "nike.go: 具体工厂"
-
-        ```go 
-        package main
-
-        type Nike struct {
-        }
-
-        func (n *Nike) makeShoe() IShoe {
-            return &NikeShoe{
-                Shoe: Shoe{
-                    logo: "nike",
-                    size: 14,
-                },
-            }
-        }
-
-        func (n *Nike) makeShirt() IShirt {
-            return &NikeShirt{
-                Shirt: Shirt{
-                    logo: "nike",
-                    size: 14,
-                },
-            }
-        }
-        ```
-
-4. 在应用程序中开发初始化代码。 该代码根据应用程序配置或当前环境， 对特定具体工厂类进行初始化。 然后将该工厂对象传递给所有需要创建产品的类。
-
-    === "main.go: 客户端代码"
-
-        ```go 
-        package main
-
-        import "fmt"
-
-        func main() {
-            adidasFactory, _ := GetSportsFactory("adidas")
-            nikeFactory, _ := GetSportsFactory("nike")
-
-            nikeShoe := nikeFactory.makeShoe()
-            nikeShirt := nikeFactory.makeShirt()
-
-            adidasShoe := adidasFactory.makeShoe()
-            adidasShirt := adidasFactory.makeShirt()
-
-            printShoeDetails(nikeShoe)
-            printShirtDetails(nikeShirt)
-
-            printShoeDetails(adidasShoe)
-            printShirtDetails(adidasShirt)
-        }
-
-        func printShoeDetails(s IShoe) {
-            fmt.Printf("Logo: %s", s.getLogo())
-            fmt.Println()
-            fmt.Printf("Size: %d", s.getSize())
-            fmt.Println()
-        }
-
-        func printShirtDetails(s IShirt) {
-            fmt.Printf("Logo: %s", s.getLogo())
-            fmt.Println()
-            fmt.Printf("Size: %d", s.getSize())
-            fmt.Println()
-        }
-        ```
-
-    === "执行结果"
-
-        ```plain 
-        Logo: nike
-        Size: 14
-        Logo: nike
-        Size: 14
-        Logo: adidas
-        Size: 14
-        Logo: adidas
-        Size: 14
-        ```
-
-5. 找出代码中所有对产品构造函数的直接调用， 将其替换为对工厂对象中相应构建方法的调用。
-
-## 优缺点
-
-| 优点                                                                   | 缺点                                                                    |
-| ---------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| 你可以确保同一工厂生成的产品相互匹配。                                 | 由于采用该模式需要向应用中引入众多接口和类， 代码可能会比之前更加复杂。 |
-| 你可以避免客户端和具体产品代码的耦合。                                 |                                                                         |
-| 单一职责原则。 你可以将产品生成代码抽取到同一位置， 使得代码易于维护。 |                                                                         |
-| 开闭原则。 向应用程序中引入新产品变体时， 你无需修改客户端代码。       |                                                                         |
+| ✅ 优点 | ❌ 缺点 |
+|---------|---------|
+| **保证产品配套** ：同工厂出品必定兼容 | **新增产品类型困难** ：要改所有工厂类 |
+| **解耦客户端** ：客户端不依赖具体产品类 | **类数量增加** ：工厂和产品类都会增多 |
+| **易于切换产品系列** ：换个工厂即可 | |
 
 ## 与其他模式的关系
 
-* 在许多设计工作的初期都会使用 **工厂方法模式** （较为简单， 而且可以更方便地通过子类进行定制）， 随后演化为使用 **抽象工厂模式**、 **原型模式** 或 **生成器模式** （更灵活但更加复杂）。
-* 生成器重点关注如何分步生成复杂对象。 抽象工厂专门用于生产一系列相关对象。 抽象工厂会马上返回产品， 生成器则允许你在获取产品前执行一些额外构造步骤。
-* 抽象工厂模式通常基于一组工厂方法， 但你也可以使用原型模式来生成这些类的方法。
-* 当只需对客户端代码隐藏子系统创建对象的方式时， 你可以使用抽象工厂来代替外观模式。
-* 你可以将 **抽象工厂** 和 **桥接模式** 搭配使用。 如果由桥接定义的抽象只能与特定实现合作， 这一模式搭配就非常有用。 在这种情况下， 抽象工厂可以对这些关系进行封装， 并且对客户端代码隐藏其复杂性。
-* 抽象工厂、 生成器和原型都可以用单例模式来实现。
+| 模式组合 | 说明 |
+|----------|------|
+| **抽象工厂 → 工厂方法** | 抽象工厂通常由一组工厂方法组成 |
+| **抽象工厂 + 原型** | 用原型模式实现工厂的创建方法 |
+| **抽象工厂 + 单例** | 工厂类通常做成单例 |
+
+> **一句话总结** ：抽象工厂就像快餐品牌的套餐——你只需要选择品牌（工厂），就能得到一整套风格统一的产品。

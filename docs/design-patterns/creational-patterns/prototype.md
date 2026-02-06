@@ -7,171 +7,236 @@ tag:
   - 创建型模式
 ---
 
-原型模式是一种创建型设计模式， 使你能够复制已有对象， 而又无需使代码依赖它们所属的类。
+# 原型模式：复制比新建更快
+
+你有没有用过"复制粘贴"？选中一个文件，Ctrl+C → Ctrl+V，瞬间就有了一个副本。原型模式就是程序世界的"复制粘贴"—— **通过克隆现有对象来创建新对象，而不是从零开始构造**。
+
+**原型模式** 允许你复制已有对象，而无需让代码依赖它们所属的类。
+
+## 为什么需要原型模式？
+
+假设你需要复制一个复杂对象：
+
+```go
+// ❌ 糟糕的写法：手动复制每个字段
+func copyFile(original *File) *File {
+    copy := &File{
+        Name:    original.Name,
+        Size:    original.Size,
+        Content: original.Content,
+        // 私有字段怎么办？
+        // 嵌套对象怎么办？
+        // 如果不知道具体类型怎么办？
+    }
+    return copy
+}
+```
+
+这样写的问题：
+
+- **私有字段无法访问** ：外部代码看不到私有成员
+- **嵌套对象难处理** ：深拷贝还是浅拷贝？
+- **依赖具体类** ：必须知道对象的确切类型
+
+原型模式的解法： **让对象自己负责克隆自己，因为它最清楚自己有哪些字段**。
 
 ## 模式结构
 
-![](https://refactoringguru.cn/images/patterns/diagrams/prototype/structure.png?id=088102c5e9785ff45debbbce86f4df81)
+![原型模式结构](https://refactoringguru.cn/images/patterns/diagrams/prototype/structure.png?id=088102c5e9785ff45debbbce86f4df81)
 
-1. 原型 （Prototype） 接口将对克隆方法进行声明。 在绝大多数情况下， 其中只会有一个名为 clone克隆的方法。
-2. 具体原型 （Concrete Prototype） 类将实现克隆方法。 除了将原始对象的数据复制到克隆体中之外， 该方法有时还需处理克隆过程中的极端情况， 例如克隆关联对象和梳理递归依赖等等。
-3. 客户端 （Client） 可以复制实现了原型接口的任何对象。
+| 角色 | 职责 | 类比 |
+|------|------|------|
+| **Prototype（原型接口）** | 声明克隆方法 | "可复制"能力 |
+| **ConcretePrototype（具体原型）** | 实现克隆逻辑 | 文件、文件夹 |
+| **Client（客户端）** | 调用克隆方法获取副本 | 使用复制功能的人 |
 
-## 应用场景
+## 动手实现：文件系统复制
 
-* **如果你需要复制一些对象， 同时又希望代码独立于这些对象所属的具体类， 可以使用原型模式。**
+用文件系统的复制功能来演示原型模式。文件和文件夹都可以被克隆。
 
-    这一点考量通常出现在代码需要处理第三方代码通过接口传递过来的对象时。 即使不考虑代码耦合的情况， 你的代码也不能依赖这些对象所属的具体类， 因为你不知道它们的具体信息。
+### 第一步：定义原型接口
 
-    原型模式为客户端代码提供一个通用接口， 客户端代码可通过这一接口与所有实现了克隆的对象进行交互， 它也使得客户端代码与其所克隆的对象具体类独立开来。
+=== "📄 inode.go: 原型接口"
 
-* **如果子类的区别仅在于其对象的初始化方式， 那么你可以使用该模式来减少子类的数量。 别人创建这些子类的目的可能是为了创建特定类型的对象。**
-
-    在原型模式中， 你可以使用一系列预生成的、 各种类型的对象作为原型。
-
-    客户端不必根据需求对子类进行实例化， 只需找到合适的原型并对其进行克隆即可。
-
-## 实现方式
-
-1. 创建原型接口， 并在其中声明克隆方法。 如果你已有类层次结构， 则只需在其所有类中添加该方法即可。
-
-=== "inode.go: 原型接口"
-
-    ```go 
+    ```go
     package main
 
+    // Inode 文件系统节点接口（原型）
     type Inode interface {
-        print(string)
-        clone() Inode
+        Print(indent string)
+        Clone() Inode
     }
     ```
 
-2. 原型类必须另行定义一个以该类对象为参数的构造函数。 构造函数必须复制参数对象中的所有成员变量值到新建实体中。 如果你需要修改子类， 则必须调用父类构造函数， 让父类复制其私有成员变量值。
+### 第二步：实现具体原型
 
-    如果编程语言不支持方法重载， 那么你可能需要定义一个特殊方法来复制对象数据。 在构造函数中进行此类处理比较方便， 因为它在调用 `new` 运算符后会马上返回结果对象。
+=== "📄 file.go: 文件（具体原型）"
 
-3. 克隆方法通常只有一行代码： 使用 `new` 运算符调用原型版本的构造函数。 注意， 每个类都必须显式重写克隆方法并使用自身类名调用 `new` 运算符。 否则， 克隆方法可能会生成父类的对象。
-
-=== "file.go: 具体原型"
-
-    ```go 
+    ```go
     package main
 
     import "fmt"
 
+    // File 文件节点
     type File struct {
-        name string
+        Name string
     }
 
-    func (f *File) print(indentation string) {
-        fmt.Println(indentation + f.name)
+    func (f *File) Print(indent string) {
+        fmt.Println(indent + "📄 " + f.Name)
     }
 
-    func (f *File) clone() Inode {
-        return &File{name: f.name + "_clone"}
+    // Clone 克隆文件
+    func (f *File) Clone() Inode {
+        return &File{Name: f.Name + "_copy"}
     }
     ```
 
-=== "folder.go: 具体原型"
+=== "📄 folder.go: 文件夹（具体原型）"
 
-    ```go 
+    ```go
     package main
 
     import "fmt"
 
+    // Folder 文件夹节点
     type Folder struct {
-        children []Inode
-        name     string
+        Name     string
+        Children []Inode
     }
 
-    func (f *Folder) print(indentation string) {
-        fmt.Println(indentation + f.name)
-        for _, i := range f.children {
-            i.print(indentation + indentation)
+    func (f *Folder) Print(indent string) {
+        fmt.Println(indent + "📁 " + f.Name)
+        for _, child := range f.Children {
+            child.Print(indent + "  ")
         }
     }
 
-    func (f *Folder) clone() Inode {
-        cloneFolder := &Folder{name: f.name + "_clone"}
-        var tempChildren []Inode
-        for _, i := range f.children {
-            copy := i.clone()
-            tempChildren = append(tempChildren, copy)
+    // Clone 深度克隆文件夹及其所有子节点
+    func (f *Folder) Clone() Inode {
+        cloneFolder := &Folder{Name: f.Name + "_copy"}
+        
+        // 递归克隆所有子节点
+        for _, child := range f.Children {
+            cloneFolder.Children = append(cloneFolder.Children, child.Clone())
         }
-        cloneFolder.children = tempChildren
+        
         return cloneFolder
     }
     ```
 
-4. 你还可以创建一个中心化原型注册表， 用于存储常用原型。
+### 第三步：使用原型模式
 
-    你可以新建一个工厂类来实现注册表， 或者在原型基类中添加一个获取原型的静态方法。 该方法必须能够根据客户端代码设定的条件进行搜索。 搜索条件可以是简单的字符串， 或者是一组复杂的搜索参数。 找到合适的原型后， 注册表应对原型进行克隆， 并将复制生成的对象返回给客户端。
+=== "📄 main.go: 客户端代码"
 
-    最后还要将对子类构造函数的直接调用替换为对原型注册表工厂方法的调用。
-
-=== "main.go: 客户端代码"
-
-    ```go 
+    ```go
     package main
 
     import "fmt"
 
     func main() {
-        file1 := &File{name: "File1"}
-        file2 := &File{name: "File2"}
-        file3 := &File{name: "File3"}
+        // 创建原始文件结构
+        file1 := &File{Name: "报告.docx"}
+        file2 := &File{Name: "数据.xlsx"}
+        file3 := &File{Name: "图片.png"}
 
         folder1 := &Folder{
-            children: []Inode{file1},
-            name:     "Folder1",
+            Name:     "文档",
+            Children: []Inode{file1},
         }
 
         folder2 := &Folder{
-            children: []Inode{folder1, file2, file3},
-            name:     "Folder2",
+            Name:     "项目",
+            Children: []Inode{folder1, file2, file3},
         }
-        fmt.Println("\nPrinting hierarchy for Folder2")
-        folder2.print("  ")
 
-        cloneFolder := folder2.clone()
-        fmt.Println("\nPrinting hierarchy for clone Folder")
-        cloneFolder.print("  ")
+        fmt.Println("=== 原始文件夹结构 ===")
+        folder2.Print("")
+
+        // 克隆整个文件夹
+        clonedFolder := folder2.Clone()
+
+        fmt.Println("\n=== 克隆后的文件夹结构 ===")
+        clonedFolder.Print("")
     }
     ```
 
-=== "output.txt: 执行结果"
+=== "📄 output.txt: 执行结果"
 
-    ```go 
-    Printing hierarchy for Folder2
-    Folder2
-        Folder1
-            File1
-        File2
-        File3
+    ```
+    === 原始文件夹结构 ===
+    📁 项目
+      📁 文档
+        📄 报告.docx
+      📄 数据.xlsx
+      📄 图片.png
 
-    Printing hierarchy for clone Folder
-    Folder2_clone
-        Folder1_clone
-            File1_clone
-        File2_clone
-        File3_clone
+    === 克隆后的文件夹结构 ===
+    📁 项目_copy
+      📁 文档_copy
+        📄 报告.docx_copy
+      📄 数据.xlsx_copy
+      📄 图片.png_copy
     ```
 
-## 优缺点
+## 深拷贝 vs 浅拷贝
 
-| 优点                                              | 缺点                                       |
-| ------------------------------------------------- | ------------------------------------------ |
-| 你可以克隆对象， 而无需与它们所属的具体类相耦合。 | 克隆包含循环引用的复杂对象可能会非常麻烦。 |
-| 你可以克隆预生成原型， 避免反复运行初始化代码。   |                                            |
-| 你可以更方便地生成复杂对象。                      |                                            |
-| 你可以用继承以外的方式来处理复杂对象的不同配置。  |                                            |
+这是原型模式中最重要的概念：
+
+| 类型 | 说明 | 后果 |
+|------|------|------|
+| **浅拷贝** | 只复制对象本身，嵌套对象共享引用 | 修改副本会影响原对象 |
+| **深拷贝** | 递归复制所有嵌套对象 | 完全独立，但开销更大 |
+
+```go
+// 浅拷贝示例
+func (f *Folder) ShallowClone() *Folder {
+    return &Folder{
+        Name:     f.Name,
+        Children: f.Children,  // 共享同一个切片！
+    }
+}
+
+// 深拷贝示例（推荐）
+func (f *Folder) DeepClone() *Folder {
+    clone := &Folder{Name: f.Name}
+    for _, child := range f.Children {
+        clone.Children = append(clone.Children, child.Clone())
+    }
+    return clone
+}
+```
+
+## 什么时候该用原型模式？
+
+| 场景 | 说明 |
+|------|------|
+| **对象创建成本高** | 如需要读取配置、连接数据库初始化 |
+| **需要保存对象状态** | 如游戏存档、文档历史版本 |
+| **不想依赖具体类** | 只知道接口，不知道具体类型 |
+| **需要复制复杂对象** | 如包含嵌套结构的组合对象 |
+
+**常见应用** ：
+
+- **图形编辑器** ：复制图形对象
+- **游戏开发** ：克隆敌人、道具
+- **缓存系统** ：缓存对象模板，需要时克隆
+- **配置对象** ：复制默认配置后修改
+
+## 优缺点分析
+
+| ✅ 优点 | ❌ 缺点 |
+|---------|---------|
+| **不依赖具体类** ：通过接口复制对象 | **循环引用麻烦** ：A 引用 B，B 引用 A |
+| **避免重复初始化** ：克隆比新建快 | **深拷贝复杂** ：嵌套层级深时实现复杂 |
+| **动态配置对象** ：克隆后再修改 | |
 
 ## 与其他模式的关系
 
-* 在许多设计工作的初期都会使用 **工厂方法模式** （较为简单， 而且可以更方便地通过子类进行定制）， 随后演化为使用 **抽象工厂模式**、 **原型模式** 或 **生成器模式** （更灵活但更加复杂）。
-* **抽象工厂模式** 通常基于一组工厂方法， 但你也可以使用 **原型模式** 来生成这些类的方法。
-* **原型** 可用于保存 **命令模式** 的历史记录。
-* 大量使用 **组合模式** 和 **装饰模式** 的设计通常可从对于 **原型** 的使用中获益。 你可以通过该模式来复制复杂结构， 而非从零开始重新构造。
-* **原型** 并不基于继承， 因此没有继承的缺点。 另一方面， 原型需要对被复制对象进行复杂的初始化。 **工厂方法** 基于继承， 但是它不需要初始化步骤。
-* 有时候 **原型** 可以作为 **备忘录模式** 的一个简化版本， 其条件是你需要在历史记录中存储的对象的状态比较简单， 不需要链接其他外部资源， 或者链接可以方便地重建。
-* **抽象工厂**、 **生成器** 和 **原型** 都可以用 **单例模式** 来实现。
+| 模式组合 | 说明 |
+|----------|------|
+| **原型 + 命令** | 保存命令执行前的对象状态 |
+| **原型 vs 备忘录** | 备忘录保存状态，原型复制整个对象 |
+| **原型 + 工厂** | 工厂内部可以用原型来创建对象 |
+
+> **一句话总结** ：原型模式就像细胞分裂——从一个细胞复制出完全相同的新细胞，比重新长一个细胞快多了。

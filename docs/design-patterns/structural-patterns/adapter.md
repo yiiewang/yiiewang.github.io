@@ -4,155 +4,289 @@ date: 2023-02-25 17:18:47
 category:
   - 设计模式
 tag:
-  - 建造者模式
+  - 结构型模式
 ---
 
-适配器模式是一种结构型设计模式， 它能使接口不兼容的对象能够相互合作。
+# 🔌 适配器模式：让"方头"插进"圆孔"
+
+> 适配器模式是一种结构型设计模式，它能使接口不兼容的对象能够相互合作——就像你用转换插头让国内电器在国外使用一样。
+
+## 从生活场景说起
+
+想象这样一个场景：你从美国带了一台 MacBook 回国，想给它充电。问题来了——美国用的是两扁头插座，而国内是三孔插座。
+
+你不可能为了充电去改造家里的电路，也不会把 MacBook 的充电器拆了重做。最简单的方案是什么？ **买一个转换插头** ！
+
+这个转换插头就是 **适配器** ：
+
+- 🔌 一头能插进国内的三孔插座
+- 🔌 另一头能接受美式两扁头
+- 🔌 中间完成电压转换（如果需要的话）
+
+在软件开发中，适配器模式做的就是类似的事情。
+
+## 为什么需要适配器？
+
+### 😩 没有适配器时的尴尬
+
+假设你的系统一直使用 Lightning 接口的设备，现在来了一个只有 USB 接口的 Windows 电脑：
+
+```go
+// 你的客户端代码只认识 Lightning 接口
+type Computer interface {
+    InsertIntoLightningPort()
+}
+
+// Mac 电脑有 Lightning 接口，没问题
+type Mac struct{}
+
+func (m *Mac) InsertIntoLightningPort() {
+    fmt.Println("Lightning 接口已连接到 Mac")
+}
+
+// Windows 电脑只有 USB 接口
+type Windows struct{}
+
+func (w *Windows) insertIntoUSBPort() {
+    fmt.Println("USB 接口已连接到 Windows")
+}
+
+// 问题来了：Windows 没有实现 Computer 接口！
+// client.Connect(windowsPC) // 编译错误！
+```
+
+怎么办？改 Windows 的代码？改客户端的代码？都不现实。
+
+### 😊 用适配器优雅解决
+
+```go
+// 创建一个适配器，让 Windows 也能"假装"有 Lightning 接口
+type WindowsAdapter struct {
+    windowMachine *Windows
+}
+
+func (w *WindowsAdapter) InsertIntoLightningPort() {
+    fmt.Println("适配器：将 Lightning 信号转换为 USB 信号...")
+    w.windowMachine.insertIntoUSBPort()
+}
+
+// 现在可以无缝使用了
+client.Connect(windowsAdapter) // ✅ 完美工作！
+```
 
 ## 模式结构
 
-![](https://refactoringguru.cn/images/patterns/diagrams/adapter/structure-object-adapter.png?id=33dffbe3aece294162440c7ddd3d5d4f)
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         客户端代码                               │
+│                            │                                    │
+│                            ▼                                    │
+│                   ┌─────────────────┐                           │
+│                   │  目标接口        │◀─────── 客户端只认识这个  │
+│                   │  (Lightning)    │                           │
+│                   └────────┬────────┘                           │
+│                            │                                    │
+│            ┌───────────────┼───────────────┐                    │
+│            ▼               ▼               ▼                    │
+│     ┌───────────┐   ┌───────────┐   ┌───────────┐               │
+│     │   Mac     │   │ 适配器    │   │ (其他实现)│               │
+│     │ (原生支持)│   │           │   │           │               │
+│     └───────────┘   └─────┬─────┘   └───────────┘               │
+│                           │                                     │
+│                           ▼                                     │
+│                    ┌───────────┐                                │
+│                    │ Windows   │◀────── 被适配的对象            │
+│                    │ (USB接口) │                                │
+│                    └───────────┘                                │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-1. **客户端 （Client）** 是包含当前程序业务逻辑的类。
-2. **客户端接口 （Client Interface）** 描述了其他类与客户端代码合作时必须遵循的协议。
-3. **服务 （Service）** 中有一些功能类 （通常来自第三方或遗留系统）。 客户端与其接口不兼容， 因此无法直接调用其功能。
-4. **适配器 （Adapter）** 是一个可以同时与客户端和服务交互的类： 它在实现客户端接口的同时封装了服务对象。 适配器接受客户端通过适配器接口发起的调用， 并将其转换为适用于被封装服务对象的调用。
-5. 客户端代码只需通过接口与适配器交互即可， 无需与具体的适配器类耦合。 因此， 你可以向程序中添加新类型的适配器而无需修改已有代码。 这在服务类的接口被更改或替换时很有用： 你无需修改客户端代码就可以创建新的适配器类。
+### 角色说明
 
-## 类适配器
+| 角色 | 职责 | 示例 |
+|------|------|------|
+| **目标接口** (Target) | 客户端期望的接口 | `Computer` 接口 |
+| **被适配者** (Adaptee) | 需要被适配的现有类 | `Windows` 类 |
+| **适配器** (Adapter) | 包装被适配者，实现目标接口 | `WindowsAdapter` |
+| **客户端** (Client) | 通过目标接口使用对象 | 使用 `Computer` 接口的代码 |
 
-![](https://refactoringguru.cn/images/patterns/diagrams/adapter/structure-class-adapter.png?id=e1c60240508146ed3b98ac562cc8e510)
+## 两种适配器类型
 
-这一实现使用了继承机制： 适配器同时继承两个对象的接口。 请注意， 这种方式仅能在支持多重继承的编程语言中实现， 例如 C++。
+### 对象适配器（推荐）
 
-1. 类适配器不需要封装任何对象， 因为它同时继承了客户端和服务的行为。 适配功能在重写的方法中完成。 最后生成的适配器可替代已有的客户端类进行使用。
+通过 **组合** 的方式，适配器持有被适配者的引用：
 
-## 应用场景
+```go
+type WindowsAdapter struct {
+    windowMachine *Windows  // 组合：持有被适配者
+}
 
-* **当你希望使用某个类， 但是其接口与其他代码不兼容时， 可以使用适配器类。**
+func (w *WindowsAdapter) InsertIntoLightningPort() {
+    w.windowMachine.insertIntoUSBPort()  // 委托给被适配者
+}
+```
 
-    适配器模式允许你创建一个中间层类， 其可作为代码与遗留类、 第三方类或提供怪异接口的类之间的转换器。
+### 类适配器
 
-* **如果您需要复用这样一些类， 他们处于同一个继承体系， 并且他们又有了额外的一些共同的方法， 但是这些共同的方法不是所有在这一继承体系中的子类所具有的共性。**
+通过 **多重继承** 同时继承目标接口和被适配者（Go 不支持，但 C++ 支持）：
 
-    你可以扩展每个子类， 将缺少的功能添加到新的子类中。 但是， 你必须在所有新子类中重复添加这些代码， 这样会使得代码重复。
+```cpp
+// C++ 示例
+class WindowsAdapter : public Computer, private Windows {
+public:
+    void InsertIntoLightningPort() override {
+        insertIntoUSBPort();  // 直接调用继承的方法
+    }
+};
+```
 
-    将缺失功能添加到一个适配器类中是一种优雅得多的解决方案。 然后你可以将缺少功能的对象封装在适配器中， 从而动态地获取所需功能。 如要这一点正常运作， 目标类必须要有通用接口， 适配器的成员变量应当遵循该通用接口。 这种方式同**[装饰模式](./decorator.md)**非常相似。
+## 完整实现
 
-## 实现方式
+=== "computer.go: 目标接口"
 
-1. 确保至少有两个类的接口不兼容：
-   * 一个无法修改 （通常是第三方、 遗留系统或者存在众多已有依赖的类） 的功能性服务类。
+    ```go
+    package main
 
-    === "mac.go: 服务"
+    // Computer 定义了客户端期望的接口
+    type Computer interface {
+        InsertIntoLightningPort()
+    }
+    ```
 
-        ```go 
-        package main
+=== "mac.go: 原生支持的服务"
 
-        import "fmt"
+    ```go
+    package main
 
-        type Mac struct {
+    import "fmt"
+
+    // Mac 原生支持 Lightning 接口
+    type Mac struct{}
+
+    func (m *Mac) InsertIntoLightningPort() {
+        fmt.Println("✅ Lightning 接口已连接到 Mac")
+    }
+    ```
+
+=== "windows.go: 需要被适配的服务"
+
+    ```go
+    package main
+
+    import "fmt"
+
+    // Windows 只支持 USB 接口
+    type Windows struct{}
+
+    func (w *Windows) insertIntoUSBPort() {
+        fmt.Println("✅ USB 接口已连接到 Windows")
+    }
+    ```
+
+=== "windowsAdapter.go: 适配器"
+
+    ```go
+    package main
+
+    import "fmt"
+
+    // WindowsAdapter 适配器：让 Windows 也能接受 Lightning
+    type WindowsAdapter struct {
+        windowMachine *Windows
+    }
+
+    func (w *WindowsAdapter) InsertIntoLightningPort() {
+        fmt.Println("🔄 适配器：将 Lightning 信号转换为 USB 信号")
+        w.windowMachine.insertIntoUSBPort()
+    }
+    ```
+
+=== "client.go: 客户端代码"
+
+    ```go
+    package main
+
+    import "fmt"
+
+    // Client 只知道如何使用 Computer 接口
+    type Client struct{}
+
+    func (c *Client) InsertLightningConnectorIntoComputer(com Computer) {
+        fmt.Println("📱 客户端：插入 Lightning 连接器...")
+        com.InsertIntoLightningPort()
+    }
+    ```
+
+=== "main.go: 使用示例"
+
+    ```go
+    package main
+
+    import "fmt"
+
+    func main() {
+        client := &Client{}
+
+        fmt.Println("=== 连接 Mac（原生支持）===")
+        mac := &Mac{}
+        client.InsertLightningConnectorIntoComputer(mac)
+
+        fmt.Println("\n=== 连接 Windows（通过适配器）===")
+        windowsMachine := &Windows{}
+        windowsMachineAdapter := &WindowsAdapter{
+            windowMachine: windowsMachine,
         }
+        client.InsertLightningConnectorIntoComputer(windowsMachineAdapter)
+    }
+    ```
 
-        func (m *Mac) InsertIntoLightningPort() {
-            fmt.Println("Lightning connector is plugged into mac machine.")
-        }
-        ```
+=== "output.txt: 执行结果"
 
-   * 一个或多个将受益于使用服务类的客户端类。
-2. 声明客户端接口， 描述客户端如何与服务交互。
+    ```
+    === 连接 Mac（原生支持）===
+    📱 客户端：插入 Lightning 连接器...
+    ✅ Lightning 接口已连接到 Mac
 
-    === "client.go: 客户端代码"
+    === 连接 Windows（通过适配器）===
+    📱 客户端：插入 Lightning 连接器...
+    🔄 适配器：将 Lightning 信号转换为 USB 信号
+    ✅ USB 接口已连接到 Windows
+    ```
 
-        ```go 
-        package main
+## 什么时候使用适配器？
 
-        import "fmt"
+| 场景 | 说明 |
+|------|------|
+| 🔧 **集成第三方库** | 第三方库接口与你的系统不兼容 |
+| 🏚️ **对接遗留系统** | 老系统接口无法修改，但需要与新系统协作 |
+| 🔀 **统一多个类的接口** | 多个功能相似但接口不同的类需要统一使用 |
+| 📦 **封装复杂 API** | 简化复杂 API 的调用方式 |
 
-        type Client struct {
-        }
+## 优缺点分析
 
-        func (c *Client) InsertLightningConnectorIntoComputer(com Computer) {
-            fmt.Println("Client inserts Lightning connector into computer.")
-            com.InsertIntoLightningPort()
-        }
-        ```
-
-    === "computer.go: 客户端接口"
-
-        ```go 
-        package main
-
-        type Computer interface {
-            InsertIntoLightningPort()
-        }
-        ```
-
-3. 创建遵循客户端接口的适配器类。 所有方法暂时都为空。
-4. 在适配器类中添加一个成员变量用于保存对于服务对象的引用。 通常情况下会通过构造函数对该成员变量进行初始化， 但有时在调用其方法时将该变量传递给适配器会更方便。
-
-    === "windowsAdapter.go: 适配器"
-
-        ```go 
-        package main
-
-        import "fmt"
-
-        type WindowsAdapter struct {
-            windowMachine *Windows
-        }
-
-        func (w *WindowsAdapter) InsertIntoLightningPort() {
-            fmt.Println("Adapter converts Lightning signal to USB.")
-            w.windowMachine.insertIntoUSBPort()
-        }
-        ```
-
-5. 依次实现适配器类客户端接口的所有方法。 适配器会将实际工作委派给服务对象， 自身只负责接口或数据格式的转换。
-6. 客户端必须通过客户端接口使用适配器。 这样一来， 你就可以在不影响客户端代码的情况下修改或扩展适配器。
-
-    === "main.go"
-
-        ```go 
-        package main
-
-        func main() {
-
-            client := &Client{}
-            mac := &Mac{}
-
-            client.InsertLightningConnectorIntoComputer(mac)
-
-            windowsMachine := &Windows{}
-            windowsMachineAdapter := &WindowsAdapter{
-                windowMachine: windowsMachine,
-            }
-
-            client.InsertLightningConnectorIntoComputer(windowsMachineAdapter)
-        }
-        ```
-
-    === "output.txt: 执行结果"
-
-        ```go 
-        Client inserts Lightning connector into computer.
-        Lightning connector is plugged into mac machine.
-        Client inserts Lightning connector into computer.
-        Adapter converts Lightning signal to USB.
-        USB connector is plugged into windows machine.
-        ```
-
-## 优缺点
-
-| 优点                                                                                                                       | 缺点                                                                                               |
-| -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| 单一职责原则你可以将接口或数据转换代码从程序主要业务逻辑中分离。                                                           | 代码整体复杂度增加， 因为你需要新增一系列接口和类。 有时直接更改服务类使其与其他代码兼容会更简单。 |
-| 开闭原则。 只要客户端代码通过客户端接口与适配器进行交互， 你就能在不修改现有客户端代码的情况下在程序中添加新类型的适配器。 |                                                                                                    |
+| ✅ 优点 | ❌ 缺点 |
+|---------|---------|
+| **单一职责** ：接口转换逻辑独立于业务逻辑 | **复杂度增加** ：需要新增适配器类 |
+| **开闭原则** ：新增适配器不影响现有代码 | **间接层** ：调用链变长，可能影响性能 |
+| **灵活性** ：可以适配多个不同的类 | **维护成本** ：接口变化时需要同步更新适配器 |
 
 ## 与其他模式的关系
 
-* **桥接模式** 通常会于开发前期进行设计， 使你能够将程序的各个部分独立开来以便开发。 另一方面， **适配器模式** 通常在已有程序中使用， 让相互不兼容的类能很好地合作。
-* **适配器** 可以对已有对象的接口进行修改， **装饰模式** 则能在不改变对象接口的前提下强化对象功能。 此外， 装饰还支持递归组合， 适配器则无法实现。
-* **适配器** 能为被封装对象提供不同的接口， **代理模式** 能为对象提供相同的接口， **装饰** 则能为对象提供加强的接口。
-* **外观模式** 为现有对象定义了一个新接口， **适配器** 则会试图运用已有的接口。 适配器通常只封装一个对象， 外观通常会作用于整个对象子系统上。
-* **桥接**、 **状态模式** 和 **策略模式** （在某种程度上包括 **适配器**） 模式的接口非常相似。 实际上， 它们都基于 **组合模式**——即将工作委派给其他对象， 不过也各自解决了不同的问题。 模式并不只是以特定方式组织代码的配方， 你还可以使用它们来和其他开发者讨论模式所解决的问题。
+| 模式 | 关系 |
+|------|------|
+| **桥接模式** | 桥接在开发前期设计，用于分离抽象和实现；适配器在后期使用，解决接口不兼容问题 |
+| **装饰模式** | 装饰增强功能但保持接口不变；适配器改变接口但不增强功能 |
+| **代理模式** | 代理提供相同接口；适配器提供不同接口 |
+| **外观模式** | 外观为整个子系统提供新接口；适配器通常只包装单个对象 |
+
+## 实际应用场景
+
+1. **数据库驱动** ：database/sql 包通过 Driver 接口适配不同数据库
+2. **日志库** ：将不同日志库（logrus、zap）适配到统一接口
+3. **支付网关** ：将微信、支付宝等不同支付 API 适配到统一接口
+4. **文件系统** ：将本地文件、S3、OSS 等适配到统一的文件操作接口
+
+---
+
+!!! tip "一句话总结"
+    **适配器模式就像翻译官** ：它不改变任何一方的"语言"（接口），只是在中间做翻译转换，让原本无法沟通的双方能够协作。

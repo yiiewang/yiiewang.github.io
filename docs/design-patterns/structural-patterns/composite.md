@@ -4,174 +4,379 @@ date: 2023-02-25 17:18:47
 category:
   - 设计模式
 tag:
-  - 建造者模式
+  - 结构型模式
 ---
 
-组合模式是一种结构型设计模式， 你可以使用它将对象组合成树状结构， 并且能像使用独立对象一样使用它们。
+# 🌲 组合模式：让"文件"和"文件夹"一视同仁
 
-???+ info "2011 综合知识 33,34"
+> 组合模式是一种结构型设计模式，你可以使用它将对象组合成树状结构，并且能像使用独立对象一样使用它们。
 
-    组合（Composite）模式又称为整体-部分（Part whole）模式，属于对象的结构模式。在组合模式中，通过组合多个对象形成树形结构以表示整体部分的结构层次。组合模式对单个对象（即叶子对象）和组合对象（即容器对象）的使用具有一致性。
+## 从生活场景说起
+
+打开你电脑的文件管理器，你会看到一个熟悉的树形结构：
+
+```
+📁 项目文件夹
+├── 📄 README.md
+├── 📄 main.go
+└── 📁 src
+    ├── 📄 handler.go
+    └── 📁 utils
+        ├── 📄 logger.go
+        └── 📄 helper.go
+```
+
+现在，假设你要搜索关键词 "TODO"：
+
+- 对于 **文件**：直接搜索文件内容
+- 对于 **文件夹**：递归搜索所有子文件和子文件夹
+
+关键问题来了： **你希望用同一个 `search()` 方法来处理文件和文件夹吗？**
+
+当然希望！这就是组合模式要解决的问题。
+
+## 为什么需要组合模式？
+
+### 😩 没有组合模式时的麻烦
+
+```go
+// 每次操作都要判断类型
+func searchInPath(path string, keyword string) {
+    info, _ := os.Stat(path)
     
-    * 类 Component 为组合中的对象声明接口，在适当的情况下，实现所有类共有接口的缺省行为，声明一个接口用于访问和管理 Component 的子部件；
-    * 类 Leaf 在组合中表示叶结点对象，叶结点没有子结点；
-    * 类 Composite 定义有子部件的那些部件的行为，存储子部件，并在 Component 接口中实现与子部件有关的操作；
-    * 类 Client 通过 Component 接口操纵组合部件的对象。
+    if info.IsDir() {
+        // 是文件夹：递归处理
+        files, _ := ioutil.ReadDir(path)
+        for _, f := range files {
+            searchInPath(filepath.Join(path, f.Name()), keyword)
+        }
+    } else {
+        // 是文件：直接搜索
+        content, _ := ioutil.ReadFile(path)
+        if strings.Contains(string(content), keyword) {
+            fmt.Println("Found in:", path)
+        }
+    }
+}
+```
+
+问题：
+
+- 客户端代码需要知道"文件"和"文件夹"的区别
+- 新增节点类型（如符号链接）需要修改客户端代码
+- 代码充斥着 `if-else` 类型判断
+
+### 😊 组合模式的优雅解法
+
+```go
+// 统一接口
+type Component interface {
+    search(keyword string)
+}
+
+// 文件实现
+type File struct { name string }
+func (f *File) search(keyword string) {
+    fmt.Printf("搜索文件 %s 中的 '%s'\n", f.name, keyword)
+}
+
+// 文件夹实现
+type Folder struct { 
+    name string
+    children []Component  // 可以包含文件或子文件夹
+}
+func (f *Folder) search(keyword string) {
+    fmt.Printf("搜索文件夹 %s\n", f.name)
+    for _, child := range f.children {
+        child.search(keyword)  // 统一调用，不用判断类型
+    }
+}
+
+// 客户端代码
+root.search("TODO")  // 不管 root 是文件还是文件夹，调用方式一样
+```
 
 ## 模式结构
 
-![](https://refactoringguru.cn/images/patterns/diagrams/composite/structure-zh.png)
+```
+┌────────────────────────────────────────────────────────────────┐
+│                                                                │
+│                    ┌──────────────┐                            │
+│                    │  Component   │ ◀─── 统一接口              │
+│                    │  (组件接口)   │                           │
+│                    └──────┬───────┘                            │
+│                           │                                    │
+│              ┌────────────┴────────────┐                       │
+│              ▼                         ▼                       │
+│       ┌───────────┐            ┌──────────────┐               │
+│       │   Leaf    │            │  Composite   │               │
+│       │  (叶节点)  │            │   (容器)     │               │
+│       │   📄      │            │    📁        │               │
+│       └───────────┘            └──────┬───────┘               │
+│                                       │                        │
+│                                       ▼                        │
+│                              ┌────────────────┐               │
+│                              │ []Component    │               │
+│                              │ (子组件列表)    │               │
+│                              └────────────────┘               │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
 
-1. **组件 （Component）** 接口描述了树中简单项目和复杂项目所共有的操作。
-2. **叶节点 （Leaf）** 是树的基本结构， 它不包含子项目。
+### 角色说明
 
-    一般情况下， 叶节点最终会完成大部分的实际工作， 因为它们无法将工作指派给其他部分。
+| 角色 | 职责 | 示例 |
+|------|------|------|
+| **组件** (Component) | 声明统一接口 | `Component` 接口 |
+| **叶节点** (Leaf) | 基本元素，不包含子元素 | `File` 类 |
+| **容器** (Composite) | 包含子元素的复合对象 | `Folder` 类 |
+| **客户端** (Client) | 通过统一接口操作所有对象 | 调用 `search()` 的代码 |
 
-3. **容器 （Container）**——又名 “组合 （Composite）”——是包含叶节点或其他容器等子项目的单位。 容器不知道其子项目所属的具体类， 它只通过通用的组件接口与其子项目交互。
+## 完整实现
 
-    容器接收到请求后会将工作分配给自己的子项目， 处理中间结果， 然后将最终结果返回给客户端。
+=== "component.go: 组件接口"
 
-4. **客户端 （Client）** 通过组件接口与所有项目交互。 因此， 客户端能以相同方式与树状结构中的简单或复杂项目交互。
+    ```go
+    package main
 
-## 应用场景
+    // Component 定义文件系统组件的统一接口
+    type Component interface {
+        search(keyword string)
+        getName() string
+    }
+    ```
 
-* **如果你需要实现树状对象结构， 可以使用组合模式。**
+=== "file.go: 叶节点"
 
-    组合模式为你提供了两种共享公共接口的基本元素类型： 简单叶节点和复杂容器。 容器中可以包含叶节点和其他容器。 这使得你可以构建树状嵌套递归对象结构。
+    ```go
+    package main
 
-* **如果你希望客户端代码以相同方式处理简单和复杂元素， 可以使用该模式。**
+    import "fmt"
 
-    组合模式中定义的所有元素共用同一个接口。 在这一接口的帮助下， 客户端不必在意其所使用的对象的具体类。
+    // File 叶节点：文件
+    type File struct {
+        name string
+    }
 
-## 实现方式
+    func (f *File) search(keyword string) {
+        fmt.Printf("📄 在文件 [%s] 中搜索关键词 '%s'\n", f.name, keyword)
+    }
 
-让我们试着用一个操作系统文件系统的例子来理解组合模式。 文件系统中有两种类型的对象： 文件和文件夹。 在某些情形中， 文件和文件夹应被视为相同的对象。 这就是组合模式发挥作用的时候了。
+    func (f *File) getName() string {
+        return f.name
+    }
+    ```
 
-想象一下， 你需要在文件系统中搜索特定的关键词。 这一搜索操作需要同时作用于文件和文件夹上。 对于文件而言， 其只会查看文件的内容； 对于文件夹则会在其内部的所有文件中查找关键词。
+=== "folder.go: 容器"
 
-1. 确保应用的核心模型能够以树状结构表示。 尝试将其分解为简单元素和容器。 记住， 容器必须能够同时包含简单元素和其他容器。
-2. 声明组件接口及其一系列方法， 这些方法对简单和复杂元素都有意义。
+    ```go
+    package main
 
-    === "file.go: 组件接口"
+    import "fmt"
 
-        ```go 
-        package main
+    // Folder 容器：文件夹
+    type Folder struct {
+        components []Component
+        name       string
+    }
 
-        import "fmt"
-
-        type File struct {
-            name string
+    func (f *Folder) search(keyword string) {
+        fmt.Printf("📁 递归搜索文件夹 [%s] 中的 '%s'\n", f.name, keyword)
+        for _, component := range f.components {
+            component.search(keyword)  // 统一调用
         }
+    }
 
-        func (f *File) search(keyword string) {
-            fmt.Printf("Searching for keyword %s in file %s\n", keyword, f.name)
-        }
+    func (f *Folder) getName() string {
+        return f.name
+    }
 
-        func (f *File) getName() string {
-            return f.name
-        }
-        ```
+    // add 添加子组件（可以是文件或文件夹）
+    func (f *Folder) add(c Component) {
+        f.components = append(f.components, c)
+    }
 
-3. 创建一个叶节点类表示简单元素。 程序中可以有多个不同的叶节点类。
-
-    === "component.go: 叶子"
-
-        ```go 
-        package main
-
-        type Component interface {
-            search(string)
-        }
-        ```
-
-4. 创建一个容器类表示复杂元素。 在该类中， 创建一个数组成员变量来存储对于其子元素的引用。 该数组必须能够同时保存叶节点和容器， 因此请确保将其声明为组合接口类型。
-
-    实现组件接口方法时， 记住容器应该将大部分工作交给其子元素来完成。
-
-    === "folder.go: 组合"
-
-        ```go 
-        package main
-
-        import "fmt"
-
-        type Folder struct {
-            components []Component
-            name       string
-        }
-
-        func (f *Folder) search(keyword string) {
-            fmt.Printf("Serching recursively for keyword %s in folder %s\n", keyword, f.name)
-            for _, composite := range f.components {
-                composite.search(keyword)
+    // remove 移除子组件
+    func (f *Folder) remove(c Component) {
+        for i, child := range f.components {
+            if child.getName() == c.getName() {
+                f.components = append(f.components[:i], f.components[i+1:]...)
+                return
             }
         }
+    }
+    ```
 
-        func (f *Folder) add(c Component) {
-            f.components = append(f.components, c)
-        }
-        ```
+=== "main.go: 客户端代码"
 
-5. 最后， 在容器中定义添加和删除子元素的方法。
+    ```go
+    package main
 
-    记住， 这些操作可在组件接口中声明。 这将会违反接口隔离原则， 因为叶节点类中的这些方法为空。 但是， 这可以让客户端无差别地访问所有元素， 即使是组成树状结构的元素。
+    import "fmt"
 
-    === "main.go: 客户端代码"
+    func main() {
+        // 构建文件系统树
+        //
+        // 📁 project
+        // ├── 📄 README.md
+        // ├── 📄 main.go
+        // └── 📁 src
+        //     ├── 📄 handler.go
+        //     └── 📁 utils
+        //         └── 📄 logger.go
 
-        ```go 
-        package main
+        // 创建文件
+        file1 := &File{name: "README.md"}
+        file2 := &File{name: "main.go"}
+        file3 := &File{name: "handler.go"}
+        file4 := &File{name: "logger.go"}
 
-        func main() {
-            file1 := &File{name: "File1"}
-            file2 := &File{name: "File2"}
-            file3 := &File{name: "File3"}
+        // 创建 utils 文件夹
+        utils := &Folder{name: "utils"}
+        utils.add(file4)
 
-            folder1 := &Folder{
-                name: "Folder1",
-            }
+        // 创建 src 文件夹
+        src := &Folder{name: "src"}
+        src.add(file3)
+        src.add(utils)
 
-            folder1.add(file1)
+        // 创建项目根目录
+        project := &Folder{name: "project"}
+        project.add(file1)
+        project.add(file2)
+        project.add(src)
 
-            folder2 := &Folder{
-                name: "Folder2",
-            }
-            folder2.add(file2)
-            folder2.add(file3)
-            folder2.add(folder1)
+        // 执行搜索 - 客户端不需要知道内部结构
+        fmt.Println("=== 搜索整个项目 ===")
+        project.search("TODO")
 
-            folder2.search("rose")
-        }
-        ```
+        fmt.Println("\n=== 只搜索 src 目录 ===")
+        src.search("TODO")
 
-    === "output.txt: 执行结果"
+        fmt.Println("\n=== 只搜索单个文件 ===")
+        file1.search("TODO")
+    }
+    ```
 
-        ```go 
-        Serching recursively for keyword rose in folder Folder2
-        Searching for keyword rose in file File2
-        Searching for keyword rose in file File3
-        Serching recursively for keyword rose in folder Folder1
-        Searching for keyword rose in file File1
-        ```
+=== "output.txt: 执行结果"
 
-## 优缺点
+    ```
+    === 搜索整个项目 ===
+    📁 递归搜索文件夹 [project] 中的 'TODO'
+    📄 在文件 [README.md] 中搜索关键词 'TODO'
+    📄 在文件 [main.go] 中搜索关键词 'TODO'
+    📁 递归搜索文件夹 [src] 中的 'TODO'
+    📄 在文件 [handler.go] 中搜索关键词 'TODO'
+    📁 递归搜索文件夹 [utils] 中的 'TODO'
+    📄 在文件 [logger.go] 中搜索关键词 'TODO'
 
-| 优点                                                                                | 缺点                                                                                                               |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| 你可以利用多态和递归机制更方便地使用复杂树结构。                                    | 对于功能差异较大的类， 提供公共接口或许会有困难。 在特定情况下， 你需要过度一般化组件接口， 使其变得令人难以理解。 |
-| 开闭原则。 无需更改现有代码， 你就可以在应用中添加新元素， 使其成为对象树的一部分。 |                                                                                                                    |
+    === 只搜索 src 目录 ===
+    📁 递归搜索文件夹 [src] 中的 'TODO'
+    📄 在文件 [handler.go] 中搜索关键词 'TODO'
+    📁 递归搜索文件夹 [utils] 中的 'TODO'
+    📄 在文件 [logger.go] 中搜索关键词 'TODO'
+
+    === 只搜索单个文件 ===
+    📄 在文件 [README.md] 中搜索关键词 'TODO'
+    ```
+
+## 什么时候使用组合模式？
+
+| 场景 | 说明 |
+|------|------|
+| 🌲 **树形结构** | 数据天然具有层级关系（文件系统、组织架构、菜单） |
+| 🔄 **递归处理** | 需要对整个树结构执行相同的操作 |
+| 📦 **整体-部分** | 希望客户端能一致地处理简单元素和复合元素 |
+| 🎯 **统一接口** | 希望忽略对象的具体类型，统一处理 |
+
+## 实际应用场景
+
+### 1. 组织架构
+
+```go
+type Employee interface {
+    getSalary() int
+    getName() string
+}
+
+type Developer struct { name string; salary int }
+type Manager struct { 
+    name string
+    salary int
+    team []Employee  // 可以管理开发者或其他经理
+}
+
+func (m *Manager) getSalary() int {
+    total := m.salary
+    for _, e := range m.team {
+        total += e.getSalary()  // 递归计算团队总薪资
+    }
+    return total
+}
+```
+
+### 2. GUI 组件
+
+```go
+type Widget interface {
+    render()
+}
+
+type Button struct { label string }
+type Panel struct { 
+    children []Widget  // 可以包含按钮、文本框、或其他面板
+}
+
+func (p *Panel) render() {
+    fmt.Println("渲染面板")
+    for _, child := range p.children {
+        child.render()
+    }
+}
+```
+
+### 3. 商品分类
+
+```go
+type Category interface {
+    getPrice() float64
+}
+
+type Product struct { price float64 }
+type Bundle struct { 
+    items []Category  // 套餐可以包含单品或其他套餐
+    discount float64
+}
+```
+
+## 优缺点分析
+
+| ✅ 优点 | ❌ 缺点 |
+|---------|---------|
+| **简化客户端**：统一接口，无需判断对象类型 | **接口泛化**：可能需要在接口中声明所有子类的方法 |
+| **开闭原则**：新增节点类型不影响现有代码 | **类型安全**：难以限制容器中的组件类型 |
+| **灵活组合**：可以构建任意复杂的树结构 | **设计难度**：需要找到合适的通用接口 |
 
 ## 与其他模式的关系
 
-* **桥接模式**、 **状态模式** 和 **策略模式** （在某种程度上包括 **适配器模式**） 模式的接口非常相似。 实际上， 它们都基于 **组合模式** ——即将工作委派给其他对象， 不过也各自解决了不同的问题。 模式并不只是以特定方式组织代码的配方， 你还可以使用它们来和其他开发者讨论模式所解决的问题。
-* 你可以在创建复杂 **组合** 树时使用 **生成器模式**， 因为这可使其构造步骤以递归的方式运行。
-* **责任链模式** 通常和 **组合模式** 结合使用。 在这种情况下， 叶组件接收到请求后， 可以将请求沿包含全体父组件的链一直传递至对象树的底部。
-* 你可以使用 **迭代器模式** 来遍历 **组合** 树。
-* 你可以使用 **访问者模式** 对整个 **组合** 树执行操作。
-* 你可以使用 **享元模式** 实现 **组合** 树的共享叶节点以节省内存。
-* **组合** 和 **装饰模式** 的结构图很相似， 因为两者都依赖递归组合来组织无限数量的对象。
+| 模式 | 关系 |
+|------|------|
+| **迭代器** | 可以使用迭代器遍历组合树 |
+| **访问者** | 可以使用访问者对整个组合树执行操作 |
+| **装饰器** | 两者都使用递归组合，但装饰器只有一个子组件 |
+| **享元** | 可以用享元实现组合树的共享叶节点 |
+| **责任链** | 叶组件可以沿父组件链传递请求 |
+| **生成器** | 可以用生成器递归构建复杂组合树 |
 
-    装饰类似于组合， 但其只有一个子组件。 此外还有一个明显不同： 装饰为被封装对象添加了额外的职责， 组合仅对其子节点的结果进行了 “求和”。
+!!! info "2011 综合知识 33,34"
+    组合（Composite）模式又称为整体-部分（Part whole）模式，属于对象的结构模式。在组合模式中，通过组合多个对象形成树形结构以表示整体部分的结构层次。组合模式对单个对象（即叶子对象）和组合对象（即容器对象）的使用具有一致性。
+    
+    * 类 Component 为组合中的对象声明接口；
+    * 类 Leaf 在组合中表示叶结点对象，叶结点没有子结点；
+    * 类 Composite 定义有子部件的那些部件的行为，存储子部件；
+    * 类 Client 通过 Component 接口操纵组合部件的对象。
 
-    但是， 模式也可以相互合作： 你可以使用装饰来扩展组合树中特定对象的行为。
+---
 
-* 大量使用 **组合** 和 **装饰** 的设计通常可从对于 **原型模式** 的使用中获益。 你可以通过该模式来复制复杂结构， 而非从零开始重新构造。
+!!! tip "一句话总结"
+    **组合模式就是"套娃"**：容器里可以放单品，也可以放其他容器，但对外提供统一的接口，客户端不用关心里面装的是什么。

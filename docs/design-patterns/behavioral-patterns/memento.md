@@ -7,180 +7,266 @@ tag:
   - 行为模式
 ---
 
-备忘录模式是一种行为设计模式， 允许在不暴露对象实现细节的情况下保存和恢复对象之前的状态。
+# 备忘录模式：给程序一个"后悔药"
+
+玩游戏时你一定用过"存档"功能：打 Boss 前存个档，挂了就读档重来。备忘录模式就是程序世界的"存档系统"——在不破坏对象封装的前提下，保存和恢复对象的内部状态。
+
+**备忘录模式** 允许你捕获对象的内部状态，并在需要时恢复到之前的状态，就像时光机一样。
+
+## 为什么需要备忘录？
+
+假设你在开发一个文本编辑器，需要支持"撤销"功能：
+
+```go
+// ❌ 糟糕的写法：直接暴露内部状态
+type Editor struct {
+    Content string  // 公开内部状态，破坏封装
+}
+
+// 外部代码直接操作
+backup := editor.Content
+editor.Content = "新内容"
+// 撤销
+editor.Content = backup
+```
+
+这样写的问题：
+
+- **破坏封装** ：内部状态完全暴露给外部
+- **状态管理混乱** ：谁来保存这些备份？
+- **难以扩展** ：如果对象有多个字段，每个都要备份
+
+备忘录模式的解法： **让对象自己创建和恢复快照，外部只管保存，不关心快照内容**。
 
 ## 模式结构
 
-### 基于嵌套类的实现
+![备忘录模式结构](https://refactoringguru.cn/images/patterns/diagrams/memento/structure1.png)
 
-![](https://refactoringguru.cn/images/patterns/diagrams/memento/structure1.png)
+| 角色 | 职责 | 类比 |
+|------|------|------|
+| **Originator（原发器）** | 创建自身状态的快照，也能从快照恢复 | 游戏角色 |
+| **Memento（备忘录）** | 存储原发器的内部状态（不可变） | 存档文件 |
+| **Caretaker（管理者）** | 保存备忘录，但不能查看或修改内容 | 存档管理器 |
 
-> 该模式的经典实现方式依赖于许多流行编程语言 （例如 C++、 C# 和 Java） 所支持的嵌套类。
+## 动手实现：文本编辑器的撤销功能
 
-1. **原发器 （Originator）** 类可以生成自身状态的快照， 也可以在需要时通过快照恢复自身状态。
-2. **备忘录 （Memento）** 是原发器状态快照的值对象 （value object）。 通常做法是将备忘录设为不可变的， 并通过构造函数一次性传递数据。
-3. **负责人 （Caretaker）** 仅知道 “何时” 和 “为何” 捕捉原发器的状态， 以及何时恢复状态。
+用一个简单的文本编辑器来演示备忘录模式。
 
-    负责人通过保存备忘录栈来记录原发器的历史状态。 当原发器需要回溯历史状态时， 负责人将从栈中获取最顶部的备忘录， 并将其传递给原发器的恢复 （restoration） 方法。
-4. 在该实现方法中， 备忘录类将被嵌套在原发器中。 这样原发器就可访问备忘录的成员变量和方法， 即使这些方法被声明为私有。 另一方面， 负责人对于备忘录的成员变量和方法的访问权限非常有限： 它们只能在栈中保存备忘录， 而不能修改其状态。
+### 第一步：定义备忘录（存档）
 
----
+=== "📄 memento.go: 备忘录"
 
-### 基于中间接口的实现
-
-<div style="display: flex; flex-direction: row; justify-content: center; zoom: 100%; float: left">
-<div>![](https://refactoringguru.cn/images/patterns/diagrams/memento/structure2.png)</div>
-</div>
-
-> 另外一种实现方法适用于不支持嵌套类的编程语言 （没错， 我说的就是 PHP）。
-
-1. 在没有嵌套类的情况下， 你可以规定负责人仅可通过明确声明的中间接口与备忘录互动， 该接口仅声明与备忘录元数据相关的方法， 限制其对备忘录成员变量的直接访问权限。
-2. 另一方面， 原发器可以直接与备忘录对象进行交互， 访问备忘录类中声明的成员变量和方法。 这种方式的缺点在于你需要将备忘录的所有成员变量声明为公有。
-
----
-
-### 封装更加严格的实现
-
-<div style="display: flex; flex-direction: row; justify-content: center; zoom: 100%; float: right">
-<div>![](https://refactoringguru.cn/images/patterns/diagrams/memento/structure3.png)</div>
-</div>
-
-> 如果你不想让其他类有任何机会通过备忘录来访问原发器的状态， 那么还有另一种可用的实现方式。
-
-1. 这种实现方式允许存在多种不同类型的原发器和备忘录。 每种原发器都和其相应的备忘录类进行交互。 原发器和备忘录都不会将其状态暴露给其他类。
-2. 负责人此时被明确禁止修改存储在备忘录中的状态。 但负责人类将独立于原发器， 因为此时恢复方法被定义在了备忘录类中。
-3. 每个备忘录将与创建了自身的原发器连接。 原发器会将自己及状态传递给备忘录的构造函数。 由于这些类之间的紧密联系， 只要原发器定义了合适的设置器 （setter）， 备忘录就能恢复其状态。
-
-## 应用场景
-
-* **当你需要创建对象状态快照来恢复其之前的状态时， 可以使用备忘录模式。**
-
-    备忘录模式允许你复制对象中的全部状态 （包括私有成员变量）， 并将其独立于对象进行保存。 尽管大部分人因为 “撤销” 这个用例才记得该模式， 但其实它在处理事务 （比如需要在出现错误时回滚一个操作） 的过程中也必不可少。
-* **当直接访问对象的成员变量、 获取器或设置器将导致封装被突破时， 可以使用该模式。**
-
-    备忘录让对象自行负责创建其状态的快照。 任何其他对象都不能读取快照， 这有效地保障了数据的安全性。
-
-## 实现方式
-
-1. 确定担任原发器角色的类。 重要的是明确程序使用的一个原发器中心对象， 还是多个较小的对象。
-
-    ```go originator.go: 原发器
+    ```go
     package main
 
-    type Originator struct {
-        state string
-    }
-
-    func (e *Originator) createMemento() *Memento {
-        return &Memento{state: e.state}
-    }
-
-    func (e *Originator) restoreMemento(m *Memento) {
-        e.state = m.getSavedState()
-    }
-
-    func (e *Originator) setState(state string) {
-        e.state = state
-    }
-
-    func (e *Originator) getState() string {
-        return e.state
-    }
-    ```
-
-2. 创建备忘录类。 逐一声明对应每个原发器成员变量的备忘录成员变量。
-3. 将备忘录类设为不可变。 备忘录只能通过构造函数一次性接收数据。 该类中不能包含设置器。
-
-    ```go memento.go: 备忘录
-    package main
-
+    // Memento 备忘录，存储编辑器的状态快照
+    // 注意：字段不导出，外部无法直接访问
     type Memento struct {
         state string
     }
 
-    func (m *Memento) getSavedState() string {
+    // GetState 获取保存的状态（仅供原发器使用）
+    func (m *Memento) GetState() string {
         return m.state
     }
     ```
 
-4. 如果你所使用的编程语言支持嵌套类， 则可将备忘录嵌套在原发器中； 如果不支持， 那么你可从备忘录类中抽取一个空接口， 然后让其他所有对象通过接口来引用备忘录。 你可在该接口中添加一些元数据操作， 但不能暴露原发器的状态。
-5. 在原发器中添加一个创建备忘录的方法。 原发器必须通过备忘录构造函数的一个或多个实际参数来将自身状态传递给备忘录。
+### 第二步：定义原发器（编辑器）
 
-    该方法返回结果的类型必须是你在上一步中抽取的接口 （如果你已经抽取了）。 实际上， 创建备忘录的方法必须直接与备忘录类进行交互。
-6. 在原发器类中添加一个用于恢复自身状态的方法。 该方法接受备忘录对象作为参数。 如果你在之前的步骤中抽取了接口， 那么可将接口作为参数的类型。 在这种情况下， 你需要将输入对象强制转换为备忘录， 因为原发器需要拥有对该对象的完全访问权限。
-7. 无论负责人是命令对象、 历史记录或其他完全不同的东西， 它都必须要知道何时向原发器请求新的备忘录、 如何存储备忘录以及何时使用特定备忘录来对原发器进行恢复。
+=== "📄 editor.go: 原发器"
 
-    ```go caretaker.go: 负责人
+    ```go
     package main
 
-    type Caretaker struct {
-        mementoArray []*Memento
+    import "fmt"
+
+    // Editor 文本编辑器，可以创建和恢复快照
+    type Editor struct {
+        content string
     }
 
-    func (c *Caretaker) addMemento(m *Memento) {
-        c.mementoArray = append(c.mementoArray, m)
+    // SetContent 设置内容
+    func (e *Editor) SetContent(content string) {
+        e.content = content
+        fmt.Printf("📝 编辑器内容变更为：「%s」\n", content)
     }
 
-    func (c *Caretaker) getMemento(index int) *Memento {
-        return c.mementoArray[index]
+    // GetContent 获取当前内容
+    func (e *Editor) GetContent() string {
+        return e.content
+    }
+
+    // Save 创建当前状态的快照
+    func (e *Editor) Save() *Memento {
+        fmt.Printf("💾 保存当前状态：「%s」\n", e.content)
+        return &Memento{state: e.content}
+    }
+
+    // Restore 从快照恢复状态
+    func (e *Editor) Restore(m *Memento) {
+        e.content = m.GetState()
+        fmt.Printf("⏪ 恢复到状态：「%s」\n", e.content)
     }
     ```
 
-8. 负责人与原发器之间的连接可以移动到备忘录类中。 在本例中， 每个备忘录都必须与创建自己的原发器相连接。 恢复方法也可以移动到备忘录类中， 但只有当备忘录类嵌套在原发器中， 或者原发器类提供了足够多的设置器并可对其状态进行重写时， 这种方式才能实现。
+### 第三步：定义管理者（历史记录）
 
-```go main.go: 客户端代码
-package main
+=== "📄 history.go: 管理者"
 
-import "fmt"
+    ```go
+    package main
 
-func main() {
+    import "fmt"
 
-    caretaker := &Caretaker{
-        mementoArray: make([]*Memento, 0),
+    // History 历史记录管理器
+    type History struct {
+        mementos []*Memento
     }
 
-    originator := &Originator{
-        state: "A",
+    // Push 保存一个备忘录
+    func (h *History) Push(m *Memento) {
+        h.mementos = append(h.mementos, m)
     }
 
-    fmt.Printf("Originator Current State: %s\n", originator.getState())
-    caretaker.addMemento(originator.createMemento())
+    // Pop 取出最近的备忘录
+    func (h *History) Pop() *Memento {
+        if len(h.mementos) == 0 {
+            fmt.Println("⚠️ 没有可恢复的状态")
+            return nil
+        }
+        // 取出最后一个
+        last := h.mementos[len(h.mementos)-1]
+        h.mementos = h.mementos[:len(h.mementos)-1]
+        return last
+    }
+    ```
 
-    originator.setState("B")
-    fmt.Printf("Originator Current State: %s\n", originator.getState())
-    caretaker.addMemento(originator.createMemento())
+### 第四步：组装并使用
 
-    originator.setState("C")
-    fmt.Printf("Originator Current State: %s\n", originator.getState())
-    caretaker.addMemento(originator.createMemento())
+=== "📄 main.go: 客户端代码"
 
-    originator.restoreMemento(caretaker.getMemento(1))
-    fmt.Printf("Restored to State: %s\n", originator.getState())
+    ```go
+    package main
 
-    originator.restoreMemento(caretaker.getMemento(0))
-    fmt.Printf("Restored to State: %s\n", originator.getState())
+    import "fmt"
 
+    func main() {
+        editor := &Editor{}
+        history := &History{}
+
+        // 第一次编辑
+        editor.SetContent("Hello")
+        history.Push(editor.Save())
+
+        // 第二次编辑
+        editor.SetContent("Hello, World")
+        history.Push(editor.Save())
+
+        // 第三次编辑
+        editor.SetContent("Hello, World!")
+
+        fmt.Println("\n=== 开始撤销 ===")
+
+        // 撤销到第二次编辑的状态
+        editor.Restore(history.Pop())
+
+        // 撤销到第一次编辑的状态
+        editor.Restore(history.Pop())
+
+        fmt.Printf("\n✅ 最终内容：「%s」\n", editor.GetContent())
+    }
+    ```
+
+=== "📄 output.txt: 执行结果"
+
+    ```
+    📝 编辑器内容变更为：「Hello」
+    💾 保存当前状态：「Hello」
+    📝 编辑器内容变更为：「Hello, World」
+    💾 保存当前状态：「Hello, World」
+    📝 编辑器内容变更为：「Hello, World!」
+
+    === 开始撤销 ===
+    ⏪ 恢复到状态：「Hello, World」
+    ⏪ 恢复到状态：「Hello」
+
+    ✅ 最终内容：「Hello」
+    ```
+
+## 三种实现方式
+
+备忘录模式有三种常见的实现方式：
+
+### 1. 嵌套类实现（经典）
+
+```go
+// 备忘录作为原发器的内部类
+type Editor struct {
+    type snapshot struct {
+        content string
+    }
 }
 ```
 
-```go output.txt: 执行结果
-originator Current State: A
-originator Current State: B
-originator Current State: C
-Restored to State: B
-Restored to State: A
+**优点**：备忘录只能被原发器访问，封装性最好
+
+### 2. 中间接口实现
+
+```go
+// 对外只暴露空接口
+type Memento interface{}
+
+// 内部使用具体类型
+type editorMemento struct {
+    content string
+}
 ```
 
-## 优缺点
+**优点**：管理者完全无法访问备忘录内容
 
-| 优点                                                       | 缺点                                                                                      |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 你可以在不破坏对象封装情况的前提下创建对象状态快照。       | 如果客户端过于频繁地创建备忘录， 程序将消耗大量内存。                                     |
-| 你可以通过让负责人维护原发器状态历史记录来简化原发器代码。 | 负责人必须完整跟踪原发器的生命周期， 这样才能销毁弃用的备忘录。                           |
-|                                                            | 绝大部分动态编程语言 （例如 PHP、 Python 和 JavaScript） 不能确保备忘录中的状态不被修改。 |
+### 3. 宽接口实现（本文示例）
+
+```go
+type Memento struct {
+    state string
+}
+
+func (m *Memento) GetState() string
+```
+
+**优点**：简单直接，适合大多数场景
+
+## 什么时候该用备忘录？
+
+| 场景 | 说明 |
+|------|------|
+| **需要撤销/重做** | 文本编辑器、绘图软件、IDE |
+| **需要事务回滚** | 数据库事务、游戏存档 |
+| **需要状态快照** | 调试时保存程序状态 |
+| **需要保护封装** | 不想暴露对象内部实现 |
+
+**常见应用** ：
+
+- **文本编辑器**：Ctrl+Z 撤销
+- **浏览器**：后退按钮
+- **游戏**：存档/读档
+- **数据库**：事务回滚
+- **版本控制**：Git commit
+
+## 优缺点分析
+
+| ✅ 优点 | ❌ 缺点 |
+|---------|---------|
+| **保护封装**：外部无法访问对象内部状态 | **内存开销**：频繁创建快照会占用大量内存 |
+| **简化原发器**：状态管理逻辑由管理者负责 | **管理者生命周期**：需要跟踪原发器生命周期，及时清理过期快照 |
+| **支持撤销/重做**：可以任意回到历史状态 | **动态语言限制**：JS/Python 无法真正保护备忘录内容 |
 
 ## 与其他模式的关系
 
-* 你可以同时使用**命令模式**和**备忘录模式**来实现 “撤销”。 在这种情况下， 命令用于对目标对象执行各种不同的操作， 备忘录用来保存一条命令执行前该对象的状态。
-* 你可以同时使用**备忘录**和**迭代器模式**来获取当前迭代器的状态， 并且在需要的时候进行回滚。
-* 有时候**原型模式**可以作为**备忘录**的一个简化版本， 其条件是你需要在历史记录中存储的对象的状态比较简单， 不需要链接其他外部资源， 或者链接可以方便地重建。
+| 模式组合 | 说明 |
+|----------|------|
+| **备忘录 + 命令** | 命令执行前用备忘录保存状态，支持撤销 |
+| **备忘录 + 迭代器** | 保存迭代进度，支持暂停和继续 |
+| **备忘录 vs 原型** | 原型是复制整个对象，备忘录只保存部分状态 |
+
+> **一句话总结**：备忘录模式就像手机的"照片"功能——拍下此刻的状态，以后随时可以回看，但照片本身不能被修改。

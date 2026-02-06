@@ -225,10 +225,9 @@ not_in_nav: |
 nav:
   - 首页:
       - index.md
-      # - about.md
-      # - 共享文本: https://privatebin.icloudnative.io/
-  - 往期精粹:
-      - 高级架构师:
+      - 关于我: about.md
+  - 学习笔记:
+      - 软考·架构师:
           - ruankao/index.md
           - 基础知识:
               - ruankao/basics computer.md
@@ -264,13 +263,15 @@ nav:
               - design-patterns/creational-patterns/prototype.md
               - design-patterns/creational-patterns/factory.md
               - design-patterns/creational-patterns/abstract-factory.md
-          - 建造者模式:
+              - design-patterns/creational-patterns/builder.md
+          - 结构型模式:
               - design-patterns/structural-patterns/adapter.md
               - design-patterns/structural-patterns/facade.md
               - design-patterns/structural-patterns/composite.md
               - design-patterns/structural-patterns/proxy.md
               - design-patterns/structural-patterns/decorator.md
               - design-patterns/structural-patterns/bridge.md
+              - design-patterns/structural-patterns/flyweight.md
           - 行为模式:
               - design-patterns/behavioral-patterns/template-method.md
               - design-patterns/behavioral-patterns/state.md
@@ -281,46 +282,6 @@ nav:
               - design-patterns/behavioral-patterns/mediator.md
               - design-patterns/behavioral-patterns/visitor.md
               - design-patterns/behavioral-patterns/iterator.md
-      - 重构: 
-          - refactoring/index.md
-          - 什么是重构:
-              - refactoring/what-is-refactoring/technical-debt.md
-              - refactoring/what-is-refactoring/clean-code.md
-              - refactoring/what-is-refactoring/when.md
-              - refactoring/what-is-refactoring/how-to.md
-          - 什么代码需要重构？:
-              - refactoring/code-smells/index.md
-              - 臃肿的代码:
-                  # - refactoring/code-smells/bloaters/long-method.md
-                  # - refactoring/code-smells/bloaters/large-class.md
-                  # - refactoring/code-smells/bloaters/primitive-obsession.md
-                  - refactoring/code-smells/bloaters/long-parameter-list.md
-                  # - refactoring/code-smells/bloaters/data-clumps.md
-              - Dispensables:
-                  - refactoring/code-smells/dispensables/data-class.md
-          - 解决方案:
-              - refactoring/techniques/index.md
-              - Composing Methods:
-                  - refactoring/techniques/composing-methods/extract-method.md
-                  - refactoring/techniques/composing-methods/replace-temp-with-query.md
-                  - refactoring/techniques/composing-methods/split-temporary-variable.md
-              - Moving Features between Objects:
-                  - refactoring/techniques/moving-features-between-objects/move-method.md
-              - Organizing Data:
-                  - refactoring/techniques/organizing-data/encapsulate-field.md
-                  - refactoring/techniques/organizing-data/encapsulate-collection.md
-                  # - refactoring/techniques/organizing-data/self-encapsulate-field.md
-                  # - refactoring/techniques/organizing-data/replace-type-code-with-subclass.md
-              - 简化方法调用:
-                  - refactoring/techniques/simplifying-method-calls/replace-parameter-with-method-call.md
-                  - refactoring/techniques/simplifying-method-calls/preserve-whole-object.md
-                  - refactoring/techniques/simplifying-method-calls/remove-parameter.md
-                  - refactoring/techniques/simplifying-method-calls/introduce-parameter-object.md
-                  - refactoring/techniques/simplifying-method-calls/add-parameter.md
-                  - refactoring/techniques/simplifying-method-calls/remove-setting-method.md
-                  - refactoring/techniques/simplifying-method-calls/hide-method.md
-                  - refactoring/techniques/simplifying-method-calls/separate-query-from-modifier.md
-                  - refactoring/techniques/simplifying-method-calls/rename-method.md
+              - design-patterns/behavioral-patterns/memento.md
   - 博客:
       - blog/index.md
-  # - 社区: https://phpbb.itycu.cn

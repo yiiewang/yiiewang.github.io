@@ -7,208 +7,250 @@ tag:
   - 行为模式
 ---
 
-模板方法模式是一种行为设计模式， 它在超类中定义了一个算法的框架， 允许子类在不修改结构的情况下重写算法的特定步骤。
+# 模板方法模式：定好骨架，填充血肉
+
+做菜有固定流程：备菜 → 热锅 → 烹饪 → 装盘。不管做什么菜，这个"骨架"不变，变的只是具体怎么备菜、怎么烹饪。模板方法模式就是这个思路—— **在父类中定义算法骨架，让子类填充具体步骤** 。
+
+**模板方法模式** 在超类中定义一个算法的框架，允许子类在不修改结构的情况下重写特定步骤。
+
+## 为什么需要模板方法？
+
+假设你在开发一个发送验证码的功能，支持短信和邮件两种方式：
+
+```go
+// ❌ 糟糕的写法：两套几乎一样的代码
+func sendSmsOTP() {
+    otp := generateOTP()      // 相同
+    saveToCache(otp)          // 相同
+    msg := "短信验证码: " + otp  // 不同
+    sendSms(msg)              // 不同
+}
+
+func sendEmailOTP() {
+    otp := generateOTP()      // 相同
+    saveToCache(otp)          // 相同
+    msg := "邮件验证码: " + otp  // 不同
+    sendEmail(msg)            // 不同
+}
+```
+
+这样写的问题：
+
+- **代码重复**：相同的步骤写了两遍
+- **修改困难**：想改生成逻辑？两处都要改
+- **容易出错**：复制粘贴时可能遗漏细节
+
+模板方法的解法： **把相同的步骤抽到父类，不同的步骤让子类实现** 。
 
 ## 模式结构
 
-![](https://refactoringguru.cn/images/patterns/diagrams/template-method/structure.png)
+![模板方法结构](https://refactoringguru.cn/images/patterns/diagrams/template-method/structure.png)
 
-1. **抽象类 （Abstract­Class）** 会声明作为算法步骤的方法， 以及依次调用它们的实际模板方法。 算法步骤可以被声明为 抽象类型， 也可以提供一些默认实现。
-2. **具体类 （Concrete­Class）** 可以重写所有步骤， 但不能重写模板方法自身。
+| 角色 | 职责 | 类比 |
+|------|------|------|
+| **AbstractClass（抽象类）** | 定义算法骨架，调用各个步骤 | 菜谱模板 |
+| **ConcreteClass（具体类）** | 实现具体步骤 | 红烧肉/糖醋排骨 |
 
-## 应用场景
+## 动手实现：OTP 验证码发送系统
 
-* **当你只希望客户端扩展某个特定算法步骤， 而不是整个算法或其结构时， 可使用模板方法模式。**
+用验证码发送系统来演示模板方法模式。
 
-    模板方法将整个算法转换为一系列独立的步骤， 以便子类能对其进行扩展， 同时还可让超类中所定义的结构保持完整。
+### 第一步：定义模板接口和基础结构
+
+=== "📄 otp.go: 模板方法"
+
+    ```go
+    package main
+
+    // OTPSender 验证码发送器接口
+    type OTPSender interface {
+        GenerateOTP(length int) string  // 生成验证码
+        SaveToCache(otp string)          // 保存到缓存
+        GetMessage(otp string) string    // 构造消息内容
+        SendNotification(msg string) error // 发送通知
+    }
+
+    // OTP 模板，定义算法骨架
+    type OTP struct {
+        sender OTPSender
+    }
+
+    // Send 模板方法：定义验证码发送的完整流程
+    func (o *OTP) Send(length int) error {
+        // 1. 生成验证码
+        otp := o.sender.GenerateOTP(length)
+        
+        // 2. 保存到缓存
+        o.sender.SaveToCache(otp)
+        
+        // 3. 构造消息
+        message := o.sender.GetMessage(otp)
+        
+        // 4. 发送通知
+        return o.sender.SendNotification(message)
+    }
+    ```
+
+### 第二步：实现具体发送方式
+
+=== "📄 sms_otp.go: 短信验证码"
+
+    ```go
+    package main
+
+    import (
+        "fmt"
+        "math/rand"
+    )
+
+    // SmsOTP 短信验证码
+    type SmsOTP struct{}
+
+    func (s *SmsOTP) GenerateOTP(length int) string {
+        otp := fmt.Sprintf("%04d", rand.Intn(10000))
+        fmt.Printf("📱 [短信] 生成验证码: %s\n", otp)
+        return otp
+    }
+
+    func (s *SmsOTP) SaveToCache(otp string) {
+        fmt.Printf("💾 [短信] 保存验证码到缓存: %s\n", otp)
+    }
+
+    func (s *SmsOTP) GetMessage(otp string) string {
+        return fmt.Sprintf("【XX公司】您的验证码是 %s，5分钟内有效。", otp)
+    }
+
+    func (s *SmsOTP) SendNotification(msg string) error {
+        fmt.Printf("📤 [短信] 发送内容: %s\n", msg)
+        return nil
+    }
+    ```
+
+=== "📄 email_otp.go: 邮件验证码"
+
+    ```go
+    package main
+
+    import (
+        "fmt"
+        "math/rand"
+    )
+
+    // EmailOTP 邮件验证码
+    type EmailOTP struct{}
+
+    func (e *EmailOTP) GenerateOTP(length int) string {
+        otp := fmt.Sprintf("%04d", rand.Intn(10000))
+        fmt.Printf("📧 [邮件] 生成验证码: %s\n", otp)
+        return otp
+    }
+
+    func (e *EmailOTP) SaveToCache(otp string) {
+        fmt.Printf("💾 [邮件] 保存验证码到缓存: %s\n", otp)
+    }
+
+    func (e *EmailOTP) GetMessage(otp string) string {
+        return fmt.Sprintf("<h1>您的验证码</h1><p>验证码: <strong>%s</strong></p>", otp)
+    }
+
+    func (e *EmailOTP) SendNotification(msg string) error {
+        fmt.Printf("📤 [邮件] 发送内容: %s\n", msg)
+        return nil
+    }
+    ```
+
+### 第三步：使用模板
+
+=== "📄 main.go: 客户端代码"
+
+    ```go
+    package main
+
+    import "fmt"
+
+    func main() {
+        fmt.Println("=== 发送短信验证码 ===")
+        smsOTP := &SmsOTP{}
+        otpSms := OTP{sender: smsOTP}
+        otpSms.Send(4)
+
+        fmt.Println("\n=== 发送邮件验证码 ===")
+        emailOTP := &EmailOTP{}
+        otpEmail := OTP{sender: emailOTP}
+        otpEmail.Send(4)
+    }
+    ```
+
+=== "📄 output.txt: 执行结果"
+
+    ```
+    === 发送短信验证码 ===
+    📱 [短信] 生成验证码: 1234
+    💾 [短信] 保存验证码到缓存: 1234
+    📤 [短信] 发送内容: 【XX公司】您的验证码是 1234，5分钟内有效。
+
+    === 发送邮件验证码 ===
+    📧 [邮件] 生成验证码: 5678
+    💾 [邮件] 保存验证码到缓存: 5678
+    📤 [邮件] 发送内容: <h1>您的验证码</h1><p>验证码: <strong>5678</strong></p>
+    ```
+
+## 钩子方法：可选的扩展点
+
+模板方法可以提供"钩子"，让子类选择性地扩展某些步骤：
+
+```go
+type OTPSender interface {
+    // ... 必须实现的方法
+
+    // 钩子方法：子类可以选择重写
+    BeforeSend() bool  // 发送前检查，返回 false 取消发送
+    AfterSend()        // 发送后回调
+}
+
+func (o *OTP) Send(length int) error {
+    // 调用钩子
+    if !o.sender.BeforeSend() {
+        return fmt.Errorf("发送被取消")
+    }
     
-* **当多个类的算法除一些细微不同之外几乎完全一样时， 你可使用该模式。 但其后果就是， 只要算法发生变化， 你就可能需要修改所有的类。**
+    // ... 正常流程
+    
+    o.sender.AfterSend()  // 完成后回调
+    return nil
+}
+```
 
-    在将算法转换为模板方法时， 你可将相似的实现步骤提取到超类中以去除重复代码。 子类间各不同的代码可继续保留在子类中。
+## 什么时候该用模板方法？
 
-## 实现方式
+| 场景 | 说明 |
+|------|------|
+| **算法骨架固定** | 整体流程不变，只有某些步骤不同 |
+| **消除重复代码** | 多个类有相似的代码，可以提取公共部分 |
+| **控制扩展点** | 只允许子类修改特定步骤，防止破坏整体流程 |
 
-让我们来考虑一个一次性密码功能 （OTP） 的例子。 将 OTP 传递给用户的方式多种多样 （短信、 邮件等）。 但无论是短信还是邮件， 整个 OTP 流程都是相同的：
+**常见应用** ：
 
-1. 生成随机的 n 位数字。
-2. 在缓存中保存这组数字以便进行后续验证。
-3. 准备内容。
-4. 发送通知。
+- **测试框架**：setUp → test → tearDown
+- **游戏 AI**：感知 → 决策 → 行动
+- **数据处理**：读取 → 转换 → 保存
+- **Web 请求处理**：认证 → 授权 → 执行 → 响应
 
-后续引入的任何新 OTP 类型都很有可能需要进行相同的上述步骤。
+## 优缺点分析
 
-因此， 我们会有这样的一个场景， 其中某个特定操作的步骤是相同的， 但实现方式却可能有所不同。 这正是适合考虑使用模板方法模式的情况。
+| ✅ 优点 | ❌ 缺点 |
+|---------|---------|
+| **消除重复**：公共代码只写一次 | **框架限制**：子类必须遵循父类定义的骨架 |
+| **易于扩展**：只需实现变化的部分 | **里氏替换**：子类可能通过重写破坏父类行为 |
+| **反向控制**：父类调用子类方法（好莱坞原则） | **步骤越多越复杂**：维护成本增加 |
 
-首先， 我们定义一个由固定数量的方法组成的基础模板算法。 这就是我们的模板方法。 然后我们将实现每一个步骤方法， 但不会改变模板方法。
+## 模板方法 vs 策略模式
 
-1. 分析目标算法， 确定能否将其分解为多个步骤。 从所有子类的角度出发， 考虑哪些步骤能够通用， 哪些步骤各不相同。
-2. 创建抽象基类并声明一个模板方法和代表算法步骤的一系列抽象方法。 在模板方法中根据算法结构依次调用相应步骤。 可用 `final` 最终修饰模板方法以防止子类对其进行重写。
+| 特性 | 模板方法 | 策略模式 |
+|------|---------|---------|
+| **实现方式** | 继承（is-a） | 组合（has-a） |
+| **灵活性** | 编译时确定 | 运行时可切换 |
+| **控制粒度** | 控制整个算法骨架 | 只控制某一个算法 |
+| **类层次** | 需要继承体系 | 扁平化，无需继承 |
 
-    === "otp.go: 模板方法"
-
-        ```go 
-        package main
-
-        type IOtp interface {
-            genRandomOTP(int) string
-            saveOTPCache(string)
-            getMessage(string) string
-            sendNotification(string) error
-        }
-
-        // type otp struct {
-        // }
-
-        // func (o *otp) genAndSendOTP(iOtp iOtp, otpLength int) error {
-        //  otp := iOtp.genRandomOTP(otpLength)
-        //  iOtp.saveOTPCache(otp)
-        //  message := iOtp.getMessage(otp)
-        //  err := iOtp.sendNotification(message)
-        //  if err != nil {
-        //      return err
-        //  }
-        //  return nil
-        // }
-
-        type Otp struct {
-            iOtp IOtp
-        }
-
-        func (o *Otp) genAndSendOTP(otpLength int) error {
-            otp := o.iOtp.genRandomOTP(otpLength)
-            o.iOtp.saveOTPCache(otp)
-            message := o.iOtp.getMessage(otp)
-            err := o.iOtp.sendNotification(message)
-            if err != nil {
-                return err
-            }
-            return nil
-        }
-        ```
-
-    === "sms.go: 具体实施"
-
-        ```go 
-        package main
-
-        import "fmt"
-
-        type Sms struct {
-            Otp
-        }
-
-        func (s *Sms) genRandomOTP(len int) string {
-            randomOTP := "1234"
-            fmt.Printf("SMS: generating random otp %s\n", randomOTP)
-            return randomOTP
-        }
-
-        func (s *Sms) saveOTPCache(otp string) {
-            fmt.Printf("SMS: saving otp: %s to cache\n", otp)
-        }
-
-        func (s *Sms) getMessage(otp string) string {
-            return "SMS OTP for login is " + otp
-        }
-
-        func (s *Sms) sendNotification(message string) error {
-            fmt.Printf("SMS: sending sms: %s\n", message)
-            return nil
-        }
-        ```
-
-    === "email.go: 具体实施"
-
-        ```go 
-        package main
-
-        import "fmt"
-
-        type Email struct {
-            Otp
-        }
-
-        func (s *Email) genRandomOTP(len int) string {
-            randomOTP := "1234"
-            fmt.Printf("EMAIL: generating random otp %s\n", randomOTP)
-            return randomOTP
-        }
-
-        func (s *Email) saveOTPCache(otp string) {
-            fmt.Printf("EMAIL: saving otp: %s to cache\n", otp)
-        }
-
-        func (s *Email) getMessage(otp string) string {
-            return "EMAIL OTP for login is " + otp
-        }
-
-        func (s *Email) sendNotification(message string) error {
-            fmt.Printf("EMAIL: sending email: %s\n", message)
-            return nil
-        }
-        ```
-
-3. 虽然可将所有步骤全都设为抽象类型， 但默认实现可能会给部分步骤带来好处， 因为子类无需实现那些方法。
-4. 可考虑在算法的关键步骤之间添加钩子。
-5. 为每个算法变体新建一个具体子类， 它必须实现所有的抽象步骤， 也可以重写部分可选步骤。
-
-    === "main.go: 客户端代码"
-
-        ```go 
-        package main
-
-        import "fmt"
-
-        func main() {
-            // otp := otp{}
-
-            // smsOTP := &sms{
-            //  otp: otp,
-            // }
-
-            // smsOTP.genAndSendOTP(smsOTP, 4)
-
-            // emailOTP := &email{
-            //  otp: otp,
-            // }
-            // emailOTP.genAndSendOTP(emailOTP, 4)
-            // fmt.Scanln()
-            smsOTP := &Sms{}
-            o := Otp{
-                iOtp: smsOTP,
-            }
-            o.genAndSendOTP(4)
-
-            fmt.Println("")
-            emailOTP := &Email{}
-            o = Otp{
-                iOtp: emailOTP,
-            }
-            o.genAndSendOTP(4)
-        }
-        ```
-
-    === "output.txt: 执行结果"
-
-        ```go 
-        SMS: generating random otp 1234
-        SMS: saving otp: 1234 to cache
-        SMS: sending sms: SMS OTP for login is 1234
-
-        EMAIL: generating random otp 1234
-        EMAIL: saving otp: 1234 to cache
-        EMAIL: sending email: EMAIL OTP for login is 1234
-        ```
-
-## 优缺点
-
-| 优点                                                                                      | 缺点                                                 |
-| ----------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| 你可仅允许客户端重写一个大型算法中的特定部分， 使得算法其他部分修改对其所造成的影响减小。 | 部分客户端可能会受到算法框架的限制。f                |
-| 你可将重复代码提取到一个超类中。                                                          | 通过子类抑制默认步骤实现可能会导致违反里氏替换原则。 |
-|                                                                                           | 模板方法中的步骤越多， 其维护工作就可能会越困难。    |
-
-## 与其他模式的关系
-
-* **工厂方法模式** 是 **模板方法模式** 的一种特殊形式。 同时， 工厂方法可以作为一个大型模板方法中的一个步骤。
-* **模板方法** 基于继承机制： 它允许你通过扩展子类中的部分内容来改变部分算法。 **策略模式** 基于组合机制： 你可以通过对相应行为提供不同的策略来改变对象的部分行为。 模板方法在类层次上运作， 因此它是静态的。 策略在对象层次上运作， 因此允许在运行时切换行为。
+> **一句话总结**：模板方法就像填空题——题目（骨架）是固定的，你只需要填写答案（具体步骤）。
