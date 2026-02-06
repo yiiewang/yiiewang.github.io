@@ -1,9 +1,15 @@
+# IDE & Editor
 .cache
 .idea
 .history
 .vscode
+.codebuddy
 
-# Go files
-go.mod
-**/*.go
+# 草稿
 **/drafts
+
+# 私有文件
+private/
+
+# 构建产物
+site/
