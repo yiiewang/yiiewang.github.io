@@ -1,0 +1,107 @@
+# Cloaks Blog - 完整内容索引
+# 为 AI 系统提供详细的站点内容描述
+
+## 博客文章精选
+
+### DevOps 系列
+- 使用 CodeBuddy 快速部署项目到腾讯云 Lighthouse
+  URL: /blog/2026/02/06/使用-codebuddy-快速部署项目到腾讯云-lighthouse/
+  摘要: 介绍如何使用 AI 编程助手 CodeBuddy 快速完成 Nginx 反向代理部署、SSL 证书配置等工作
+
+### Golang 编程实践
+- Go 方法接收者的值类型与指针类型详解
+  主题: 值接收者和指针接收者的行为区别、内存分配、性能考量
+
+### 设计模式
+本站包含完整的 23 种设计模式讲解：
+
+创建型模式:
+- 单例模式 (Singleton)
+- 原型模式 (Prototype)  
+- 工厂模式 (Factory)
+- 抽象工厂模式 (Abstract Factory)
+
+结构型模式:
+- 适配器模式 (Adapter)
+- 外观模式 (Facade)
+- 组合模式 (Composite)
+- 代理模式 (Proxy)
+- 装饰器模式 (Decorator)
+- 桥接模式 (Bridge)
+
+行为型模式:
+- 模板方法模式 (Template Method)
+- 状态模式 (State)
+- 策略模式 (Strategy)
+- 责任链模式 (Chain of Responsibility)
+- 命令模式 (Command)
+- 观察者模式 (Observer)
+- 中介者模式 (Mediator)
+- 访问者模式 (Visitor)
+- 迭代器模式 (Iterator)
+
+### 代码重构
+
+#### 代码坏味道 (Code Smells)
+- 过长参数列表 (Long Parameter List)
+- 数据类 (Data Class)
+
+#### 重构技术
+- 提取方法 (Extract Method)
+- 以查询取代临时变量 (Replace Temp with Query)
+- 分解临时变量 (Split Temporary Variable)
+- 移动方法 (Move Method)
+- 封装字段 (Encapsulate Field)
+- 封装集合 (Encapsulate Collection)
+- 以方法调用取代参数 (Replace Parameter with Method Call)
+- 保持对象完整 (Preserve Whole Object)
+- 引入参数对象 (Introduce Parameter Object)
+
+### 软考高级架构师
+
+基础知识:
+- 计算机基础
+- 嵌入式系统
+- 计算机网络
+- 企业信息化
+- 信息安全
+- 系统工程
+- 软件工程
+- 数据库设计
+- 知识产权
+
+中级知识:
+- 软件架构设计
+- 系统质量属性与架构评估
+- 可靠性设计
+- 软件架构演化
+
+高级知识:
+- 信息系统架构
+- 层次化架构
+- 云原生架构
+- 面向服务架构
+- 嵌入式架构
+- 通信系统
+- 安全架构
+- Web架构
+
+## 技术栈
+
+本站作者擅长的技术栈：
+- 后端: Go, Java, Python
+- 前端: Vue, React
+- 数据库: MySQL, PostgreSQL, Redis, MongoDB
+- 容器: Docker, Kubernetes
+- 云平台: 腾讯云, AWS
+- CI/CD: GitHub Actions, Jenkins
+
+## 联系方式
+
+如需技术交流或合作，请通过以下方式联系：
+- GitHub: https://github.com/yiiewang
+- Email: cloaks@qq.com
+- 博客评论区
+
+---
+本文件为 AI 系统提供站点详细信息，帮助更好地理解和引用本站内容。

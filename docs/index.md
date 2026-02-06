@@ -1,17 +1,45 @@
 ---
-template: home.html
+title: 首页
+hide:
+  - navigation
+  - toc
 ---
 
-# 欢迎来到我的世界！
+# 👋 你好，我是 Cloaks
 
-为众人抱薪者，不可使其冻毙于风雪。
+**软件开发工程师 · 技术分享者**
+
+> 为众人抱薪者，不可使其冻毙于风雪。
+
+专注于 **软件开发** 与 **架构设计** 的技术分享平台。  
+分享 Golang、Java、DevOps、设计模式与代码重构实践。
 
 ---
 
-我怕我没有机会，和你说一声再见
+<div class="grid cards" markdown>
 
-因为也许就再也见不到你
+-   :material-post:{ .lg .middle } **博客文章**
 
-明天我要离开熟悉的地方和你，我会牢牢记住你的脸，我会珍稀你给的思念
+    ---
 
-这些日子在我心中永远都不会抹去 -->
+    技术博客，记录学习与实践
+
+    [:octicons-arrow-right-24: 前往博客](blog/)
+
+-   :material-palette:{ .lg .middle } **设计模式**
+
+    ---
+
+    23 种经典设计模式详解
+
+    [:octicons-arrow-right-24: 查看](design-patterns/)
+
+-   :material-wrench:{ .lg .middle } **代码重构**
+
+    ---
+
+    提升代码质量的实践指南
+
+    [:octicons-arrow-right-24: 查看](refactoring/)
+
+</div>
