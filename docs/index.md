@@ -8,193 +8,560 @@ hide:
 <style>
 .md-typeset h1 { display: none; }
 
-/* Hero Section */
-.hero-section {
-  text-align: center;
-  padding: 3rem 1rem 2rem;
-  background: linear-gradient(135deg, rgba(var(--md-primary-fg-color--light-rgb), 0.05) 0%, transparent 100%);
-  border-radius: 16px;
-  margin-bottom: 2rem;
+/* ===== 全局变量 ===== */
+:root {
+  --card-radius: 16px;
+  --card-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  --card-shadow-hover: 0 12px 40px rgba(0,0,0,0.15);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== Hero Banner ===== */
+.hero-banner {
+  position: relative;
+  padding: 4rem 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: var(--card-radius);
+  margin-bottom: 2.5rem;
+  overflow: hidden;
+  color: white;
+}
+.hero-banner::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 60%;
+  height: 200%;
+  background: rgba(255,255,255,0.1);
+  transform: rotate(30deg);
+  pointer-events: none;
+}
+.hero-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+}
+.hero-avatar-wrapper {
+  flex-shrink: 0;
 }
 .hero-avatar {
-  width: 100px;
-  height: 100px;
+  width: 140px;
+  height: 140px;
   border-radius: 50%;
-  border: 3px solid var(--md-primary-fg-color);
-  margin-bottom: 1rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  border: 4px solid rgba(255,255,255,0.8);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  object-fit: cover;
+}
+.hero-text {
+  flex: 1;
+  min-width: 280px;
+}
+.hero-greeting {
+  font-size: 1rem;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.hero-name {
+  font-size: 2.8rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
 }
 .hero-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, var(--md-primary-fg-color) 0%, var(--md-accent-fg-color) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.hero-subtitle {
-  font-size: 1rem;
-  color: var(--md-default-fg-color--light);
-  margin-bottom: 1.5rem;
+  font-size: 1.2rem;
+  opacity: 0.9;
+  margin-bottom: 1rem;
 }
 .hero-quote {
-  font-style: italic;
-  color: var(--md-default-fg-color--light);
   font-size: 0.95rem;
-  padding: 0.8rem 1.5rem;
-  background: var(--md-default-fg-color--lightest);
+  font-style: italic;
+  opacity: 0.85;
+  padding: 0.8rem 1.2rem;
+  background: rgba(255,255,255,0.15);
   border-radius: 8px;
-  display: inline-block;
+  border-left: 3px solid rgba(255,255,255,0.5);
   max-width: 400px;
 }
 .hero-buttons {
   display: flex;
   gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
   margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+.hero-btn {
+  padding: 0.8rem 1.8rem;
+  border-radius: 30px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.hero-btn-primary {
+  background: white;
+  color: #667eea;
+}
+.hero-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+.hero-btn-secondary {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: 2px solid rgba(255,255,255,0.5);
+}
+.hero-btn-secondary:hover {
+  background: rgba(255,255,255,0.3);
 }
 
-/* Stats */
-.stats-row {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  padding: 1.5rem 0;
-  flex-wrap: wrap;
+/* ===== Stats Bar ===== */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 3rem;
 }
-.stat-item {
+.stat-card {
+  background: var(--md-default-bg-color);
+  padding: 1.5rem;
+  border-radius: var(--card-radius);
   text-align: center;
-  padding: 0 1rem;
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+}
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--card-shadow-hover);
+}
+.stat-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 .stat-number {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: var(--md-primary-fg-color);
-  line-height: 1.2;
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .stat-label {
+  font-size: 0.85rem;
+  color: var(--md-default-fg-color--light);
+  margin-top: 0.3rem;
+}
+
+/* ===== Section Title ===== */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 3rem 0 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, var(--md-primary-fg-color) 0%, transparent 100%);
+  opacity: 0.3;
+}
+
+/* ===== Card Grid ===== */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.feature-card {
+  background: var(--md-default-bg-color);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.feature-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--card-shadow-hover);
+}
+.card-image {
+  height: 160px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+.card-image::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: linear-gradient(transparent, rgba(0,0,0,0.6));
+}
+.card-category {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.3rem 0.8rem;
+  background: rgba(255,255,255,0.95);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #667eea;
+}
+.card-body {
+  padding: 1.5rem;
+}
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--md-default-fg-color);
+}
+.card-desc {
+  font-size: 0.9rem;
+  color: var(--md-default-fg-color--light);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+.card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 0.8rem;
   color: var(--md-default-fg-color--light);
 }
-
-/* Section */
-.section-header {
+.card-arrow {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin: 2.5rem 0 1rem;
+  justify-content: center;
+  color: white;
+  transition: var(--transition);
 }
-.section-header h2 {
-  margin: 0 !important;
-  border: none !important;
+.feature-card:hover .card-arrow {
+  transform: translateX(4px);
+}
+
+/* ===== Article List ===== */
+.article-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.article-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1.2rem;
+  background: var(--md-default-bg-color);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+  text-decoration: none;
+  color: inherit;
+  align-items: center;
+}
+.article-item:hover {
+  transform: translateX(8px);
+  box-shadow: var(--card-shadow-hover);
+}
+.article-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+.article-icon-purple { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+.article-icon-blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
+.article-icon-green { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; }
+.article-icon-orange { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; }
+.article-icon-red { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+.article-content {
+  flex: 1;
+}
+.article-title {
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  color: var(--md-default-fg-color);
+}
+.article-desc {
+  font-size: 0.85rem;
+  color: var(--md-default-fg-color--light);
+}
+
+/* ===== Tech Stack ===== */
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+.tech-item {
+  background: var(--md-default-bg-color);
+  padding: 1.2rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+}
+.tech-item:hover {
+  transform: scale(1.05);
+}
+.tech-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+.tech-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* ===== Footer ===== */
+.home-footer {
+  text-align: center;
+  padding: 3rem 1rem;
+  margin-top: 2rem;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border-radius: var(--card-radius);
+}
+.footer-quote {
+  font-size: 1.1rem;
+  font-style: italic;
+  color: var(--md-default-fg-color);
+  margin-bottom: 1.5rem;
+}
+.footer-links {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.footer-link {
+  padding: 0.6rem 1.2rem;
+  background: var(--md-default-bg-color);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.footer-link:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .hero-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  .hero-name {
+    font-size: 2rem;
+  }
+  .hero-quote {
+    margin: 0 auto;
+  }
+  .hero-buttons {
+    justify-content: center;
+  }
 }
 </style>
 
-<div class="hero-section">
-  <img src="assets/avatar.jpg" alt="Cloaks" class="hero-avatar" onerror="this.src='https://avatars.githubusercontent.com/u/39525230'">
-  <div class="hero-title">嗨，我是 Cloaks 👋</div>
-  <div class="hero-subtitle">一个热爱技术、乐于分享的开发者</div>
-  <div class="hero-quote">「为众人抱薪者，不可使其冻毙于风雪」</div>
-  <div class="hero-buttons">
-    <a href="blog/" class="md-button md-button--primary">开始阅读</a>
-    <a href="about/" class="md-button">了解更多</a>
+<!-- ===== Hero Banner ===== -->
+<div class="hero-banner">
+  <div class="hero-content">
+    <div class="hero-avatar-wrapper">
+      <img src="assets/avatar.jpg" alt="Cloaks" class="hero-avatar" onerror="this.src='https://avatars.githubusercontent.com/u/39525230'">
+    </div>
+    <div class="hero-text">
+      <div class="hero-greeting">Welcome to my blog</div>
+      <div class="hero-name">Cloaks</div>
+      <div class="hero-title">区块链架构师 · 技术探索者</div>
+      <div class="hero-quote">「为众人抱薪者，不可使其冻毙于风雪」</div>
+      <div class="hero-buttons">
+        <a href="blog/" class="hero-btn hero-btn-primary">
+          <span>📖</span> 开始阅读
+        </a>
+        <a href="about/" class="hero-btn hero-btn-secondary">
+          <span>👋</span> 了解我
+        </a>
+      </div>
+    </div>
   </div>
 </div>
 
-<div class="stats-row">
-  <div class="stat-item">
+<!-- ===== Stats Bar ===== -->
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="stat-icon">📝</div>
     <div class="stat-number">100+</div>
     <div class="stat-label">原创文章</div>
   </div>
-  <div class="stat-item">
-    <div class="stat-number">4 年</div>
+  <div class="stat-card">
+    <div class="stat-icon">⏰</div>
+    <div class="stat-number">5+ 年</div>
     <div class="stat-label">持续写作</div>
   </div>
-  <div class="stat-item">
+  <div class="stat-card">
+    <div class="stat-icon">🎨</div>
     <div class="stat-number">23 种</div>
     <div class="stat-label">设计模式</div>
   </div>
+  <div class="stat-card">
+    <div class="stat-icon">🔗</div>
+    <div class="stat-number">区块链</div>
+    <div class="stat-label">专注领域</div>
+  </div>
 </div>
 
----
+<!-- ===== Featured Content ===== -->
+<div class="section-title">🧭 探索内容</div>
 
-## :material-compass: 探索内容
-
-这里是我的技术知识库，涵盖日常开发实践、经典设计模式、代码优化技巧等内容。
-
-<div class="grid cards" markdown>
-
--   :material-post-outline:{ .lg .middle } **技术博客**
-
-    ---
-
-    开发日常中的思考与实践：后端架构、云原生、区块链...
-    
-    每一篇都是真实项目中踩过的坑、总结的经验。
-
-    [:octicons-arrow-right-24: 浏览文章](blog/index.md)
-
--   :material-palette:{ .lg .middle } **设计模式**
-
-    ---
-
-    23 种 GoF 设计模式的系统讲解。
-    
-    不只是「是什么」，更关注「为什么」和「怎么用」。
-
-    [:octicons-arrow-right-24: 开始学习](design-patterns/index.md)
-
--   :material-certificate:{ .lg .middle } **软考笔记**
-
-    ---
-
-    系统架构师考试的备考笔记。
-    
-    知识点整理 + 真题解析，助你高效通关。
-
-    [:octicons-arrow-right-24: 复习资料](ruankao/index.md)
-
-</div>
-
----
-
-## :material-star: 推荐阅读
-
-如果你是第一次来，不妨从这些内容开始：
-
-=== ":material-fire: 热门文章"
-
-    | 文章 | 简介 |
-    |------|------|
-    | [单例模式详解](design-patterns/creational-patterns/singleton.md) | 最简单也最容易用错的设计模式 |
-    | [软件架构设计](ruankao/medium%20software%20architecture.md) | 架构师必备的设计思维 |
-
-=== ":material-map-marker-path: 学习路径"
-
-    **入门设计模式**
-    
-    ```
-    单例模式 → 工厂模式 → 策略模式 → 观察者模式
-    ```
-
-=== ":material-tools: 我的技术栈"
-
-    | 领域 | 常用技术 |
-    |------|----------|
-    | 后端开发 | Golang · Java · Python |
-    | 区块链 | 智能合约 · 分布式账本 |
-    | 云原生 | Docker · Kubernetes |
-    | 数据库 | MySQL · Redis · MongoDB |
-
----
-
-<div style="text-align: center; padding: 2rem 0;">
-  <p style="color: var(--md-default-fg-color--light); margin-bottom: 1rem;">
-    💬 有问题或想法？欢迎在文章下方留言交流
-  </p>
-  <a href="https://github.com/yiiewang/yiiewang.github.io" target="_blank" style="color: var(--md-default-fg-color--light); font-size: 0.85rem;">
-    :fontawesome-brands-github: 本站源码
+<div class="card-grid">
+  <a href="blog/" class="feature-card">
+    <div class="card-image" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+      <span class="card-category">Blog</span>
+    </div>
+    <div class="card-body">
+      <div class="card-title">技术博客</div>
+      <div class="card-desc">开发日常中的思考与实践：后端架构、云原生、区块链... 每一篇都是真实项目中踩过的坑。</div>
+      <div class="card-meta">
+        <span>100+ 篇文章</span>
+        <div class="card-arrow">→</div>
+      </div>
+    </div>
   </a>
+  
+  <a href="design-patterns/" class="feature-card">
+    <div class="card-image" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+      <span class="card-category">Pattern</span>
+    </div>
+    <div class="card-body">
+      <div class="card-title">设计模式</div>
+      <div class="card-desc">23 种 GoF 设计模式的系统讲解。不只是「是什么」，更关注「为什么」和「怎么用」。</div>
+      <div class="card-meta">
+        <span>23 种模式</span>
+        <div class="card-arrow">→</div>
+      </div>
+    </div>
+  </a>
+  
+  <a href="ruankao/" class="feature-card">
+    <div class="card-image" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+      <span class="card-category">Exam</span>
+    </div>
+    <div class="card-body">
+      <div class="card-title">软考笔记</div>
+      <div class="card-desc">系统架构师考试的备考笔记。知识点整理 + 真题解析，助你高效通关。</div>
+      <div class="card-meta">
+        <span>架构师备考</span>
+        <div class="card-arrow">→</div>
+      </div>
+    </div>
+  </a>
+</div>
+
+<!-- ===== Recent Articles ===== -->
+<div class="section-title">🔥 热门推荐</div>
+
+<div class="article-list">
+  <a href="blog/posts/2025/03/3/" class="article-item">
+    <div class="article-icon article-icon-red">❤️</div>
+    <div class="article-content">
+      <div class="article-title">爱的艺术</div>
+      <div class="article-desc">弗洛姆经典著作读书笔记 —— 爱不是找到对的人，而是培养爱的能力</div>
+    </div>
+  </a>
+  
+  <a href="blog/posts/2025/01/19/" class="article-item">
+    <div class="article-icon article-icon-blue">⚖️</div>
+    <div class="article-content">
+      <div class="article-title">负载均衡设计思路与实践指南</div>
+      <div class="article-desc">轮询、权重、随机... 分布式系统核心技术详解</div>
+    </div>
+  </a>
+  
+  <a href="design-patterns/creational-patterns/singleton/" class="article-item">
+    <div class="article-icon article-icon-purple">🎯</div>
+    <div class="article-content">
+      <div class="article-title">单例模式详解</div>
+      <div class="article-desc">最简单也最容易用错的设计模式</div>
+    </div>
+  </a>
+  
+  <a href="ruankao/medium%20software%20architecture/" class="article-item">
+    <div class="article-icon article-icon-green">🏗️</div>
+    <div class="article-content">
+      <div class="article-title">软件架构设计</div>
+      <div class="article-desc">架构师必备的设计思维与方法论</div>
+    </div>
+  </a>
+</div>
+
+<!-- ===== Tech Stack ===== -->
+<div class="section-title">🛠️ 技术栈</div>
+
+<div class="tech-grid">
+  <div class="tech-item">
+    <div class="tech-icon">🔗</div>
+    <div class="tech-name">区块链</div>
+  </div>
+  <div class="tech-item">
+    <div class="tech-icon">🐹</div>
+    <div class="tech-name">Golang</div>
+  </div>
+  <div class="tech-item">
+    <div class="tech-icon">☕</div>
+    <div class="tech-name">Java</div>
+  </div>
+  <div class="tech-item">
+    <div class="tech-icon">🐳</div>
+    <div class="tech-name">Docker</div>
+  </div>
+  <div class="tech-item">
+    <div class="tech-icon">☸️</div>
+    <div class="tech-name">Kubernetes</div>
+  </div>
+  <div class="tech-item">
+    <div class="tech-icon">🗄️</div>
+    <div class="tech-name">MySQL</div>
+  </div>
+</div>
+
+<!-- ===== Footer ===== -->
+<div class="home-footer">
+  <div class="footer-quote">「写下来的东西，比光想要清晰得多」</div>
+  <div class="footer-links">
+    <a href="https://github.com/yiiewang" target="_blank" class="footer-link">
+      <span>🐙</span> GitHub
+    </a>
+    <a href="https://github.com/yiiewang/yiiewang.github.io" target="_blank" class="footer-link">
+      <span>📦</span> 本站源码
+    </a>
+    <a href="feed_rss_created.xml" target="_blank" class="footer-link">
+      <span>📡</span> RSS 订阅
+    </a>
+  </div>
 </div>
