@@ -16,16 +16,52 @@ hide:
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ===== 滚动公告栏 ===== */
+.announce-bar {
+  background: transparent;
+  padding: 0.4rem 0;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+.announce-track {
+  display: flex;
+  gap: 4rem;
+  animation: marquee 20s linear infinite;
+  white-space: nowrap;
+}
+.announce-item {
+  color: var(--md-default-fg-color--light);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.announce-bar:hover .announce-track {
+  animation-play-state: paused;
+}
+
 /* ===== Hero Banner ===== */
+.hero-banner-wrapper {
+  margin-bottom: 2.5rem;
+}
 .hero-banner {
   position: relative;
   padding: 4rem 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background-size: 200% 200%;
+  animation: gradientShift 8s ease infinite;
   border-radius: var(--card-radius);
-  margin-bottom: 2.5rem;
   overflow: hidden;
   color: white;
 }
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+/* 光效粒子 */
 .hero-banner::before {
   content: '';
   position: absolute;
@@ -36,6 +72,23 @@ hide:
   background: rgba(255,255,255,0.1);
   transform: rotate(30deg);
   pointer-events: none;
+  animation: shimmer 3s ease-in-out infinite;
+}
+.hero-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -50%;
+  left: -20%;
+  width: 50%;
+  height: 200%;
+  background: rgba(255,255,255,0.08);
+  transform: rotate(-20deg);
+  pointer-events: none;
+  animation: shimmer 4s ease-in-out infinite reverse;
+}
+@keyframes shimmer {
+  0%, 100% { opacity: 0.3; transform: rotate(30deg) translateX(0); }
+  50% { opacity: 0.6; transform: rotate(30deg) translateX(20px); }
 }
 .hero-content {
   position: relative;
@@ -47,14 +100,36 @@ hide:
 }
 .hero-avatar-wrapper {
   flex-shrink: 0;
+  position: relative;
+}
+/* 头像光环动画 */
+.hero-avatar-wrapper::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent, rgba(255,255,255,0.8), transparent 30%);
+  animation: rotate 3s linear infinite;
+}
+@keyframes rotate {
+  100% { transform: rotate(360deg); }
 }
 .hero-avatar {
   width: 140px;
   height: 140px;
   border-radius: 50%;
-  border: 4px solid rgba(255,255,255,0.8);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  border: 4px solid rgba(255,255,255,0.9);
+  box-shadow: 0 0 30px rgba(255,255,255,0.4), 0 8px 32px rgba(0,0,0,0.2);
   object-fit: cover;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.3s ease;
+}
+.hero-avatar:hover {
+  transform: scale(1.05);
 }
 .hero-text {
   flex: 1;
@@ -66,17 +141,21 @@ hide:
   margin-bottom: 0.5rem;
   letter-spacing: 2px;
   text-transform: uppercase;
+  animation: fadeInUp 0.6s ease;
 }
 .hero-name {
   font-size: 2.8rem;
   font-weight: 800;
   margin-bottom: 0.5rem;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  animation: fadeInUp 0.6s ease 0.1s both;
   line-height: 1.2;
 }
 .hero-title {
   font-size: 1.2rem;
   opacity: 0.9;
   margin-bottom: 1rem;
+  animation: fadeInUp 0.6s ease 0.2s both;
 }
 .hero-quote {
   font-size: 0.95rem;
@@ -84,22 +163,25 @@ hide:
   opacity: 0.85;
   padding: 0.8rem 1.2rem;
   background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
   border-radius: 8px;
   border-left: 3px solid rgba(255,255,255,0.5);
   max-width: 400px;
+  animation: fadeInUp 0.6s ease 0.3s both;
 }
 .hero-buttons {
   display: flex;
   gap: 1rem;
   margin-top: 1.5rem;
   flex-wrap: wrap;
+  animation: fadeInUp 0.6s ease 0.4s both;
 }
 .hero-btn {
   padding: 0.8rem 1.8rem;
   border-radius: 30px;
   font-weight: 600;
   text-decoration: none;
-  transition: var(--transition);
+  transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -107,18 +189,33 @@ hide:
 .hero-btn-primary {
   background: white;
   color: #667eea;
+  box-shadow: 0 4px 15px rgba(255,255,255,0.3);
 }
 .hero-btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 30px rgba(255,255,255,0.4);
 }
 .hero-btn-secondary {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.15);
   color: white;
-  border: 2px solid rgba(255,255,255,0.5);
+  border: 2px solid rgba(255,255,255,0.4);
+  backdrop-filter: blur(10px);
 }
 .hero-btn-secondary:hover {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.25);
+  border-color: rgba(255,255,255,0.6);
+  transform: translateY(-2px);
+}
+/* 入场动画 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ===== Stats Bar ===== */
@@ -550,24 +647,34 @@ hide:
 }
 </style>
 
+<!-- 顶部滚动公告栏 -->
+<div class="announce-bar">
+  <div class="announce-track">
+    <span class="announce-item">🎉 博客首页全新改版，欢迎体验！</span>
+    <span class="announce-item">📝 持续更新中，记录技术成长之路</span>
+  </div>
+</div>
+
 <!-- ===== Hero Banner ===== -->
-<div class="hero-banner">
-  <div class="hero-content">
-    <div class="hero-avatar-wrapper">
-      <img src="assets/avatar.jpg" alt="Cloaks" class="hero-avatar" onerror="this.src='https://avatars.githubusercontent.com/u/39525230'">
-    </div>
-    <div class="hero-text">
-      <div class="hero-greeting">Welcome to my blog</div>
-      <div class="hero-name">Cloaks</div>
-      <div class="hero-title">区块链架构师 · 技术探索者</div>
-      <div class="hero-quote">「为众人抱薪者，不可使其冻毙于风雪」</div>
-      <div class="hero-buttons">
-        <a href="blog/" class="hero-btn hero-btn-primary">
-          <span>📖</span> 开始阅读
-        </a>
-        <a href="about/" class="hero-btn hero-btn-secondary">
-          <span>👋</span> 了解我
-        </a>
+<div class="hero-banner-wrapper">
+  <div class="hero-banner">
+    <div class="hero-content">
+      <div class="hero-avatar-wrapper">
+        <img src="assets/avatar.jpg" alt="Cloaks" class="hero-avatar" onerror="this.src='https://avatars.githubusercontent.com/u/39525230'">
+      </div>
+      <div class="hero-text">
+        <div class="hero-greeting">Welcome to my blog</div>
+        <div class="hero-name">Cloaks</div>
+        <div class="hero-title">区块链架构师 · 技术探索者</div>
+        <div class="hero-quote">「为众人抱薪者，不可使其冻毙于风雪」</div>
+        <div class="hero-buttons">
+          <a href="blog/" class="hero-btn hero-btn-primary">
+            <span>📖</span> 开始阅读
+          </a>
+          <a href="about/" class="hero-btn hero-btn-secondary">
+            <span>👋</span> 了解我
+          </a>
+        </div>
       </div>
     </div>
   </div>
