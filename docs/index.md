@@ -375,7 +375,7 @@ hide:
 @media (max-width: 768px) {
   /* Hero */
   .hero-banner {
-    padding: 2.5rem 1.2rem;
+    padding: 2.5rem 1.5rem;
   }
   .hero-content {
     flex-direction: column;
@@ -399,9 +399,14 @@ hide:
     margin: 0 auto;
     font-size: 0.85rem;
     padding: 0.6rem 1rem;
+    max-width: 90%;
   }
   .hero-buttons {
     justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 300px;
+    margin: 1.2rem auto 0;
   }
   .hero-btn {
     padding: 0.7rem 1.4rem;
@@ -497,18 +502,44 @@ hide:
 /* ===== Small Phone ===== */
 @media (max-width: 480px) {
   .hero-banner {
-    padding: 2rem 1rem;
+    padding: 2rem 1rem 2.5rem;
+    border-radius: 12px;
+  }
+  .hero-avatar {
+    width: 80px;
+    height: 80px;
+    border-width: 3px;
+  }
+  .hero-greeting {
+    font-size: 0.75rem;
+    letter-spacing: 1px;
   }
   .hero-name {
-    font-size: 1.7rem;
+    font-size: 1.6rem;
+  }
+  .hero-title {
+    font-size: 0.9rem;
+  }
+  .hero-quote {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.8rem;
+    max-width: 100%;
   }
   .hero-buttons {
-    flex-direction: column;
-    gap: 0.6rem;
+    flex-direction: row;
+    gap: 0.5rem;
+    margin-top: 1.2rem;
+    width: 100%;
   }
   .hero-btn {
-    width: 100%;
+    flex: 1;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+    border-radius: 20px;
     justify-content: center;
+  }
+  .hero-btn-secondary {
+    border-width: 1.5px;
   }
   .stats-bar {
     grid-template-columns: repeat(2, 1fr);
