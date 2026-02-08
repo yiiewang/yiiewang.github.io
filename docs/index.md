@@ -373,18 +373,148 @@ hide:
 
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
+  /* Hero */
+  .hero-banner {
+    padding: 2.5rem 1.2rem;
+  }
   .hero-content {
     flex-direction: column;
     text-align: center;
+    gap: 1.5rem;
+  }
+  .hero-avatar {
+    width: 100px;
+    height: 100px;
+  }
+  .hero-greeting {
+    font-size: 0.85rem;
   }
   .hero-name {
     font-size: 2rem;
   }
+  .hero-title {
+    font-size: 1rem;
+  }
   .hero-quote {
     margin: 0 auto;
+    font-size: 0.85rem;
+    padding: 0.6rem 1rem;
   }
   .hero-buttons {
     justify-content: center;
+  }
+  .hero-btn {
+    padding: 0.7rem 1.4rem;
+    font-size: 0.9rem;
+  }
+  
+  /* Stats */
+  .stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+  }
+  .stat-card {
+    padding: 1rem;
+  }
+  .stat-number {
+    font-size: 1.5rem;
+  }
+  .stat-label {
+    font-size: 0.75rem;
+  }
+  
+  /* Section Title */
+  .section-title {
+    font-size: 1.2rem;
+    margin: 2rem 0 1rem;
+  }
+  
+  /* Card Grid */
+  .card-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .card-image {
+    height: 120px;
+  }
+  .card-body {
+    padding: 1.2rem;
+  }
+  .card-title {
+    font-size: 1.1rem;
+  }
+  .card-desc {
+    font-size: 0.85rem;
+  }
+  
+  /* Article List */
+  .article-item {
+    padding: 1rem;
+  }
+  .article-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 1.2rem;
+  }
+  .article-title {
+    font-size: 0.95rem;
+  }
+  .article-desc {
+    font-size: 0.8rem;
+  }
+  
+  /* Tech Grid */
+  .tech-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.8rem;
+  }
+  .tech-item {
+    padding: 0.8rem;
+  }
+  .tech-icon {
+    font-size: 1.5rem;
+  }
+  .tech-name {
+    font-size: 0.75rem;
+  }
+  
+  /* Footer */
+  .home-footer {
+    padding: 2rem 1rem;
+  }
+  .footer-quote {
+    font-size: 0.95rem;
+  }
+  .footer-links {
+    gap: 0.6rem;
+  }
+  .footer-link {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* ===== Small Phone ===== */
+@media (max-width: 480px) {
+  .hero-banner {
+    padding: 2rem 1rem;
+  }
+  .hero-name {
+    font-size: 1.7rem;
+  }
+  .hero-buttons {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .hero-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .tech-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>
