@@ -64,8 +64,8 @@ User-agent: Meta-ExternalAgent
 Allow: /
 
 # 站点地图
-Sitemap: https://www.cloaks.cn/sitemap.xml
+Sitemap: https://cloaks.cn/sitemap.xml
 
 # LLM 信息文件
 # See: https://llmstxt.org/
-# LLMs-txt: https://www.cloaks.cn/llms.txt
+LLMs-txt: https://cloaks.cn/llms.txt

@@ -7,7 +7,7 @@
 ## 网站信息
 
 - 名称: Cloaks | Return
-- 域名: https://www.cloaks.cn
+- 域名: https://cloaks.cn
 - 语言: 中文 (zh-CN)
 - 作者: Cloaks
 - 类型: 技术博客
@@ -46,7 +46,7 @@
 
 ## 订阅与联系
 
-- RSS 订阅: https://www.cloaks.cn/feed_rss_created.xml
+- RSS 订阅: https://cloaks.cn/feed_rss_created.xml
 - GitHub: https://github.com/yiiewang
 - 邮箱: cloaks@qq.com
 
@@ -64,3 +64,7 @@
 
 ---
 最后更新: 2026-02
+
+## Optional
+
+- [完整内容索引](https://cloaks.cn/llms-full.txt): 为 AI 系统提供更详细的站点内容描述
