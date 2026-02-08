@@ -230,58 +230,58 @@ nav:
       - 软考·架构师:
           - ruankao/index.md
           - 基础知识:
-              - ruankao/basics computer.md
-              - ruankao/basics embedded.md
-              - ruankao/basics network.md
-              - ruankao/basics enterprise-informatization.md
-              - ruankao/basics information security.md
-              - ruankao/basics system engineering.md
-              - ruankao/basics software engineering.md
-              - ruankao/basics database-design.md
-              - ruankao/basics intellectual property rights.md
+              - ruankao/basics computer/index.md
+              - ruankao/basics embedded/index.md
+              - ruankao/basics network/index.md
+              - ruankao/basics enterprise-informatization/index.md
+              - ruankao/basics information security/index.md
+              - ruankao/basics system engineering/index.md
+              - ruankao/basics software engineering/index.md
+              - ruankao/basics database-design/index.md
+              - ruankao/basics intellectual property rights/index.md
           - 中级知识:
-              - ruankao/medium software architecture.md
-              - ruankao/medium system-quality-attributes-and-architecture-assessment.md
-              - ruankao/medium reliability.md
-              - ruankao/medium software architecture evolution.md
-              - ruankao/medium future.md
+              - ruankao/medium software architecture/index.md
+              - ruankao/medium system-quality-attributes-and-architecture-assessment/index.md
+              - ruankao/medium reliability/index.md
+              - ruankao/medium software architecture evolution/index.md
+              - ruankao/medium future/index.md
           - 高级知识:
-              - ruankao/advanced information-system-architecture.md
-              - ruankao/advanced hierarchical.md
-              - ruankao/advanced cloud-native.md
-              - ruankao/advanced service-oriented.md
-              - ruankao/advanced embedded.md
-              - ruankao/advanced communication system.md
-              - ruankao/advanced security architecture.md
-              - ruankao/advanced web.md
+              - ruankao/advanced information-system-architecture/index.md
+              - ruankao/advanced hierarchical/index.md
+              - ruankao/advanced cloud-native/index.md
+              - ruankao/advanced service-oriented/index.md
+              - ruankao/advanced embedded/index.md
+              - ruankao/advanced communication system/index.md
+              - ruankao/advanced security architecture/index.md
+              - ruankao/advanced web/index.md
           - 论文写作:
-              - ruankao/paper.md
+              - ruankao/paper/index.md
       - 设计模式: 
           - design-patterns/index.md
           - 创建型模式:
-              - design-patterns/creational-patterns/singleton.md
-              - design-patterns/creational-patterns/prototype.md
-              - design-patterns/creational-patterns/factory.md
-              - design-patterns/creational-patterns/abstract-factory.md
-              - design-patterns/creational-patterns/builder.md
+              - design-patterns/creational-patterns/singleton/index.md
+              - design-patterns/creational-patterns/prototype/index.md
+              - design-patterns/creational-patterns/factory/index.md
+              - design-patterns/creational-patterns/abstract-factory/index.md
+              - design-patterns/creational-patterns/builder/index.md
           - 结构型模式:
-              - design-patterns/structural-patterns/adapter.md
-              - design-patterns/structural-patterns/facade.md
-              - design-patterns/structural-patterns/composite.md
-              - design-patterns/structural-patterns/proxy.md
-              - design-patterns/structural-patterns/decorator.md
-              - design-patterns/structural-patterns/bridge.md
-              - design-patterns/structural-patterns/flyweight.md
+              - design-patterns/structural-patterns/adapter/index.md
+              - design-patterns/structural-patterns/facade/index.md
+              - design-patterns/structural-patterns/composite/index.md
+              - design-patterns/structural-patterns/proxy/index.md
+              - design-patterns/structural-patterns/decorator/index.md
+              - design-patterns/structural-patterns/bridge/index.md
+              - design-patterns/structural-patterns/flyweight/index.md
           - 行为模式:
-              - design-patterns/behavioral-patterns/template-method.md
-              - design-patterns/behavioral-patterns/state.md
-              - design-patterns/behavioral-patterns/strategy.md
-              - design-patterns/behavioral-patterns/chain-of-responsibility.md
-              - design-patterns/behavioral-patterns/command.md
-              - design-patterns/behavioral-patterns/observer.md
-              - design-patterns/behavioral-patterns/mediator.md
-              - design-patterns/behavioral-patterns/visitor.md
-              - design-patterns/behavioral-patterns/iterator.md
-              - design-patterns/behavioral-patterns/memento.md
+              - design-patterns/behavioral-patterns/template-method/index.md
+              - design-patterns/behavioral-patterns/state/index.md
+              - design-patterns/behavioral-patterns/strategy/index.md
+              - design-patterns/behavioral-patterns/chain-of-responsibility/index.md
+              - design-patterns/behavioral-patterns/command/index.md
+              - design-patterns/behavioral-patterns/observer/index.md
+              - design-patterns/behavioral-patterns/mediator/index.md
+              - design-patterns/behavioral-patterns/visitor/index.md
+              - design-patterns/behavioral-patterns/iterator/index.md
+              - design-patterns/behavioral-patterns/memento/index.md
   - 博客:
       - blog/index.md

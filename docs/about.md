@@ -53,7 +53,7 @@ hide:
 </style>
 
 <div class="about-header">
-  <img src="assets/avatar.jpg" alt="Cloaks" class="about-avatar" onerror="this.src='https://avatars.githubusercontent.com/u/39525230'">
+  <img src="assets/images/avatar.jpg" alt="Cloaks" class="about-avatar" onerror="this.src='https://avatars.githubusercontent.com/u/39525230'">
   <div class="about-name">Cloaks</div>
   <div class="about-title">区块链架构师 · 技术博主</div>
   <div class="about-links">

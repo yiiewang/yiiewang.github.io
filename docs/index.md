@@ -660,7 +660,7 @@ hide:
   <div class="hero-banner">
     <div class="hero-content">
       <div class="hero-avatar-wrapper">
-        <img src="assets/avatar.jpg" alt="Cloaks" class="hero-avatar" onerror="this.src='https://avatars.githubusercontent.com/u/39525230'">
+        <img src="assets/images/avatar.jpg" alt="Cloaks" class="hero-avatar" onerror="this.src='https://avatars.githubusercontent.com/u/39525230'">
       </div>
       <div class="hero-text">
         <div class="hero-greeting">Welcome to my blog</div>

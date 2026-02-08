@@ -10,7 +10,7 @@ authors:
   cloaks:
     name: Cloaks
     description: Keep running, keep growing!
-    avatar: assets/avatar.jpg
+    avatar: assets/images/avatar.jpg
   codebuddy:
     name: CodeBuddy
     description: Your AI Coding Partner
