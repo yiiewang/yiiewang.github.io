@@ -187,23 +187,26 @@ hide:
   gap: 0.5rem;
 }
 .hero-btn-primary {
-  background: white;
-  color: #667eea;
-  box-shadow: 0 4px 15px rgba(255,255,255,0.3);
+  background: #ffffff;
+  color: #1a202c;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  font-weight: 700;
 }
 .hero-btn-primary:hover {
   transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 8px 30px rgba(255,255,255,0.4);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  background: #f7fafc;
 }
 .hero-btn-secondary {
-  background: rgba(255,255,255,0.15);
-  color: white;
-  border: 2px solid rgba(255,255,255,0.4);
-  backdrop-filter: blur(10px);
+  background: rgba(0,0,0,0.6);
+  color: #ffffff !important;
+  border: 2px solid #ffffff;
+  font-weight: 700;
 }
 .hero-btn-secondary:hover {
-  background: rgba(255,255,255,0.25);
-  border-color: rgba(255,255,255,0.6);
+  background: rgba(0,0,0,0.75);
+  color: #ffffff !important;
+  border-color: #ffffff;
   transform: translateY(-2px);
 }
 /* 入场动画 */
