@@ -10,10 +10,9 @@ hide:
 
 /* ===== 全局变量 ===== */
 :root {
-  --card-radius: 16px;
-  --card-shadow: 0 4px 24px rgba(0,0,0,0.08);
-  --card-shadow-hover: 0 12px 40px rgba(0,0,0,0.15);
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --card-radius: 10px;
+  --card-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  --card-shadow-hover: 0 6px 24px rgba(0,0,0,0.1);
 }
 
 /* ===== 滚动公告栏 ===== */
@@ -47,52 +46,12 @@ hide:
   margin-bottom: 2.5rem;
 }
 .hero-banner {
-  position: relative;
-  padding: 4rem 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-  background-size: 200% 200%;
-  animation: gradientShift 8s ease infinite;
+  padding: 3rem 2rem;
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
   border-radius: var(--card-radius);
-  overflow: hidden;
   color: white;
 }
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-/* 光效粒子 */
-.hero-banner::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 60%;
-  height: 200%;
-  background: rgba(255,255,255,0.1);
-  transform: rotate(30deg);
-  pointer-events: none;
-  animation: shimmer 3s ease-in-out infinite;
-}
-.hero-banner::after {
-  content: '';
-  position: absolute;
-  bottom: -50%;
-  left: -20%;
-  width: 50%;
-  height: 200%;
-  background: rgba(255,255,255,0.08);
-  transform: rotate(-20deg);
-  pointer-events: none;
-  animation: shimmer 4s ease-in-out infinite reverse;
-}
-@keyframes shimmer {
-  0%, 100% { opacity: 0.3; transform: rotate(30deg) translateX(0); }
-  50% { opacity: 0.6; transform: rotate(30deg) translateX(20px); }
-}
 .hero-content {
-  position: relative;
-  z-index: 1;
   display: flex;
   align-items: center;
   gap: 2.5rem;
@@ -100,126 +59,78 @@ hide:
 }
 .hero-avatar-wrapper {
   flex-shrink: 0;
-  position: relative;
-}
-/* 头像光环动画 */
-.hero-avatar-wrapper::before {
-  content: '';
-  position: absolute;
-  top: -8px;
-  left: -8px;
-  right: -8px;
-  bottom: -8px;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent, rgba(255,255,255,0.8), transparent 30%);
-  animation: rotate 3s linear infinite;
-}
-@keyframes rotate {
-  100% { transform: rotate(360deg); }
 }
 .hero-avatar {
-  width: 140px;
-  height: 140px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
-  border: 4px solid rgba(255,255,255,0.9);
-  box-shadow: 0 0 30px rgba(255,255,255,0.4), 0 8px 32px rgba(0,0,0,0.2);
+  border: 3px solid rgba(255,255,255,0.3);
   object-fit: cover;
-  position: relative;
-  z-index: 1;
-  transition: transform 0.3s ease;
-}
-.hero-avatar:hover {
-  transform: scale(1.05);
 }
 .hero-text {
   flex: 1;
   min-width: 280px;
 }
 .hero-greeting {
-  font-size: 1rem;
-  opacity: 0.9;
-  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  opacity: 0.7;
+  margin-bottom: 0.25rem;
   letter-spacing: 2px;
   text-transform: uppercase;
-  animation: fadeInUp 0.6s ease;
 }
 .hero-name {
-  font-size: 2.8rem;
-  font-weight: 800;
-  margin-bottom: 0.5rem;
-  text-shadow: 0 4px 20px rgba(0,0,0,0.3);
-  animation: fadeInUp 0.6s ease 0.1s both;
+  font-size: 2.4rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
   line-height: 1.2;
 }
 .hero-title {
-  font-size: 1.2rem;
-  opacity: 0.9;
-  margin-bottom: 1rem;
-  animation: fadeInUp 0.6s ease 0.2s both;
+  font-size: 1.1rem;
+  opacity: 0.75;
+  margin-bottom: 0.8rem;
 }
 .hero-quote {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-style: italic;
-  opacity: 0.85;
-  padding: 0.8rem 1.2rem;
-  background: rgba(255,255,255,0.15);
-  backdrop-filter: blur(10px);
-  border-radius: 8px;
-  border-left: 3px solid rgba(255,255,255,0.5);
+  opacity: 0.7;
+  padding: 0.6rem 1rem;
+  border-left: 3px solid rgba(255,255,255,0.35);
   max-width: 400px;
-  animation: fadeInUp 0.6s ease 0.3s both;
 }
 .hero-buttons {
   display: flex;
-  gap: 1rem;
-  margin-top: 1.5rem;
+  gap: 0.8rem;
+  margin-top: 1.2rem;
   flex-wrap: wrap;
-  animation: fadeInUp 0.6s ease 0.4s both;
 }
 .hero-btn {
-  padding: 0.8rem 1.8rem;
-  border-radius: 30px;
+  padding: 0.65rem 1.5rem;
+  border-radius: 6px;
   font-weight: 600;
+  font-size: 0.9rem;
   text-decoration: none;
-  transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  transition: background 0.2s ease, opacity 0.2s ease;
 }
 .hero-btn-primary {
-  background: #ffffff;
-  color: #1a202c;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-  font-weight: 700;
+  background: rgba(255,255,255,0.95);
+  color: #2d3748;
 }
 .hero-btn-primary:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
-  background: #f7fafc;
+  opacity: 0.9;
 }
 .hero-btn-secondary {
-  background: rgba(0,0,0,0.6);
+  background: transparent;
   color: #ffffff !important;
-  border: 2px solid #ffffff;
-  font-weight: 700;
+  border: 1.5px solid rgba(255,255,255,0.4);
 }
 .hero-btn-secondary:hover {
-  background: rgba(0,0,0,0.75);
-  color: #ffffff !important;
-  border-color: #ffffff;
-  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.7);
 }
-/* 入场动画 */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+
+/* ===== Stats Bar ===== */
 
 /* ===== Stats Bar ===== */
 .stats-bar {
@@ -234,10 +145,9 @@ hide:
   border-radius: var(--card-radius);
   text-align: center;
   box-shadow: var(--card-shadow);
-  transition: var(--transition);
+  transition: box-shadow 0.2s ease;
 }
 .stat-card:hover {
-  transform: translateY(-4px);
   box-shadow: var(--card-shadow-hover);
 }
 .stat-icon {
@@ -247,10 +157,7 @@ hide:
 .stat-number {
   font-size: 2rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #4a5568;
 }
 .stat-label {
   font-size: 0.85rem;
@@ -285,45 +192,24 @@ hide:
 .feature-card {
   background: var(--md-default-bg-color);
   border-radius: var(--card-radius);
-  overflow: hidden;
   box-shadow: var(--card-shadow);
-  transition: var(--transition);
+  transition: box-shadow 0.2s ease;
   text-decoration: none;
   color: inherit;
   display: block;
+  border-left: 4px solid #667eea;
 }
+.feature-card:nth-child(2) { border-left-color: #ed8936; }
+.feature-card:nth-child(3) { border-left-color: #38b2ac; }
 .feature-card:hover {
-  transform: translateY(-6px);
   box-shadow: var(--card-shadow-hover);
-}
-.card-image {
-  height: 160px;
-  background-size: cover;
-  background-position: center;
-  position: relative;
-}
-.card-image::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 60%;
-  background: linear-gradient(transparent, rgba(0,0,0,0.6));
-}
-.card-category {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  padding: 0.3rem 0.8rem;
-  background: rgba(255,255,255,0.95);
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #667eea;
 }
 .card-body {
   padding: 1.5rem;
+}
+.card-icon {
+  font-size: 1.8rem;
+  margin-bottom: 0.75rem;
 }
 .card-title {
   font-size: 1.25rem;
@@ -345,18 +231,8 @@ hide:
   color: var(--md-default-fg-color--light);
 }
 .card-arrow {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  transition: var(--transition);
-}
-.feature-card:hover .card-arrow {
-  transform: translateX(4px);
+  color: var(--md-default-fg-color--lighter);
+  font-size: 1.2rem;
 }
 
 /* ===== Article List ===== */
@@ -370,32 +246,31 @@ hide:
   gap: 1rem;
   padding: 1.2rem;
   background: var(--md-default-bg-color);
-  border-radius: 12px;
+  border-radius: var(--card-radius);
   box-shadow: var(--card-shadow);
-  transition: var(--transition);
+  transition: box-shadow 0.2s ease;
   text-decoration: none;
   color: inherit;
   align-items: center;
 }
 .article-item:hover {
-  transform: translateX(8px);
   box-shadow: var(--card-shadow-hover);
 }
 .article-icon {
   width: 50px;
   height: 50px;
-  border-radius: 12px;
+  border-radius: var(--card-radius);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
   flex-shrink: 0;
 }
-.article-icon-purple { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-.article-icon-blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
-.article-icon-green { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; }
-.article-icon-orange { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; }
-.article-icon-red { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+.article-icon-purple { background: #667eea; color: white; }
+.article-icon-blue { background: #4facfe; color: white; }
+.article-icon-green { background: #38b2ac; color: white; }
+.article-icon-orange { background: #ed8936; color: white; }
+.article-icon-red { background: #e53e3e; color: white; }
 .article-content {
   flex: 1;
 }
@@ -418,13 +293,13 @@ hide:
 .tech-item {
   background: var(--md-default-bg-color);
   padding: 1.2rem;
-  border-radius: 12px;
+  border-radius: var(--card-radius);
   text-align: center;
   box-shadow: var(--card-shadow);
-  transition: var(--transition);
+  transition: box-shadow 0.2s ease;
 }
 .tech-item:hover {
-  transform: scale(1.05);
+  box-shadow: var(--card-shadow-hover);
 }
 .tech-icon {
   font-size: 2rem;
@@ -438,9 +313,8 @@ hide:
 /* ===== Footer ===== */
 .home-footer {
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 2.5rem 1rem;
   margin-top: 2rem;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
   border-radius: var(--card-radius);
 }
 .footer-quote {
@@ -458,16 +332,15 @@ hide:
 .footer-link {
   padding: 0.6rem 1.2rem;
   background: var(--md-default-bg-color);
-  border-radius: 20px;
+  border-radius: 6px;
   font-size: 0.85rem;
   box-shadow: var(--card-shadow);
-  transition: var(--transition);
+  transition: box-shadow 0.2s ease;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
 }
 .footer-link:hover {
-  transform: translateY(-2px);
   box-shadow: var(--card-shadow-hover);
 }
 
@@ -538,9 +411,6 @@ hide:
   .card-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
-  }
-  .card-image {
-    height: 120px;
   }
   .card-body {
     padding: 1.2rem;
@@ -635,7 +505,6 @@ hide:
     flex: 1;
     padding: 0.6rem 0.8rem;
     font-size: 0.85rem;
-    border-radius: 20px;
     justify-content: center;
   }
   .hero-btn-secondary {
@@ -663,11 +532,11 @@ hide:
   <div class="hero-banner">
     <div class="hero-content">
       <div class="hero-avatar-wrapper">
-        <img src="assets/images/avatar.jpg" alt="Cloaks" class="hero-avatar" onerror="this.src='https://avatars.githubusercontent.com/u/39525230'">
+        <img src="assets/images/avatar.jpg" alt="Cloaks｜Yiiewang" class="hero-avatar" onerror="this.src='https://avatars.githubusercontent.com/u/39525230'">
       </div>
       <div class="hero-text">
         <div class="hero-greeting">Welcome to my blog</div>
-        <div class="hero-name">Cloaks</div>
+        <div class="hero-name">Cloaks｜Yiiewang</div>
         <div class="hero-title">区块链架构师 · 技术探索者</div>
         <div class="hero-quote">「为众人抱薪者，不可使其冻毙于风雪」</div>
         <div class="hero-buttons">
@@ -712,43 +581,37 @@ hide:
 
 <div class="card-grid">
   <a href="blog/" class="feature-card">
-    <div class="card-image" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-      <span class="card-category">Blog</span>
-    </div>
     <div class="card-body">
+      <div class="card-icon">📝</div>
       <div class="card-title">技术博客</div>
       <div class="card-desc">开发日常中的思考与实践：后端架构、云原生、区块链... 每一篇都是真实项目中踩过的坑。</div>
       <div class="card-meta">
         <span>100+ 篇文章</span>
-        <div class="card-arrow">→</div>
+        <span class="card-arrow">→</span>
       </div>
     </div>
   </a>
   
   <a href="design-patterns/" class="feature-card">
-    <div class="card-image" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-      <span class="card-category">Pattern</span>
-    </div>
     <div class="card-body">
+      <div class="card-icon">🧩</div>
       <div class="card-title">设计模式</div>
       <div class="card-desc">23 种 GoF 设计模式的系统讲解。不只是「是什么」，更关注「为什么」和「怎么用」。</div>
       <div class="card-meta">
         <span>23 种模式</span>
-        <div class="card-arrow">→</div>
+        <span class="card-arrow">→</span>
       </div>
     </div>
   </a>
   
   <a href="ruankao/" class="feature-card">
-    <div class="card-image" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-      <span class="card-category">Exam</span>
-    </div>
     <div class="card-body">
+      <div class="card-icon">📚</div>
       <div class="card-title">软考笔记</div>
       <div class="card-desc">系统架构师考试的备考笔记。知识点整理 + 真题解析，助你高效通关。</div>
       <div class="card-meta">
         <span>架构师备考</span>
-        <div class="card-arrow">→</div>
+        <span class="card-arrow">→</span>
       </div>
     </div>
   </a>

@@ -1,15 +1,15 @@
-# Cloaks Blog - LLMs.txt
+# Cloaks｜Yiiewang Blog - LLMs.txt
 # 本文件旨在帮助大型语言模型（LLM）更好地理解和索引本站内容
 # 遵循 llmstxt.org 规范
 
-> 这是 Cloaks 的个人技术博客，专注于软件开发、架构设计和技术分享。
+> 这是 Cloaks｜Yiiewang 的个人技术博客，专注于软件开发、架构设计和技术分享。
 
 ## 网站信息
 
-- 名称: Cloaks | Return
+- 名称: Cloaks｜Yiiewang
 - 域名: https://cloaks.cn
 - 语言: 中文 (zh-CN)
-- 作者: Cloaks
+- 作者: Cloaks｜Yiiewang
 - 类型: 技术博客
 
 ## 主要内容
