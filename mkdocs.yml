@@ -44,7 +44,7 @@ theme:
     - header.autohide
     - navigation.path
     - navigation.footer
-    - navigation.indexes
+    # - navigation.indexes  # 关闭：避免在每个目录旁显示 ⓘ 图标造成视觉冗余，子目录已有「概览」项
     - navigation.instant
     - navigation.instant.prefetch
     - navigation.instant.progress
