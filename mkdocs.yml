@@ -3,9 +3,7 @@ site_name: Cloaks｜Yiiewang
 site_url: https://cloaks.cn
 site_author: Cloaks｜Yiiewang
 site_description: >-
-  欢迎来到我的博客！这里是我分享个人见解、技术文章、生活点滴和创意的地方。在这里，你将看到关于编程、技术创新、前沿趋势、以及我对生活和工作的思考与感悟。我希望我的文章能够启发你，让你收获新的知识和灵感。如果你对某些话题感兴趣，欢迎留下评论与我讨论，也可以订阅我的博客，第一时间获取最新更新。
-  
-  感谢你的访问，希望你在这里找到你感兴趣的内容！
+  Cloaks｜Yiiewang 的个人站点 —— 博客记录思考过程，知识库沉淀能力体系。涵盖技术、工程实践、思维方法、领域知识、人文素养、工具效率和职业发展七大能力域。欢迎浏览、搜索和留言讨论。
 
 # Repository
 repo_name: yiiewang/yiiewang.github.io
@@ -226,6 +224,31 @@ nav:
   - 首页:
       - index.md
       - 关于我: about.md
+  - 知识库:
+      - 概览: knowledge/index.md
+      - 技术能力:
+          - 概览: knowledge/tech/index.md
+          - Go 语言: knowledge/tech/languages/go/index.md
+          - Java: knowledge/tech/languages/java/index.md
+          - Python: knowledge/tech/languages/python/index.md
+          - 区块链: knowledge/tech/blockchain/index.md
+          - 架构设计: knowledge/tech/architecture/index.md
+          - 云原生: knowledge/tech/cloud-native/index.md
+          - 网络协议: knowledge/tech/network/index.md
+          - 数据存储: knowledge/tech/storage/index.md
+          - 测试工程: knowledge/tech/testing/index.md
+      - 工程实践:
+          - knowledge/engineering/index.md
+      - 思维方法:
+          - knowledge/thinking/index.md
+      - 领域知识:
+          - knowledge/domain/index.md
+      - 人文素养:
+          - knowledge/humanities/index.md
+      - 工具与效率:
+          - knowledge/tools/index.md
+      - 职业发展:
+          - knowledge/career/index.md
   - 学习笔记:
       - 软考·架构师:
           - ruankao/index.md

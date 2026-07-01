@@ -543,6 +543,9 @@ hide:
           <a href="blog/" class="hero-btn hero-btn-primary">
             <span>📖</span> 开始阅读
           </a>
+          <a href="knowledge/" class="hero-btn hero-btn-secondary">
+            <span>📚</span> 知识库
+          </a>
           <a href="about/" class="hero-btn hero-btn-secondary">
             <span>👋</span> 了解我
           </a>
@@ -573,6 +576,11 @@ hide:
     <div class="stat-icon">🔗</div>
     <div class="stat-number">区块链</div>
     <div class="stat-label">专注领域</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📚</div>
+    <div class="stat-number">7 大域</div>
+    <div class="stat-label">知识体系</div>
   </div>
 </div>
 
@@ -650,6 +658,47 @@ hide:
     <div class="article-content">
       <div class="article-title">软件架构设计</div>
       <div class="article-desc">架构师必备的设计思维与方法论</div>
+    </div>
+  </a>
+</div>
+
+<!-- ===== Knowledge Base ===== -->
+<div class="section-title">🧭 知识库</div>
+
+<div class="card-grid">
+  <a href="knowledge/tech/" class="feature-card">
+    <div class="card-body">
+      <div class="card-icon">🖥️</div>
+      <div class="card-title">技术能力</div>
+      <div class="card-desc">Go、区块链、架构设计、云原生…… 最核心的硬技能沉淀</div>
+      <div class="card-meta">
+        <span>7 个子域</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </div>
+  </a>
+  
+  <a href="knowledge/engineering/" class="feature-card">
+    <div class="card-body">
+      <div class="card-icon">🔧</div>
+      <div class="card-title">工程实践</div>
+      <div class="card-desc">项目复盘、踩坑记录、性能优化 —— 实战中提炼的经验</div>
+      <div class="card-meta">
+        <span>4 个子域</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </div>
+  </a>
+  
+  <a href="knowledge/thinking/" class="feature-card">
+    <div class="card-body">
+      <div class="card-icon">🧠</div>
+      <div class="card-title">思维方法</div>
+      <div class="card-desc">学习方法论、问题拆解、决策框架 —— 元能力的系统化</div>
+      <div class="card-meta">
+        <span>正在建设</span>
+        <span class="card-arrow">→</span>
+      </div>
     </div>
   </a>
 </div>

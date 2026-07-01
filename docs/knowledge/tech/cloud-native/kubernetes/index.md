@@ -1,0 +1,27 @@
+---
+title: Kubernetes
+status: draft
+domain: tech
+summary: "K8s 核心概念、调度策略、Operator 开发"
+---
+
+# Kubernetes
+
+> K8s 核心概念、调度策略、Operator 开发
+
+## 📝 内容建设中
+
+这个子域的内容正在建设中。如果你对这部分内容感兴趣，可以通过以下方式贡献：
+
+- 📝 从已有[博客](/blog/)中提炼相关内容
+- 📚 推荐值得学习的资料或书籍
+- 🐛 指出需要补充的知识点
+
+## 🔗 相关链接
+
+- [返回上级](../index.md)
+- [知识库首页](/knowledge/)
+
+---
+
+*维护人：yiiewang · 最后更新：2026-07-01*
