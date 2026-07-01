@@ -101,11 +101,28 @@ hide:
   border-radius: 10px;
   font-size: 0.7rem;
   font-weight: 600;
-  margin-right: 0.3rem;
 }
 .status-effective { background: #c6f6d5; color: #22543d; }
 .status-draft { background: #fefcbf; color: #744210; }
 .status-outdated { background: #fed7d7; color: #742a2a; }
+
+.status-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2.5rem;
+}
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px dashed var(--md-default-fg-color--lightest);
+}
+.status-item:last-child { border-bottom: none; }
+.status-desc {
+  color: var(--md-default-fg-color--light);
+  font-size: 0.9rem;
+}
 
 .usage-section {
   background: var(--md-default-bg-color);
@@ -203,9 +220,20 @@ hide:
 
 每篇知识文档都会标注一个状态，帮你判断信息的可信度和时效性：
 
-| <span class="status-badge status-effective">有效</span> | 当前有效，可直接参考使用 |
-| <span class="status-badge status-draft">草稿</span> | 内容尚不完整，欢迎贡献 |
-| <span class="status-badge status-outdated">待更新</span> | 部分内容已过时，需要补充 |
+<ul class="status-list">
+  <li class="status-item">
+    <span class="status-badge status-effective">有效</span>
+    <span class="status-desc">当前有效，可直接参考使用</span>
+  </li>
+  <li class="status-item">
+    <span class="status-badge status-draft">草稿</span>
+    <span class="status-desc">内容尚不完整，欢迎贡献</span>
+  </li>
+  <li class="status-item">
+    <span class="status-badge status-outdated">待更新</span>
+    <span class="status-desc">部分内容已过时，需要补充</span>
+  </li>
+</ul>
 
 ## 🔍 如何使用
 
