@@ -1,6 +1,5 @@
 ---
 title: 系统思维
-status: draft
 domain: thinking
 summary: "反馈循环、杠杆点、涌现、存量和流量"
 ---

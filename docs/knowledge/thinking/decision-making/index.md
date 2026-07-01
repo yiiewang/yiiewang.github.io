@@ -1,6 +1,5 @@
 ---
 title: 决策框架
-status: draft
 domain: thinking
 summary: "技术选型矩阵、成本收益分析、假设驱动决策"
 ---

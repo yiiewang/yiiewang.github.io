@@ -1,6 +1,5 @@
 ---
 title: CI/CD
-status: draft
 domain: tech
 summary: "GitHub Actions、持续集成/交付流水线设计"
 ---

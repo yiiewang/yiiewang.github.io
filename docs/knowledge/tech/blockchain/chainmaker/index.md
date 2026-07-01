@@ -1,6 +1,5 @@
 ---
 title: ChainMaker
-status: draft
 domain: tech
 summary: "长安链架构设计、模块开发、性能优化实战"
 ---

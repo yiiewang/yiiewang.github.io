@@ -1,6 +1,5 @@
 ---
 title: 共识算法
-status: effective
 domain: tech
 summary: "PBFT、Raft、PoW/PoS 等共识算法的原理与实现"
 ---

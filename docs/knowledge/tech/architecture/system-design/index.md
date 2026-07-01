@@ -1,6 +1,5 @@
 ---
 title: 系统设计
-status: effective
 domain: tech
 summary: "大规模系统的设计方法与案例分析"
 ---

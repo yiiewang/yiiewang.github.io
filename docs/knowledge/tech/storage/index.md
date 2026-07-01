@@ -1,6 +1,5 @@
 ---
 title: 数据存储
-status: draft
 domain: tech
 summary: "MySQL 索引优化、Redis 数据结构、MongoDB 使用场景"
 ---

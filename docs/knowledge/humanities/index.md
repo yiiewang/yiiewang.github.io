@@ -1,6 +1,5 @@
 ---
 title: 人文素养
-status: effective
 domain: humanities
 summary: "读书笔记、写作、哲学思考 —— 技术之外的知识滋养与精神基建"
 ---

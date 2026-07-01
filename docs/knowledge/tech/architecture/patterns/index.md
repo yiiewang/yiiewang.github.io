@@ -1,6 +1,5 @@
 ---
 title: 设计模式
-status: draft
 domain: tech
 summary: "23 种 GoF 设计模式 + 企业架构模式，见学习笔记"
 ---

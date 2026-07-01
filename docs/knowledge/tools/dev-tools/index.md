@@ -1,6 +1,5 @@
 ---
 title: 开发工具
-status: draft
 domain: tools
 summary: "VS Code、JetBrains、Git、终端配置与使用技巧"
 ---

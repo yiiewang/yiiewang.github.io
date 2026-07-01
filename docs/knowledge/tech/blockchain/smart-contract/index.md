@@ -1,6 +1,5 @@
 ---
 title: 智能合约
-status: draft
 domain: tech
 summary: "Solidity、ChainMaker 智能合约开发与安全审计"
 ---

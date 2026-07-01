@@ -1,6 +1,5 @@
 ---
 title: Go 语言
-status: effective
 domain: tech
 summary: "Go 语言深度使用经验：并发编程、网络编程、类型系统、工具链"
 ---

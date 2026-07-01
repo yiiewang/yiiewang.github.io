@@ -1,6 +1,5 @@
 ---
 title: 领域知识
-status: effective
 domain: domain
 summary: "区块链行业洞察、金融与投资、经济学 —— 对所深耕领域的深度理解"
 ---

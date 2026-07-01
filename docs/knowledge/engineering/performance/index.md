@@ -1,6 +1,5 @@
 ---
 title: 性能优化
-status: draft
 domain: engineering
 summary: "性能分析工具、瓶颈定位、优化案例"
 ---

@@ -1,6 +1,5 @@
 ---
 title: 读书笔记
-status: draft
 domain: humanities
 summary: "技术书、社科书、文学书的读书摘要与感悟"
 ---

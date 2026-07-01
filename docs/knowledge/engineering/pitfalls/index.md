@@ -1,6 +1,5 @@
 ---
 title: 踩坑记录
-status: draft
 domain: engineering
 summary: "生产事故、疑难 bug、配置错误及解决方案"
 ---

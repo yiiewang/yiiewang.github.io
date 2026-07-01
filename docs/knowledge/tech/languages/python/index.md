@@ -1,6 +1,5 @@
 ---
 title: Python
-status: draft
 domain: tech
 summary: "Python 脚本工具、数据分析、自动化"
 ---

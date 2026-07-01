@@ -1,6 +1,5 @@
 ---
 title: "负载均衡设计策略与实践"
-status: effective
 created: 2026-07-01
 updated: 2026-07-01
 domain: tech

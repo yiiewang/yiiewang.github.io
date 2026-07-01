@@ -1,6 +1,5 @@
 ---
 title: Java
-status: draft
 domain: tech
 summary: "Java 后端开发经验：Spring 生态、JVM 调优、设计模式实战"
 ---

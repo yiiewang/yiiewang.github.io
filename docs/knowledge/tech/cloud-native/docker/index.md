@@ -1,6 +1,5 @@
 ---
 title: Docker
-status: draft
 domain: tech
 summary: "容器化最佳实践、Dockerfile 优化、多阶段构建"
 ---

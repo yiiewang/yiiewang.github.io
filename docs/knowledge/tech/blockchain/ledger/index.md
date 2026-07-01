@@ -1,6 +1,5 @@
 ---
 title: 分布式账本
-status: draft
 domain: tech
 summary: "账本结构、状态数据库、Merkle 树、世界状态"
 ---

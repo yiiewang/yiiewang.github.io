@@ -1,6 +1,5 @@
 ---
 title: Kubernetes
-status: draft
 domain: tech
 summary: "K8s 核心概念、调度策略、Operator 开发"
 ---

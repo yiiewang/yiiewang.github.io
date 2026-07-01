@@ -1,6 +1,5 @@
 ---
 title: 面试准备
-status: draft
 domain: career
 summary: "算法题、系统设计面试、行为问题准备"
 ---

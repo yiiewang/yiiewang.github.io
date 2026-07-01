@@ -1,6 +1,5 @@
 ---
 title: 软技能
-status: draft
 domain: career
 summary: "沟通、演讲、文档、协作、冲突处理"
 ---

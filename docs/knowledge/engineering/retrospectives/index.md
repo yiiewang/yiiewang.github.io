@@ -1,6 +1,5 @@
 ---
 title: 项目复盘
-status: draft
 domain: engineering
 summary: "重要项目回顾：目标、过程、收获、改进点"
 ---

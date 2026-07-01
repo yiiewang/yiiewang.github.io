@@ -1,6 +1,5 @@
 ---
 title: 分布式系统
-status: effective
 domain: tech
 summary: "CAP 理论、一致性协议、分布式事务、服务治理"
 ---

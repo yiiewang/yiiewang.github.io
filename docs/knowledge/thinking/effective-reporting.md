@@ -1,6 +1,5 @@
 ---
 title: "如何做一场有效的汇报"
-status: effective
 created: 2026-06-30
 updated: 2026-06-30
 domain: thinking

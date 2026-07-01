@@ -1,6 +1,5 @@
 ---
 title: 区块链行业
-status: draft
 domain: domain
 summary: "Web3 生态、联盟链 vs 公链、监管政策、落地案例"
 ---

@@ -1,6 +1,5 @@
 ---
 title: 工程实践
-status: effective
 domain: engineering
 summary: "项目复盘、踩坑记录、性能优化、代码审查 —— 从真实项目中提取的可复用经验"
 ---

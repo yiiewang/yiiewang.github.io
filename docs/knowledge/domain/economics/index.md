@@ -1,6 +1,5 @@
 ---
 title: 经济学
-status: draft
 domain: domain
 summary: "宏观经济学、货币理论、经济周期、博弈论"
 ---

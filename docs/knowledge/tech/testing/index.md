@@ -1,6 +1,5 @@
 ---
 title: 测试工程
-status: draft
 domain: tech
 summary: "单元测试、集成测试、性能测试、TDD/BDD"
 ---

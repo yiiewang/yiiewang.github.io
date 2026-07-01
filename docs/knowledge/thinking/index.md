@@ -1,6 +1,5 @@
 ---
 title: 思维方法
-status: draft
 domain: thinking
 summary: "学习方法论、问题拆解、决策框架、系统思维 —— 元能力的系统化"
 ---

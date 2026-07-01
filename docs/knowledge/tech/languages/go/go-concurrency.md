@@ -1,6 +1,5 @@
 ---
 title: "Go 并发编程：锁与同步全景"
-status: effective
 created: 2026-07-01
 updated: 2026-07-01
 domain: tech

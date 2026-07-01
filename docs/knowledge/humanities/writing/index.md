@@ -1,6 +1,5 @@
 ---
 title: 写作
-status: draft
 domain: humanities
 summary: "技术写作方法论、博客维护心得、写作习惯养成"
 ---

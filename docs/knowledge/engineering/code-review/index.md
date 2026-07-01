@@ -1,6 +1,5 @@
 ---
 title: 代码审查
-status: draft
 domain: engineering
 summary: "CR 清单、常见问题、高效审查方法"
 ---

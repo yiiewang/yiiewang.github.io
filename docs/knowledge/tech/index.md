@@ -1,6 +1,5 @@
 ---
 title: 技术能力
-status: effective
 domain: tech
 summary: "编程语言、区块链、架构设计、云原生、网络协议、数据存储、测试工程 — 最核心的硬技能沉淀"
 ---

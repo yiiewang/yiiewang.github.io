@@ -1,6 +1,5 @@
 ---
 title: 哲学思考
-status: draft
 domain: humanities
 summary: "技术伦理、人生意义、自由意志、存在与时间"
 ---

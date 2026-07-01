@@ -1,6 +1,5 @@
 ---
 title: "PBFT 实用拜占庭容错算法"
-status: effective
 created: 2026-07-01
 updated: 2026-07-01
 domain: tech

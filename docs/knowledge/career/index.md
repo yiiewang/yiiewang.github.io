@@ -1,6 +1,5 @@
 ---
 title: 职业发展
-status: draft
 domain: career
 summary: "面试准备、软技能、技术管理 —— 职业道路上的导航地图和工具箱"
 ---

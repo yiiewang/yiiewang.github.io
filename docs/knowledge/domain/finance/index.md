@@ -1,6 +1,5 @@
 ---
 title: 金融与投资
-status: draft
 domain: domain
 summary: "资产配置、价值投资、技术分析、风险管理"
 ---

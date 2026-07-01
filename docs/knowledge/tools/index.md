@@ -1,6 +1,5 @@
 ---
 title: 工具与效率
-status: draft
 domain: tools
 summary: "开发工具、效率方法论、自动化脚本 —— 把自己从重复劳动中解放出来"
 ---

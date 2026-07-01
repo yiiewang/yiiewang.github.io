@@ -1,6 +1,5 @@
 ---
 title: 自动化脚本
-status: draft
 domain: tools
 summary: "Shell 脚本、Python 工具、Alfred/快捷指令"
 ---

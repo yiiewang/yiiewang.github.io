@@ -1,6 +1,5 @@
 ---
 title: 微服务
-status: draft
 domain: tech
 summary: "服务拆分、API 网关、服务网格、可观测性"
 ---

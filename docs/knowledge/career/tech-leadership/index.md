@@ -1,6 +1,5 @@
 ---
 title: 技术管理
-status: draft
 domain: career
 summary: "Tech Lead 职责、1-on-1、团队建设、技术规划"
 ---

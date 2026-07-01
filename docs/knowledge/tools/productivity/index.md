@@ -1,6 +1,5 @@
 ---
 title: 效率方法论
-status: draft
 domain: tools
 summary: "GTD、番茄钟、深度工作、知识管理系统"
 ---

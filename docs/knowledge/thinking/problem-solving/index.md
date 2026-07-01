@@ -1,6 +1,5 @@
 ---
 title: 问题拆解
-status: draft
 domain: thinking
 summary: "5 Why、鱼骨图、MECE 原则、第一性原理"
 ---

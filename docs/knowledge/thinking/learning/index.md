@@ -1,6 +1,5 @@
 ---
 title: 学习方法论
-status: draft
 domain: thinking
 summary: "费曼学习法、间隔重复、主题阅读、知识内化"
 ---
