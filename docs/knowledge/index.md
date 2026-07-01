@@ -138,8 +138,8 @@ hide:
       <div class="kb-stat-label">知识子域</div>
     </div>
     <div class="kb-stat">
-      <div class="kb-stat-num">持续更新</div>
-      <div class="kb-stat-label">维护状态</div>
+      <div class="kb-stat-num">4</div>
+      <div class="kb-stat-label">知识条目</div>
     </div>
   </div>
 </div>
@@ -152,7 +152,7 @@ hide:
     <div class="domain-icon">🖥️</div>
     <div class="domain-title">技术能力</div>
     <div class="domain-desc">编程语言、区块链、架构设计、云原生、网络协议、数据存储、测试工程</div>
-    <div class="domain-meta">最活跃的域 · 大量博客积累</div>
+    <div class="domain-meta">4 条知识 · 128 篇博客可提炼</div>
   </a>
 
   <a href="engineering/" class="domain-card">
