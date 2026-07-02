@@ -1,3 +1,12 @@
+---
+name: blog-writer
+description: >
+  博客写作技能，用于撰写 Cloaks 个人站风格的技术文章。
+  触发场景：(1) 用户要求写一篇关于某主题的博客, (2) 将对话/经验/资料写成文章,
+  (3) 起草文章草稿, (4) 任何与博客内容创作相关的请求。
+  支持技术/教程/复盘/札记/读书笔记五种文章类型。
+---
+
 # Skill: blog-writer
 
 > **目标**：让 AI 拿到一个**主题或素材**，就能快速写出符合 cloaks 个人站风格的博客，**直接落盘到 `docs/blog/posts/`**。
@@ -25,9 +34,9 @@
 ### 2. 加载配套文件
 
 按顺序读取：
-1. `frontmatter-template.md` —— 写文件头
-2. `writing-style-guide.md` —— 把握文风
-3. `post-structure.md` —— 按类型选章节套路
+1. `references/frontmatter-template.md` —— 写文件头
+2. `references/writing-style-guide.md` —— 把握文风
+3. `references/post-structure.md` —— 按类型选章节套路
 4. `examples/` 下同类型的真实博客做参考
 
 ### 3. 生成大纲（必须先给大纲）
@@ -67,7 +76,7 @@
 
 ## 风格速查
 
-> 完整版见 `writing-style-guide.md`
+> 完整版见 `references/writing-style-guide.md`
 
 - **基调**：技术直男风，幽默犀利，少废话
 - **段落**：短。**单段不超 4 句**。

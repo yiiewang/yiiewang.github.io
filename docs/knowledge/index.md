@@ -34,7 +34,7 @@ hide:
         <div class="kb-hero-stat-label">知识子域</div>
       </div>
       <div class="kb-hero-stat">
-        <div class="kb-hero-stat-num">4</div>
+        <div class="kb-hero-stat-num">5</div>
         <div class="kb-hero-stat-label">知识条目</div>
       </div>
     </div>
@@ -95,7 +95,7 @@ hide:
     <div class="kb-domain-body">
       <div class="kb-domain-name">工具与效率</div>
       <div class="kb-domain-desc">开发工具 · 效率方法论 · 自动化脚本</div>
-      <span class="kb-domain-tag">待填充</span>
+      <span class="kb-domain-tag active">1 条知识</span>
     </div>
   </a>
 

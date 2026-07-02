@@ -1,3 +1,12 @@
+---
+name: knowledge-curator
+description: >
+  知识库维护技能，用于内容归档与检索。
+  写入触发：(1) 将内容沉淀到知识库, (2) 整理博客到知识库, (3) 归档会议结论,
+  (4) 新建知识条目。检索触发：(1) 在知识库搜索某主题, (2) 查找已有知识,
+  (3) 浏览某领域内容。覆盖 7 大知识域（tech/engineering/thinking/domain/humanities/tools/career）。
+---
+
 # Skill: knowledge-curator
 
 > **目标**：让 AI 拿到**任意内容**（博客、对话、笔记、文件），自动**分类、提炼、归档**到正确子域，并能**检索**整个知识库。
@@ -21,13 +30,13 @@
 ## 工作流 A：写入（输入 → 归档）
 
 ### 1. 加载规则文件
-- `domain-map.md` —— 七大域 / 30+ 子域的完整映射
-- `classification-rules.md` —— 自动归类规则
-- `frontmatter-template.md` —— 标准 frontmatter
+- `references/domain-map.md` —— 七大域 / 30+ 子域的完整映射
+- `references/classification-rules.md` —— 自动归类规则
+- `references/frontmatter-template.md` —— 标准 frontmatter
 
 ### 2. 判定 domain + subdomain
 
-按 `classification-rules.md` 流程判定：
+按 `references/classification-rules.md` 流程判定：
 1. **关键词扫描**：标题/正文里的技术词
 2. **内容类型识别**：代码块？故事？方法论？
 3. **域名优先级**：冲突时按 tech > engineering > thinking > domain > humanities > tools > career
@@ -41,7 +50,7 @@
 - 同子域下已有同名 `.md` 文件 → 询问用户：覆盖 / 追加 / 改名 / 跳过
 
 ### 5. 填充 frontmatter
-按 `frontmatter-template.md` 标准填写：
+按 `references/frontmatter-template.md` 标准填写：
 ```yaml
 title: ...
 created: YYYY-MM-DD    # 今天
@@ -89,7 +98,7 @@ related:               # 可选
 
 ### 1. 浅层检索（默认）
 
-读取 `retrieval-guide.md` 后执行：
+读取 `references/retrieval-guide.md` 后执行：
 
 1. **解析查询**：提取关键词（中英文都要）
 2. **frontmatter 索引**：用 Grep 扫 `docs/knowledge/` 下所有 `title:`、`tags:`、`summary:`
@@ -170,8 +179,8 @@ related:               # 可选
 
 | 文件 | 用途 |
 |------|------|
-| `domain-map.md` | 7 大域 / 30+ 子域完整映射表 |
-| `frontmatter-template.md` | frontmatter 标准格式 |
-| `classification-rules.md` | 自动归类规则 + 冲突处理 |
-| `integration-workflow.md` | 索引页自动更新规则 |
-| `retrieval-guide.md` | 检索语法 + 最佳实践 |
+| `references/domain-map.md` | 7 大域 / 30+ 子域完整映射表 |
+| `references/frontmatter-template.md` | frontmatter 标准格式 |
+| `references/classification-rules.md` | 自动归类规则 + 冲突处理 |
+| `references/integration-workflow.md` | 索引页自动更新规则 |
+| `references/retrieval-guide.md` | 检索语法 + 最佳实践 |
