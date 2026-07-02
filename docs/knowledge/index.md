@@ -5,255 +5,43 @@ hide:
   - toc
 ---
 
-<style>
-/* ===== 知识库专用变量 ===== */
-:root {
-  --kb-purple: #667eea;
-  --kb-orange: #ed8936;
-  --kb-green: #48bb78;
-  --kb-blue: #4299e1;
-  --kb-violet: #9f7aea;
-  --kb-teal: #38b2ac;
-  --kb-red: #f56565;
-}
-
-/* ===== Hero ===== */
-.kb-hero {
-  padding: 3rem 2.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
-  color: white;
-  margin-bottom: 2.5rem;
-  position: relative;
-  overflow: hidden;
-}
-.kb-hero::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 400px;
-  height: 400px;
-  background: rgba(255,255,255,0.05);
-  border-radius: 50%;
-}
-.kb-hero::after {
-  content: '';
-  position: absolute;
-  bottom: -30%;
-  left: -10%;
-  width: 300px;
-  height: 300px;
-  background: rgba(255,255,255,0.04);
-  border-radius: 50%;
-}
-.kb-hero h1 {
-  color: white;
-  font-size: 2.2rem;
-  margin-bottom: 0.6rem;
-  font-weight: 800;
-  position: relative;
-  z-index: 1;
-}
-.kb-hero-desc {
-  color: rgba(255,255,255,0.85);
-  font-size: 1.05rem;
-  max-width: 600px;
-  margin: 0 auto 2rem;
-  line-height: 1.8;
-  position: relative;
-  z-index: 1;
-}
-.kb-hero-stats {
-  display: flex;
-  gap: 2.5rem;
-  justify-content: center;
-  flex-wrap: wrap;
-  position: relative;
-  z-index: 1;
-}
-.kb-hero-stat {
-  text-align: center;
-  min-width: 80px;
-}
-.kb-hero-stat-num {
-  font-size: 2.4rem;
-  font-weight: 800;
-  line-height: 1.2;
-}
-.kb-hero-stat-label {
-  font-size: 0.8rem;
-  opacity: 0.75;
-  margin-top: 0.2rem;
-  font-weight: 500;
-}
-
-/* ===== Section Header ===== */
-.kb-section-header {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin: 3rem 0 1.5rem;
-}
-.kb-section-header span {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--md-default-fg-color);
-}
-.kb-section-header::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--md-default-fg-color--lightest);
-}
-
-/* ===== Domain Grid ===== */
-.kb-domain-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2.5rem;
-}
-.kb-domain-card {
-  background: var(--md-default-bg-color);
-  border-radius: 12px;
-  padding: 1.6rem;
-  text-decoration: none;
-  color: inherit;
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-  border: 1px solid var(--md-default-fg-color--lightest);
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
-}
-.kb-domain-card:hover {
-  border-color: transparent;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
-  transform: translateY(-2px);
-}
-.kb-domain-icon-wrap {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
-.kb-domain-icon-wrap.purple { background: #ebf4ff; }
-.kb-domain-icon-wrap.orange { background: #fffaf0; }
-.kb-domain-icon-wrap.green  { background: #f0fff4; }
-.kb-domain-icon-wrap.blue   { background: #ebf8ff; }
-.kb-domain-icon-wrap.violet { background: #faf5ff; }
-.kb-domain-icon-wrap.teal   { background: #e6fffa; }
-.kb-domain-icon-wrap.red    { background: #fff5f5; }
-
-.kb-domain-body { flex: 1; min-width: 0; }
-.kb-domain-name {
-  font-size: 1.05rem;
-  font-weight: 700;
-  margin-bottom: 0.3rem;
-}
-.kb-domain-desc {
-  font-size: 0.85rem;
-  color: var(--md-default-fg-color--light);
-  line-height: 1.55;
-  margin-bottom: 0.5rem;
-}
-.kb-domain-tag {
-  display: inline-block;
-  font-size: 0.7rem;
-  padding: 0.15rem 0.55rem;
-  border-radius: 6px;
-  font-weight: 600;
-  background: var(--md-default-fg-color--lightest);
-  color: var(--md-default-fg-color--light);
-}
-.kb-domain-tag.active { background: #c6f6d5; color: #22543d; }
-
-/* ===== Usage Cards ===== */
-.kb-usage-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2.5rem;
-}
-.kb-usage-card {
-  background: var(--md-default-bg-color);
-  border-radius: 12px;
-  padding: 1.4rem;
-  border: 1px solid var(--md-default-fg-color--lightest);
-}
-.kb-usage-card-icon {
-  font-size: 1.6rem;
-  margin-bottom: 0.6rem;
-}
-.kb-usage-card h4 {
-  margin: 0 0 0.4rem;
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-.kb-usage-card p {
-  margin: 0;
-  font-size: 0.82rem;
-  color: var(--md-default-fg-color--light);
-  line-height: 1.6;
-}
-
-/* ===== Status ===== */
-.kb-status-row {
-  display: flex;
-  gap: 2rem;
-  flex-wrap: wrap;
-  margin-bottom: 2.5rem;
-}
-.kb-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-}
-.kb-status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-.kb-status-dot.effective { background: #48bb78; }
-.kb-status-dot.draft     { background: #ecc94b; }
-.kb-status-dot.outdated  { background: #fc8181; }
-
-/* ===== Responsive ===== */
-@media (max-width: 768px) {
-  .kb-hero { padding: 2rem 1.5rem; }
-  .kb-hero h1 { font-size: 1.6rem; }
-  .kb-hero-stats { gap: 1.5rem; }
-  .kb-hero-stat-num { font-size: 1.8rem; }
-  .kb-domain-grid { grid-template-columns: 1fr; }
-  .kb-usage-grid { grid-template-columns: 1fr; }
-}
-</style>
-
-<div class="kb-hero">
-  <h1>📚 知识库</h1>
-  <p class="kb-hero-desc">我全部能力的结构化沉淀。不只是一堆笔记，而是思维、经验和认知的系统建模。</p>
-  <div class="kb-hero-stats">
-    <div class="kb-hero-stat">
-      <div class="kb-hero-stat-num">7</div>
-      <div class="kb-hero-stat-label">能力域</div>
-    </div>
-    <div class="kb-hero-stat">
-      <div class="kb-hero-stat-num">30+</div>
-      <div class="kb-hero-stat-label">知识子域</div>
-    </div>
-    <div class="kb-hero-stat">
-      <div class="kb-hero-stat-num">4</div>
-      <div class="kb-hero-stat-label">知识条目</div>
+<!-- ===== Top Announce Bar ===== -->
+<div class="hero-topbar">
+  <div class="announce-bar">
+    <div class="announce-track">
+      <span class="announce-item">✦ 知识库 · 能力的结构化沉淀</span>
+      <span class="announce-item">🎯 覆盖 7 大能力域 · 30+ 子域</span>
+      <span class="announce-item">🔄 持续迭代中 · 不止于笔记</span>
+      <span class="announce-item">✦ 知识库 · 能力的结构化沉淀</span>
+      <span class="announce-item">🎯 覆盖 7 大能力域 · 30+ 子域</span>
+      <span class="announce-item">🔄 持续迭代中 · 不止于笔记</span>
     </div>
   </div>
 </div>
 
-<div class="kb-section-header"><span>🧭 七大能力域</span></div>
+<!-- ===== Hero ===== -->
+<div class="kb-hero">
+  <div class="kb-hero-inner">
+    <h1>📚 知识库</h1>
+    <p class="kb-hero-desc">我全部能力的结构化沉淀。不只是一堆笔记，而是思维、经验和认知的系统建模。</p>
+    <div class="kb-hero-stats">
+      <div class="kb-hero-stat">
+        <div class="kb-hero-stat-num">7</div>
+        <div class="kb-hero-stat-label">能力域</div>
+      </div>
+      <div class="kb-hero-stat">
+        <div class="kb-hero-stat-num">30+</div>
+        <div class="kb-hero-stat-label">知识子域</div>
+      </div>
+      <div class="kb-hero-stat">
+        <div class="kb-hero-stat-num">4</div>
+        <div class="kb-hero-stat-label">知识条目</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="kb-section-header"><span>🧭 七大能力域</span><span class="kb-section-dot"></span></div>
 
 <div class="kb-domain-grid">
 
@@ -322,7 +110,7 @@ hide:
 
 </div>
 
-<div class="kb-section-header"><span>📋 知识状态</span></div>
+<div class="kb-section-header"><span>📋 知识状态</span><span class="kb-section-dot"></span></div>
 
 <div class="kb-status-row">
   <div class="kb-status-pill">
@@ -336,7 +124,7 @@ hide:
   </div>
 </div>
 
-<div class="kb-section-header"><span>🔍 使用方式</span></div>
+<div class="kb-section-header"><span>🔍 使用方式</span><span class="kb-section-dot"></span></div>
 
 <div class="kb-usage-grid">
   <div class="kb-usage-card">
@@ -361,7 +149,7 @@ hide:
   </div>
 </div>
 
-<div style="text-align: center; padding: 2rem 0; color: var(--md-default-fg-color--light);">
-  <p style="font-weight: 600; font-size: 1.05rem;">知识库不是笔记堆砌，而是思维的结构化</p>
-  <p style="font-size: 0.8rem; margin-top: 0.5rem;">维护人：yiiewang · 内容有误或过时欢迎留言</p>
+<div class="kb-footer">
+  <p class="kb-footer-title">知识库不是笔记堆砌，而是思维的结构化</p>
+  <p class="kb-footer-sub">维护人：yiiewang · 内容有误或过时欢迎留言</p>
 </div>

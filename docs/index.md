@@ -5,6 +5,21 @@ hide:
   - toc
 ---
 
+<!-- ===== Top Announce Bar ===== -->
+<div class="hero-topbar">
+  <div class="announce-bar">
+    <div class="announce-track">
+      <span class="announce-item">✦ Personal site · 2018—Now</span>
+      <span class="announce-item">🎉 记录技术成长与思考</span>
+      <span class="announce-item">🐙 GitHub @ yiiewang</span>
+      <span class="announce-item">📡 RSS 订阅</span>
+      <span class="announce-item">✦ Personal site · 2018—Now</span>
+      <span class="announce-item">🎉 记录技术成长与思考</span>
+      <span class="announce-item">🐙 GitHub @ yiiewang</span>
+      <span class="announce-item">📡 RSS 订阅</span>
+    </div>
+  </div>
+</div>
 
 <!-- ===== Hero Banner ===== -->
 <div class="hero-banner">
@@ -17,24 +32,18 @@ hide:
     <div class="hero-text">
       <div class="hero-greeting">
         <span class="hero-greeting-dot"></span>
-        <span>Welcome to my blog</span>
+        <span>Writing · Building · Thinking</span>
       </div>
       <div class="hero-name">Cloaks｜Yiiewang</div>
       <div class="hero-title">
         <span class="hero-title-tag">⛓️ 区块链架构师</span>
         <span class="hero-title-tag">🛠️ 技术探索者</span>
       </div>
-      <div class="hero-quote">「为众人抱薪者，不可使其冻毙于风雪」</div>
+      <div class="hero-quote">为众人抱薪者，不可使其冻毙于风雪</div>
       <div class="hero-buttons">
-        <a href="blog/" class="hero-btn hero-btn-primary">
-          <span>📖</span> 开始阅读
-        </a>
-        <a href="knowledge/" class="hero-btn hero-btn-secondary">
-          <span>📚</span> 知识库
-        </a>
-        <a href="about/" class="hero-btn hero-btn-secondary">
-          <span>👋</span> 了解我
-        </a>
+        <a href="blog/" class="hero-btn hero-btn-primary">📖 开始阅读</a>
+        <a href="knowledge/" class="hero-btn hero-btn-secondary">📚 知识库</a>
+        <a href="about/" class="hero-btn hero-btn-secondary">👋 了解我</a>
       </div>
     </div>
   </div>
@@ -43,42 +52,43 @@ hide:
 <!-- ===== Stats Bar ===== -->
 <div class="stats-bar">
   <div class="stat-card">
-    <span class="stat-icon">📝</span>
+    <div class="stat-icon">📝</div>
     <div class="stat-number">128</div>
     <div class="stat-label">原创文章</div>
   </div>
   <div class="stat-card">
-    <span class="stat-icon">⏰</span>
+    <div class="stat-icon">⏰</div>
     <div class="stat-number">5+ 年</div>
     <div class="stat-label">持续写作</div>
   </div>
   <div class="stat-card">
-    <span class="stat-icon">🎨</span>
+    <div class="stat-icon">🎨</div>
     <div class="stat-number">23</div>
     <div class="stat-label">设计模式</div>
   </div>
   <div class="stat-card">
-    <span class="stat-icon">📚</span>
+    <div class="stat-icon">📚</div>
     <div class="stat-number">7</div>
     <div class="stat-label">知识域</div>
   </div>
   <div class="stat-card">
-    <span class="stat-icon">⛓️</span>
+    <div class="stat-icon">⛓️</div>
     <div class="stat-number">3f+1</div>
     <div class="stat-label">PBFT 容错</div>
   </div>
 </div>
 
 <!-- ===== Featured Content ===== -->
-<div class="section-title">
-  <span class="section-title-icon purple">🧭</span>
-  <span>探索内容</span>
+<div class="section-header">
+  <span class="section-header-label">探索内容</span>
+  <span class="section-header-line"></span>
+  <span class="section-header-dot"></span>
 </div>
 
 <div class="card-grid">
   <a href="blog/" class="feature-card">
     <div class="feature-card-head">
-      <div class="feature-icon-wrap purple">📝</div>
+      <div class="feature-icon-wrap blue">📝</div>
       <div class="card-title">技术博客</div>
     </div>
     <div class="card-body">
@@ -120,9 +130,10 @@ hide:
 </div>
 
 <!-- ===== Knowledge Base ===== -->
-<div class="section-title">
-  <span class="section-title-icon violet">📚</span>
-  <span>知识库</span>
+<div class="section-header">
+  <span class="section-header-label">知识库</span>
+  <span class="section-header-line"></span>
+  <span class="section-header-dot"></span>
 </div>
 
 <div class="card-grid">
@@ -170,9 +181,10 @@ hide:
 </div>
 
 <!-- ===== Recent Articles ===== -->
-<div class="section-title">
-  <span class="section-title-icon orange">🔥</span>
-  <span>热门推荐</span>
+<div class="section-header">
+  <span class="section-header-label">热门推荐</span>
+  <span class="section-header-line"></span>
+  <span class="section-header-dot"></span>
 </div>
 
 <div class="article-list">
@@ -222,9 +234,10 @@ hide:
 </div>
 
 <!-- ===== Tech Stack ===== -->
-<div class="section-title">
-  <span class="section-title-icon teal">🛠️</span>
-  <span>技术栈</span>
+<div class="section-header">
+  <span class="section-header-label">技术栈</span>
+  <span class="section-header-line"></span>
+  <span class="section-header-dot"></span>
 </div>
 
 <div class="tech-chips">
@@ -242,7 +255,7 @@ hide:
 
 <!-- ===== Footer ===== -->
 <div class="home-footer">
-  <div class="footer-quote">「写下来的东西，比光想要清晰得多」</div>
+  <div class="footer-quote">写下来的东西，比光想要清晰得多</div>
   <div class="footer-links">
     <a href="https://github.com/yiiewang" target="_blank" class="footer-link">
       <span>🐙</span> GitHub

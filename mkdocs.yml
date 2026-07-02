@@ -215,6 +215,7 @@ extra_javascript:
 
 extra_css:
   - assets/stylesheets/home.css
+  - assets/stylesheets/knowledge.css
   - https://unpkg.com/katex@0/dist/katex.min.css
 
 not_in_nav: |
