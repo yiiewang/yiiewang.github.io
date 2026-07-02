@@ -214,6 +214,7 @@ extra_javascript:
   - https://unpkg.com/katex@0/dist/contrib/auto-render.min.js
 
 extra_css:
+  - assets/stylesheets/home.css
   - https://unpkg.com/katex@0/dist/katex.min.css
 
 not_in_nav: |
