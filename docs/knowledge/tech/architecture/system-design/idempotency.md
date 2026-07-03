@@ -111,7 +111,7 @@ func (s *Service) HandlePaySuccess(ctx context.Context, orderID string) error {
 
 ## 延伸阅读
 
-- [Go 服务幂等设计实战（博客原文）](/blog/posts/2026/02/28/)
+- [Go 服务幂等设计实战（博客原文）](../../../../blog/posts/2026/02/28.md)
 - [Concurrency and Idempotency Patterns (AWS)](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)
 
 ---

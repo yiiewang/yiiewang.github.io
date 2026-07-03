@@ -114,7 +114,7 @@ Go 虽然以「并发简单」著称，但 goroutine、channel、sync 包的正�
 
 ## 延伸阅读
 
-- [Go 并发编程反模式与最佳实践（博客原文）](/blog/posts/2026/06/04/)
+- [Go 并发编程反模式与最佳实践（博客原文）](../../../../blog/posts/2026/06/04.md)
 - [Go 并发模式（Go Blog）](https://go.dev/blog/pipelines)
 - 《Go 语言高级编程》第 4 章
 

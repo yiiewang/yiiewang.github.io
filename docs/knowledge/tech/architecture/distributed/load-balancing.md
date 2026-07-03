@@ -106,7 +106,7 @@ func getHealthyNode(nodes []string) string {
 
 ## 延伸阅读
 
-- [负载均衡设计思路与实践指南（博客原文）](/blog/posts/2025/01/19/)
+- [负载均衡设计思路与实践指南（博客原文）](../../../../blog/posts/2025/01/19.md)
 - [Google SRE: Load Balancing](https://sre.google/sre-book/load-balancing-datacenter/)
 
 ---

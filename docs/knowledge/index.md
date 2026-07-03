@@ -34,7 +34,7 @@ hide:
         <div class="kb-hero-stat-label">知识子域</div>
       </div>
       <div class="kb-hero-stat">
-        <div class="kb-hero-stat-num">5</div>
+        <div class="kb-hero-stat-num">7</div>
         <div class="kb-hero-stat-label">知识条目</div>
       </div>
     </div>
@@ -86,7 +86,7 @@ hide:
     <div class="kb-domain-body">
       <div class="kb-domain-name">人文素养</div>
       <div class="kb-domain-desc">读书笔记 · 写作 · 哲学思考</div>
-      <span class="kb-domain-tag">待填充</span>
+      <span class="kb-domain-tag active">2 条知识</span>
     </div>
   </a>
 

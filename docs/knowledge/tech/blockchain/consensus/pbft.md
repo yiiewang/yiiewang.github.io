@@ -99,8 +99,8 @@ PBFT（Practical Byzantine Fault Tolerance）由 Miguel Castro 和 Barbara Lisko
 
 ## 延伸阅读
 
-- [PBFT 共识算法（博客原文）](/blog/posts/2025/03/12-1/)
-- [分布式系统核心问题](/blog/posts/2025/03/14/)
+- [PBFT 共识算法（博客原文）](../../../../blog/posts/2025/03/12-1.md)
+- [分布式系统核心问题](../../../../blog/posts/2025/03/14.md)
 - [PBFT 论文 (OSDI'99)](https://pmg.csail.mit.edu/papers/osdi99.pdf)
 
 ---
