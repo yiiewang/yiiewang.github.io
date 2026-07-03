@@ -1,15 +1,21 @@
-# Project information
+# ---------------------------------------------------------------------------
+# Project
+# ---------------------------------------------------------------------------
 site_name: Cloaks｜Yiiewang
 site_url: https://cloaks.cn
 site_author: Cloaks｜Yiiewang
 site_description: >-
   Cloaks｜Yiiewang 的个人站点 —— 博客记录思考过程，知识库沉淀能力体系。涵盖技术、工程实践、思维方法、领域知识、人文素养、工具效率和职业发展七大能力域。欢迎浏览、搜索和留言讨论。
 
+# ---------------------------------------------------------------------------
 # Repository
+# ---------------------------------------------------------------------------
 repo_name: yiiewang/yiiewang.github.io
 repo_url: https://github.com/yiiewang/yiiewang.github.io
 
+# ---------------------------------------------------------------------------
 # Copyright
+# ---------------------------------------------------------------------------
 copyright: |
   Copyright &copy; 2018 - 2026 Cloaks｜Yiiewang <a href="https://beian.miit.gov.cn/" target="_blank">晋ICP备19014927号-3</a><br/>
   <span id="busuanzi_container_site_pv">
@@ -17,50 +23,51 @@ copyright: |
   </span> |
   <span id="busuanzi_container_site_uv">
     本站访客数<span id="busuanzi_value_site_uv"></span>人次
-  </span> 
+  </span>
 
-# Configuration
+# ---------------------------------------------------------------------------
+# Theme
+# ---------------------------------------------------------------------------
 theme:
-  icon:
-    annotation: material/plus-circle
   name: material
   language: zh
   custom_dir: overrides
+  favicon: assets/favicon.ico
+  logo: assets/favicon.ico
   font:
     text: Roboto
     code: Roboto Mono
-  favicon: assets/favicon.ico
-  logo: assets/favicon.ico
+  icon:
+    annotation: material/plus-circle
   features:
     - announce.dismiss
     - content.action.edit
     - content.action.view
     - content.code.annotate
     - content.code.copy
+    - content.code.line_numbers
     - content.code.select
+    - content.footnote.back
     - content.footnote.tooltips
     - content.tabs.link
     - content.tooltips
     - header.autohide
-    - navigation.path
-    # - navigation.footer  # 关闭：底部「上一页/下一页」导航
-    # - navigation.indexes  # 关闭：避免在每个目录旁显示 ⓘ 图标造成视觉冗余，子目录已有「概览」项
     - navigation.instant
     - navigation.instant.prefetch
+    - navigation.instant.preview
     - navigation.instant.progress
-    # navigation.prune is not compatible with navigation.expand,
-    # as navigation expansion requires the complete navigation structure.
-    # - navigation.expand
-    # - navigation.sections
-    # - navigation.prune
+    - navigation.path
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.top
     - navigation.tracking
     - search.highlight
+    - search.quick
     - search.share
     - search.suggest
     - toc.follow
+    # - navigation.footer  # 关闭：底部「上一页/下一页」导航
+    # - navigation.indexes  # 关闭：避免每个目录旁显示 ⓘ 图标，子目录已有「概览」项
     # - toc.integrate
   palette:
     - media: "(prefers-color-scheme)"
@@ -82,79 +89,11 @@ theme:
         icon: material/toggle-switch-off
         name: Switch to system preference
 
-
-# Plugins
-plugins:
-  - glightbox
-  - tags
-  - search:
-      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
-  - blog:
-      blog_toc: true
-      post_slugify: !!python/object/apply:pymdownx.slugs.slugify
-        kwds:
-          case: lower
-      post_slugify_separator: _
-      post_url_date_format: yyyy/MM
-      post_url_format: "posts/{date}/{file}"
-  - rss:
-      match_path: blog/posts/.* 
-      date_from_meta:
-        as_creation: date
-      categories:
-        - categories
-        - tags
-      comments_path: "#__comments"
-  - social:
-      cards_layout_options:
-        font_family: Noto Sans SC
-        logo: assets/favicon.ico
-  - minify:
-      minify_html: true
-
-# Additional configuration
-extra:
-  # music: 8074820398 # 侧耳倾听
-  consent:
-    title: Cookie consent | Cookie 同意
-    description: >-
-      We use cookies to recognize your repeated visits and preferences, as well
-      as to measure the effectiveness of our documentation and whether users
-      find what they're searching for. With your consent, you're helping us to
-      make our documentation better.
-      <br/>
-      我们使用 cookie 来识别您的重复访问和偏好，并衡量我们文档的有效性以及用户是否找到了他们正在搜索的内容。经您同意，您正在帮助我们改进我们的文档。
-
-  status:
-    new: Recently added
-    deprecated: Deprecated
-  analytics:
-    provider: google
-    property: G-45SCRDG8S7
-    feedback:
-      title: 此页面有帮助吗？
-      ratings:
-        - icon: material/emoticon-happy-outline
-          name: 此页面很有帮助。
-          data: 1
-          note: >-
-            感谢您的反馈!
-        - icon: material/emoticon-sad-outline
-          name: 此页面可以改进。
-          data: 0
-          note: >-
-            感谢您的反馈！使用我们的<a href="..." target="_blank" rel="noopener">反馈表</a>帮助我们改进此页面。
-  social:
-    - icon: simple/rss
-      link: https://cloaks.cn/feed_rss_created.xml
-    - icon: fontawesome/brands/github
-      link: https://github.com/yiiewang
-    - icon: fontawesome/brands/docker
-      link: https://hub.docker.com/u/cloaks
-    - icon: material/email
-      link: mailto:cloaks@qq.com
-# Extensions
+# ---------------------------------------------------------------------------
+# Extensions (pymdownx & built-in)
+# ---------------------------------------------------------------------------
 markdown_extensions:
+  # built-in
   - abbr
   - admonition
   - attr_list
@@ -163,6 +102,7 @@ markdown_extensions:
   - md_in_html
   - toc:
       # permalink: true
+  # pymdownx
   - pymdownx.arithmatex:
       generic: true
   - pymdownx.betterem:
@@ -202,9 +142,96 @@ markdown_extensions:
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tilde
-  # math support
-  - pymdownx.arithmatex:
-      generic: true
+
+# ---------------------------------------------------------------------------
+# Plugins
+# ---------------------------------------------------------------------------
+plugins:
+  - glightbox
+  - meta
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - tags:
+      tags_slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+      tags_slugify_separator: _
+  - blog:
+      blog_toc: true
+      post_slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+      post_slugify_separator: _
+      post_url_date_format: yyyy/MM
+      post_url_format: "posts/{date}/{file}"
+      archive: true
+      categories: true
+      pagination_per_page: 10
+      authors: true
+  - rss:
+      match_path: blog/posts/.*
+      date_from_meta:
+        as_creation: date
+      categories:
+        - categories
+        - tags
+      comments_path: "#__comments"
+  - social:
+      cards_layout_options:
+        font_family: Noto Sans SC
+  - privacy:
+      enabled: true
+      concurrency: 4
+      log_level: info
+  - optimize:
+      enabled: true
+      cache: true
+      cache_dir: .cache/plugins/optimize
+  - minify:
+      minify_html: true
+
+# ---------------------------------------------------------------------------
+# Extra
+# ---------------------------------------------------------------------------
+extra:
+  # music: 8074820398 # 侧耳倾听
+  consent:
+    title: Cookie consent | Cookie 同意
+    description: >-
+      We use cookies to recognize your repeated visits and preferences, as well
+      as to measure the effectiveness of our documentation and whether users
+      find what they're searching for. With your consent, you're helping us to
+      make our documentation better.
+      <br/>
+      我们使用 cookie 来识别您的重复访问和偏好，并衡量我们文档的有效性以及用户是否找到了他们正在搜索的内容。经您同意，您正在帮助我们改进我们的文档。
+  status:
+    new: Recently added
+    deprecated: Deprecated
+  analytics:
+    provider: google
+    property: G-45SCRDG8S7
+    feedback:
+      title: 此页面有帮助吗？
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: 此页面很有帮助。
+          data: 1
+          note: >-
+            感谢您的反馈!
+        - icon: material/emoticon-sad-outline
+          name: 此页面可以改进。
+          data: 0
+          note: >-
+            感谢您的反馈！使用我们的<a href="..." target="_blank" rel="noopener">反馈表</a>帮助我们改进此页面。
+  social:
+    - icon: simple/rss
+      link: https://cloaks.cn/feed_rss_created.xml
+    - icon: fontawesome/brands/github
+      link: https://github.com/yiiewang
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/u/cloaks
+    - icon: material/email
+      link: mailto:cloaks@qq.com
 
 extra_javascript:
   - assets/javascripts/katex.js
@@ -218,10 +245,14 @@ extra_css:
   - assets/stylesheets/knowledge.css
   - https://unpkg.com/katex@0/dist/katex.min.css
 
-not_in_nav: |
-  /tutorials/**/*.md
+# ---------------------------------------------------------------------------
+# Nav exclusions
+# ---------------------------------------------------------------------------
+not_in_nav: /tutorials/**/*.md
 
+# ---------------------------------------------------------------------------
 # Page tree
+# ---------------------------------------------------------------------------
 nav:
   - 首页:
       - index.md
@@ -230,7 +261,7 @@ nav:
       - 概览: knowledge/index.md
       - 技术能力:
           - 概览: knowledge/tech/index.md
-          - Go 语言: knowledge/tech/languages/go/index.md
+          - Go: knowledge/tech/languages/go/index.md
           - Java: knowledge/tech/languages/java/index.md
           - Python: knowledge/tech/languages/python/index.md
           - 区块链: knowledge/tech/blockchain/index.md
@@ -240,17 +271,38 @@ nav:
           - 数据存储: knowledge/tech/storage/index.md
           - 测试工程: knowledge/tech/testing/index.md
       - 工程实践:
-          - knowledge/engineering/index.md
+          - 概览: knowledge/engineering/index.md
+          - 代码评审: knowledge/engineering/code-review/index.md
+          - 性能优化: knowledge/engineering/performance/index.md
+          - 踩坑记录: knowledge/engineering/pitfalls/index.md
+          - 复盘总结: knowledge/engineering/retrospectives/index.md
       - 思维方法:
-          - knowledge/thinking/index.md
+          - 概览: knowledge/thinking/index.md
+          - 决策方法: knowledge/thinking/decision-making/index.md
+          - 学习方法: knowledge/thinking/learning/index.md
+          - 问题解决: knowledge/thinking/problem-solving/index.md
+          - 系统思维: knowledge/thinking/systems-thinking/index.md
+          - 有效汇报: knowledge/thinking/effective-reporting.md
       - 领域知识:
-          - knowledge/domain/index.md
+          - 概览: knowledge/domain/index.md
+          - 区块链产业: knowledge/domain/blockchain-industry/index.md
+          - 经济学: knowledge/domain/economics/index.md
+          - 金融学: knowledge/domain/finance/index.md
       - 人文素养:
-          - knowledge/humanities/index.md
+          - 概览: knowledge/humanities/index.md
+          - 哲学: knowledge/humanities/philosophy/index.md
+          - 阅读: knowledge/humanities/reading/index.md
+          - 写作: knowledge/humanities/writing/index.md
       - 工具与效率:
-          - knowledge/tools/index.md
+          - 概览: knowledge/tools/index.md
+          - 自动化: knowledge/tools/automation/index.md
+          - 开发工具: knowledge/tools/dev-tools/index.md
+          - 效率提升: knowledge/tools/productivity/index.md
       - 职业发展:
-          - knowledge/career/index.md
+          - 概览: knowledge/career/index.md
+          - 面试求职: knowledge/career/interview/index.md
+          - 软技能: knowledge/career/soft-skills/index.md
+          - 技术领导力: knowledge/career/tech-leadership/index.md
   - 学习笔记:
       - 软考·架构师:
           - ruankao/index.md
@@ -281,7 +333,7 @@ nav:
               - ruankao/advanced web/index.md
           - 论文写作:
               - ruankao/paper/index.md
-      - 设计模式: 
+      - 设计模式:
           - design-patterns/index.md
           - 创建型模式:
               - design-patterns/creational-patterns/singleton/index.md
