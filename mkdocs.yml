@@ -43,7 +43,7 @@ theme:
     - content.tooltips
     - header.autohide
     - navigation.path
-    - navigation.footer
+    # - navigation.footer  # 关闭：底部「上一页/下一页」导航
     # - navigation.indexes  # 关闭：避免在每个目录旁显示 ⓘ 图标造成视觉冗余，子目录已有「概览」项
     - navigation.instant
     - navigation.instant.prefetch
