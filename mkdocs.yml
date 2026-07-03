@@ -183,6 +183,8 @@ plugins:
       enabled: true
       concurrency: 4
       log_level: info
+      assets_exclude:
+        - cdn.jsdelivr.net/gh/jdecked/twemoji*
   - optimize:
       enabled: true
       cache: true
