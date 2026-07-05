@@ -16,6 +16,8 @@ related:                            # 可选，关联的其他知识
   - /knowledge/tech/languages/go/
 ---
 
+<!-- 重要：知识库内容的编写风格必须基于 blog-writer 技能中的 Markdown 规范，特别是列表序号需要换行的要求 -->
+
 # {知识标题}
 
 > {一句话总结，同 summary}
@@ -110,3 +112,11 @@ related:
 
 ### ⚠️ 不要写 `status` 字段
 Material 主题会把 `status` 渲染成导航中的空圆圈（之前修复过）。如需在内容页展示状态，用内容里的色块/标签，**不要**写在 frontmatter。
+
+### 📝 Markdown 编写规范
+知识库内容必须遵循 blog-writer 技能的 Markdown 编写规范：
+- 列表序号后必须换行，避免渲染到同一行
+- 代码块必须带语言标签
+- 段落控制在 2-4 句，段间空一行
+- 技术名词保留英文原文
+- **Material for MkDocs 增强语法**：可使用警告框、选项卡、数学公式、图表等丰富样式

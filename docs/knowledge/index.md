@@ -34,7 +34,7 @@ hide:
         <div class="kb-hero-stat-label">知识子域</div>
       </div>
       <div class="kb-hero-stat">
-        <div class="kb-hero-stat-num">7</div>
+        <div class="kb-hero-stat-num">9</div>
         <div class="kb-hero-stat-label">知识条目</div>
       </div>
     </div>
@@ -50,7 +50,7 @@ hide:
     <div class="kb-domain-body">
       <div class="kb-domain-name">技术能力</div>
       <div class="kb-domain-desc">Go · 区块链 · 架构设计 · 云原生 · 网络 · 存储 · 测试</div>
-      <span class="kb-domain-tag active">4 条知识</span>
+      <span class="kb-domain-tag active">6 条知识</span>
     </div>
   </a>
 

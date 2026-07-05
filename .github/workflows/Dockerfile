@@ -7,6 +7,7 @@
 #   docker build -t cloaks/mkdocs:9.7.6 .
 #   docker run --rm -v $(pwd):/docs cloaks/mkdocs:9.7.6 build
 #   docker run --rm -v $(pwd):/docs cloaks/mkdocs:9.7.6 gh-deploy --force
+#   docker run --rm -v $(pwd):/docs -p 8000:8000 cloaks/mkdocs:9.7.6 serve --dev-addr=0.0.0.0:8000
 #
 # Push:
 #   docker push cloaks/mkdocs:9.7.6
@@ -49,3 +50,8 @@ RUN pip install --no-cache-dir \
 
 WORKDIR /docs
 ENTRYPOINT ["mkdocs"]
+
+# ---------------------------------------------------------------------------
+# Default command: development server with hot reload
+# ---------------------------------------------------------------------------
+CMD ["serve"]

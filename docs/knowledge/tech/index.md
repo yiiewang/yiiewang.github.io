@@ -99,7 +99,7 @@ summary: "编程语言、区块链、架构设计、云原生、网络协议、�
 
 <div class="tech-summary">
   <div class="tech-summary-card">
-    <div class="num">4</div>
+    <div class="num">6</div>
     <div class="label">已填充条目</div>
   </div>
   <div class="tech-summary-card">
@@ -209,7 +209,7 @@ summary: "编程语言、区块链、架构设计、云原生、网络协议、�
     </a>
     <a href="storage/" class="tech-domain-item">
       <span class="tech-domain-item-name">数据存储</span>
-      <span class="tech-domain-item-count empty">0</span>
+      <span class="tech-domain-item-count has-content">2</span>
     </a>
     <a href="testing/" class="tech-domain-item">
       <span class="tech-domain-item-name">测试工程</span>

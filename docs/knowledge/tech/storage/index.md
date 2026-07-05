@@ -8,13 +8,11 @@ summary: "MySQL 索引优化、Redis 数据结构、MongoDB 使用场景"
 
 > MySQL 索引优化、Redis 数据结构、MongoDB 使用场景
 
-## 📝 内容建设中
+## 📖 知识条目
 
-这个子域的内容正在建设中。如果你对这部分内容感兴趣，可以通过以下方式贡献：
-
-- 📝 从已有[博客](../../../blog/index.md)中提炼相关内容
-- 📚 推荐值得学习的资料或书籍
-- 🐛 指出需要补充的知识点
+| 条目 | 难度 | 简介 |
+|------|------|------|
+| [Redis/MySQL 数据一致性](redis-mysql-data-consistency.md) | intermediate | Redis缓存与MySQL数据库的数据一致性解决方案 |
 
 ## 🔗 相关链接
 
@@ -23,4 +21,4 @@ summary: "MySQL 索引优化、Redis 数据结构、MongoDB 使用场景"
 
 ---
 
-*维护人：yiiewang · 最后更新：2026-07-01*
+*维护人：yiiewang · 最后更新：2026-07-04*
