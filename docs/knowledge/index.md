@@ -34,7 +34,7 @@ hide:
         <div class="kb-hero-stat-label">知识子域</div>
       </div>
       <div class="kb-hero-stat">
-        <div class="kb-hero-stat-num">9</div>
+        <div class="kb-hero-stat-num">10</div>
         <div class="kb-hero-stat-label">知识条目</div>
       </div>
     </div>
@@ -67,8 +67,8 @@ hide:
     <div class="kb-domain-icon-wrap green">🧠</div>
     <div class="kb-domain-body">
       <div class="kb-domain-name">思维方法</div>
-      <div class="kb-domain-desc">学习方法论 · 问题拆解 · 决策框架 · 系统思维</div>
-      <span class="kb-domain-tag">待填充</span>
+      <div class="kb-domain-desc">学习方法论 · 问题拆解 · 决策框架 · 系统思维 · AI 落地</div>
+      <span class="kb-domain-tag active">2 条知识</span>
     </div>
   </a>
 
@@ -86,7 +86,7 @@ hide:
     <div class="kb-domain-body">
       <div class="kb-domain-name">人文素养</div>
       <div class="kb-domain-desc">读书笔记 · 写作 · 哲学思考</div>
-      <span class="kb-domain-tag active">2 条知识</span>
+      <span class="kb-domain-tag active">3 条知识</span>
     </div>
   </a>
 

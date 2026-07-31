@@ -185,6 +185,8 @@ plugins:
       log_level: info
       assets_exclude:
         - cdn.jsdelivr.net/gh/jdecked/twemoji*
+  # optimize 与 mkdocs serve --dirty 不兼容（on_env 的 files.remove 在 dirty 子集
+  # 上抛 ValueError）。生产 clean build 正常；开发配置由 Makefile 派生时禁用。
   - optimize:
       enabled: true
       cache: true
@@ -284,6 +286,7 @@ nav:
           - 学习方法: knowledge/thinking/learning/index.md
           - 问题解决: knowledge/thinking/problem-solving/index.md
           - 系统思维: knowledge/thinking/systems-thinking/index.md
+          - AI 业务落地: knowledge/thinking/ai-implementation/index.md
           - 有效汇报: knowledge/thinking/effective-reporting.md
       - 领域知识:
           - 概览: knowledge/domain/index.md
@@ -364,3 +367,5 @@ nav:
               - design-patterns/behavioral-patterns/memento/index.md
   - 博客:
       - blog/index.md
+  - Workbench:
+      - workbench/index.md

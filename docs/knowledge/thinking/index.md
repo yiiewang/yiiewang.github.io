@@ -86,11 +86,11 @@ summary: "学习方法论、问题拆解、决策框架、系统思维 —— �
 
 <div class="thk-summary">
   <div class="thk-summary-card">
-    <div class="num">1</div>
+    <div class="num">2</div>
     <div class="label">已填充条目</div>
   </div>
   <div class="thk-summary-card">
-    <div class="num">4</div>
+    <div class="num">5</div>
     <div class="label">子域数量</div>
   </div>
   <div class="thk-summary-card">
@@ -147,6 +147,16 @@ summary: "学习方法论、问题拆解、决策框架、系统思维 —— �
   </div>
 </div>
 
+<div class="thk-domain-group">
+  <div class="thk-domain-group-header green">🤖 AI 业务落地方法论</div>
+  <div class="thk-domain-items">
+    <a href="ai-implementation/" class="thk-domain-item">
+      <span class="thk-domain-item-name">规则边界 · 数据埋点 · 黄金样本 · 反馈闭环</span>
+      <span class="thk-domain-item-count has-content">1</span>
+    </a>
+  </div>
+</div>
+
 </div>
 
 ## 📝 已收录条目
@@ -175,4 +185,4 @@ summary: "学习方法论、问题拆解、决策框架、系统思维 —— �
 
 ---
 
-*维护人：yiiewang · 最后更新：2026-07-01*
+*维护人：yiiewang · 最后更新：2026-07-31*

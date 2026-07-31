@@ -13,3 +13,4 @@ private/
 
 # 构建产物
 site/
+mkdocs.dev.yml
