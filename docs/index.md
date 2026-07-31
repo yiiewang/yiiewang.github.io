@@ -233,6 +233,61 @@ hide:
   </a>
 </div>
 
+<!-- ===== Open Source Projects ===== -->
+<div class="section-header">
+  <span class="section-header-label">开源项目</span>
+  <span class="section-header-line"></span>
+  <span class="section-header-dot"></span>
+</div>
+
+<div class="card-grid">
+  <a href="https://github.com/yiiewang/workbench" target="_blank" class="feature-card">
+    <div class="feature-card-head">
+      <div class="feature-icon-wrap blue">🛠️</div>
+      <div class="card-title">Workbench</div>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">个人开发工作台 — 文件浏览器、Todo 看板、静态文件服务。Go + SQLite，开箱即用，支持 11 个平台。</div>
+      <div class="card-meta">
+        <span class="card-tag">Go</span>
+        <span class="card-tag">SQLite</span>
+        <span class="card-tag">v1.0.0</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </div>
+  </a>
+
+  <a href="https://github.com/yiiewang/yiiewang.github.io" target="_blank" class="feature-card">
+    <div class="feature-card-head">
+      <div class="feature-icon-wrap orange">📖</div>
+      <div class="card-title">Cloaks 个人站</div>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">基于 MkDocs Material 的个人博客与知识库。技术文章、设计模式、软考笔记，持续更新中。</div>
+      <div class="card-meta">
+        <span class="card-tag">MkDocs</span>
+        <span class="card-tag">Markdown</span>
+        <span class="card-tag">128+ 篇</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </div>
+  </a>
+
+  <a href="workbench/" class="feature-card">
+    <div class="feature-card-head">
+      <div class="feature-icon-wrap green">🌐</div>
+      <div class="card-title">在线工作台</div>
+    </div>
+    <div class="card-body">
+      <div class="card-desc">Workbench 在线实例 — 直接体验文件浏览、Todo 看板等功能，无需安装。</div>
+      <div class="card-meta">
+        <span class="card-tag">在线体验</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </div>
+  </a>
+</div>
+
 <!-- ===== Tech Stack ===== -->
 <div class="section-header">
   <span class="section-header-label">技术栈</span>

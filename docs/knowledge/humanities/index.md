@@ -86,7 +86,7 @@ summary: "读书笔记、写作、哲学思考 —— 技术之外的知识滋�
 
 <div class="hum-summary">
   <div class="hum-summary-card">
-    <div class="num">2</div>
+    <div class="num">3</div>
     <div class="label">已填充条目</div>
   </div>
   <div class="hum-summary-card">
@@ -122,7 +122,7 @@ summary: "读书笔记、写作、哲学思考 —— 技术之外的知识滋�
   <div class="hum-domain-items">
     <a href="writing/" class="hum-domain-item">
       <span class="hum-domain-item-name">技术写作方法论 · 习惯养成</span>
-      <span class="hum-domain-item-count has-content">1</span>
+      <span class="hum-domain-item-count has-content">2</span>
     </a>
   </div>
 </div>
@@ -145,4 +145,4 @@ summary: "读书笔记、写作、哲学思考 —— 技术之外的知识滋�
 
 ---
 
-*维护人：yiiewang · 最后更新：2026-07-01*
+*维护人：yiiewang · 最后更新：2026-07-08*

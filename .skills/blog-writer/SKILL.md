@@ -94,6 +94,8 @@ description: >
 | 技术 | 背景→原理→实现→坑 | `examples/tech-post.md`（PBFT） |
 | 教程 | 目标→步骤→代码→扩展 | `examples/tutorial-post.md`（回文数） |
 | 复盘 | 问题→排查→根因→解决→总结 | `examples/review-post.md`（幂等设计） |
+| 札记 | 观点→论据→延伸思考 | `references/post-structure.md` 第四节 |
+| 读书笔记 | 书籍信息→核心观点→摘录→思考 | `references/post-structure.md` 第五节 |
 
 ## 注意事项
 
