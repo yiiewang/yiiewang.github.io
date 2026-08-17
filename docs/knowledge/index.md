@@ -34,7 +34,7 @@ hide:
         <div class="kb-hero-stat-label">知识子域</div>
       </div>
       <div class="kb-hero-stat">
-        <div class="kb-hero-stat-num">10</div>
+        <div class="kb-hero-stat-num">11</div>
         <div class="kb-hero-stat-label">知识条目</div>
       </div>
     </div>
@@ -104,7 +104,7 @@ hide:
     <div class="kb-domain-body">
       <div class="kb-domain-name">职业发展</div>
       <div class="kb-domain-desc">面试准备 · 软技能 · 技术管理</div>
-      <span class="kb-domain-tag">待填充</span>
+      <span class="kb-domain-tag active">1 条知识</span>
     </div>
   </a>
 

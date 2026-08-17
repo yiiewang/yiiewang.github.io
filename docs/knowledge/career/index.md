@@ -86,7 +86,7 @@ summary: "面试准备、软技能、技术管理 —— 职业道路上的导�
 
 <div class="car-summary">
   <div class="car-summary-card">
-    <div class="num">0</div>
+    <div class="num">1</div>
     <div class="label">已填充条目</div>
   </div>
   <div class="car-summary-card">
@@ -122,7 +122,7 @@ summary: "面试准备、软技能、技术管理 —— 职业道路上的导�
   <div class="car-domain-items">
     <a href="soft-skills/" class="car-domain-item">
       <span class="car-domain-item-name">沟通 · 协作 · 向上管理 · 技术演讲</span>
-      <span class="car-domain-item-count empty">0</span>
+      <span class="car-domain-item-count has-content">1</span>
     </a>
   </div>
 </div>
@@ -145,4 +145,4 @@ summary: "面试准备、软技能、技术管理 —— 职业道路上的导�
 
 ---
 
-*维护人：yiiewang · 最后更新：2026-07-01*
+*维护人：yiiewang · 最后更新：2026-08-04*
