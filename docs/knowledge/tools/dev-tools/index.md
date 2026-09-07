@@ -8,13 +8,11 @@ summary: "VS Code、JetBrains、Git、终端配置与使用技巧"
 
 > VS Code、JetBrains、Git、终端配置与使用技巧
 
-## 📝 内容建设中
+## 📖 知识条目
 
-这个子域的内容正在建设中。如果你对这部分内容感兴趣，可以通过以下方式贡献：
-
-- 📝 从已有[博客](../../../blog/index.md)中提炼相关内容
-- 📚 推荐值得学习的资料或书籍
-- 🐛 指出需要补充的知识点
+| 条目 | 难度 | 简介 |
+|------|------|------|
+| [Git 提交迁移实战](git-commit-migration.md) | beginner | diff 比较差异 + cherry-pick / merge / checkout 三条迁移路径与冲突处理 |
 
 ## 🔗 相关链接
 
@@ -23,4 +21,4 @@ summary: "VS Code、JetBrains、Git、终端配置与使用技巧"
 
 ---
 
-*维护人：yiiewang · 最后更新：2026-07-01*
+*维护人：yiiewang · 最后更新：2026-09-03*

@@ -99,7 +99,7 @@ summary: "编程语言、区块链、架构设计、云原生、网络协议、�
 
 <div class="tech-summary">
   <div class="tech-summary-card">
-    <div class="num">6</div>
+    <div class="num">8</div>
     <div class="label">已填充条目</div>
   </div>
   <div class="tech-summary-card">
@@ -125,7 +125,7 @@ summary: "编程语言、区块链、架构设计、云原生、网络协议、�
   <div class="tech-domain-items">
     <a href="languages/go/" class="tech-domain-item">
       <span class="tech-domain-item-name">Go 语言</span>
-      <span class="tech-domain-item-count has-content">1</span>
+      <span class="tech-domain-item-count has-content">3</span>
     </a>
     <a href="languages/java/" class="tech-domain-item">
       <span class="tech-domain-item-name">Java</span>
@@ -165,7 +165,7 @@ summary: "编程语言、区块链、架构设计、云原生、网络协议、�
   <div class="tech-domain-items">
     <a href="architecture/system-design/" class="tech-domain-item">
       <span class="tech-domain-item-name">系统设计</span>
-      <span class="tech-domain-item-count has-content">1</span>
+      <span class="tech-domain-item-count has-content">2</span>
     </a>
     <a href="architecture/patterns/" class="tech-domain-item">
       <span class="tech-domain-item-name">设计模式</span>
@@ -209,7 +209,7 @@ summary: "编程语言、区块链、架构设计、云原生、网络协议、�
     </a>
     <a href="storage/" class="tech-domain-item">
       <span class="tech-domain-item-name">数据存储</span>
-      <span class="tech-domain-item-count has-content">2</span>
+      <span class="tech-domain-item-count has-content">1</span>
     </a>
     <a href="testing/" class="tech-domain-item">
       <span class="tech-domain-item-name">测试工程</span>
@@ -222,4 +222,4 @@ summary: "编程语言、区块链、架构设计、云原生、网络协议、�
 
 ---
 
-*维护人：yiiewang · 最后更新：2026-07-01*
+*维护人：yiiewang · 最后更新：2026-09-04*

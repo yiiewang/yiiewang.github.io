@@ -86,7 +86,7 @@ summary: "开发工具、效率方法论、自动化脚本 —— 把自己从�
 
 <div class="tol-summary">
   <div class="tol-summary-card">
-    <div class="num">0</div>
+    <div class="num">1</div>
     <div class="label">已填充条目</div>
   </div>
   <div class="tol-summary-card">
@@ -112,7 +112,7 @@ summary: "开发工具、效率方法论、自动化脚本 —— 把自己从�
   <div class="tol-domain-items">
     <a href="dev-tools/" class="tol-domain-item">
       <span class="tol-domain-item-name">IDE · 调试技巧 · 命令行 · Git 工作流</span>
-      <span class="tol-domain-item-count empty">0</span>
+      <span class="tol-domain-item-count has-content">1</span>
     </a>
   </div>
 </div>
@@ -141,4 +141,4 @@ summary: "开发工具、效率方法论、自动化脚本 —— 把自己从�
 
 ---
 
-*维护人：yiiewang · 最后更新：2026-07-01*
+*维护人：yiiewang · 最后更新：2026-09-03*
