@@ -53,7 +53,7 @@ hide:
 <div class="stats-bar">
   <div class="stat-card">
     <div class="stat-icon">📝</div>
-    <div class="stat-number">128</div>
+    <div class="stat-number">148</div>
     <div class="stat-label">原创文章</div>
   </div>
   <div class="stat-card">
@@ -70,11 +70,6 @@ hide:
     <div class="stat-icon">📚</div>
     <div class="stat-number">7</div>
     <div class="stat-label">知识域</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon">⛓️</div>
-    <div class="stat-number">3f+1</div>
-    <div class="stat-label">PBFT 容错</div>
   </div>
 </div>
 
@@ -94,7 +89,7 @@ hide:
     <div class="card-body">
       <div class="card-desc">开发日常中的思考与实践：后端架构、云原生、区块链…… 每一篇都是真实项目中踩过的坑。</div>
       <div class="card-meta">
-        <span class="card-tag">128 篇文章</span>
+        <span class="card-tag">148 篇文章</span>
         <span class="card-arrow">→</span>
       </div>
     </div>
@@ -188,47 +183,47 @@ hide:
 </div>
 
 <div class="article-list">
-  <a href="blog/posts/2025/03/3/" class="article-item">
-    <div class="article-badge red">❤️</div>
+  <a href="blog/posts/2026/09/08-8/" class="article-item">
+    <div class="article-badge purple">🎯</div>
     <div class="article-content">
-      <div class="article-title">爱的艺术</div>
-      <div class="article-desc">弗洛姆经典著作读书笔记 —— 爱不是找到对的人，而是培养爱的能力</div>
-    </div>
-    <div class="article-meta">
-      <span class="article-type">读书笔记</span>
-    </div>
-  </a>
-
-  <a href="blog/posts/2025/01/19/" class="article-item">
-    <div class="article-badge blue">⚖️</div>
-    <div class="article-content">
-      <div class="article-title">负载均衡设计思路与实践指南</div>
-      <div class="article-desc">轮询、权重、随机…… 分布式系统核心技术详解</div>
+      <div class="article-title">六百万 TPS 的单线程：LMAX 架构与 Disruptor 精读</div>
+      <div class="article-desc">撮合、账务、风控全在一个线程里跑，没有数据库 —— 按可复刻标准精读 Disruptor + 事件溯源</div>
     </div>
     <div class="article-meta">
       <span class="article-type">系统设计</span>
     </div>
   </a>
 
-  <a href="design-patterns/creational-patterns/singleton/" class="article-item">
-    <div class="article-badge purple">🎯</div>
+  <a href="blog/posts/2026/09/08-3/" class="article-item">
+    <div class="article-badge blue">📊</div>
     <div class="article-content">
-      <div class="article-title">单例模式详解</div>
-      <div class="article-desc">最简单也最容易用错的设计模式</div>
+      <div class="article-title">实测：channel 到底比无锁队列慢多少</div>
+      <div class="article-desc">32 核 Xeon 上四种实现同台跑分 —— 单对单挤在 110~160ns，竞争一上来 channel 反超一倍</div>
     </div>
     <div class="article-meta">
-      <span class="article-type">设计模式</span>
+      <span class="article-type">性能实测</span>
     </div>
   </a>
 
-  <a href="ruankao/medium%20software%20architecture/" class="article-item">
-    <div class="article-badge green">🏗️</div>
+  <a href="blog/posts/2026/09/08/" class="article-item">
+    <div class="article-badge green">🧠</div>
     <div class="article-content">
-      <div class="article-title">软件架构设计</div>
-      <div class="article-desc">架构师必备的设计思维与方法论</div>
+      <div class="article-title">写了不等于看得见：内存屏障与 Go 内存模型</div>
+      <div class="article-desc">从 store buffer 到 x86 TSO 与 ARM 弱序，把无锁代码的地基一次讲透</div>
     </div>
     <div class="article-meta">
-      <span class="article-type">软考</span>
+      <span class="article-type">并发编程</span>
+    </div>
+  </a>
+
+  <a href="blog/posts/2026/09/09/" class="article-item">
+    <div class="article-badge red">🔧</div>
+    <div class="article-content">
+      <div class="article-title">一行 ProxyJump，VS Code 直达内网机器</div>
+      <div class="article-desc">跳板机只转发流量、不留私钥 —— ~/.ssh/config 里的一行配置搞定逐级跳转</div>
+    </div>
+    <div class="article-meta">
+      <span class="article-type">札记</span>
     </div>
   </a>
 </div>
@@ -267,7 +262,7 @@ hide:
       <div class="card-meta">
         <span class="card-tag">MkDocs</span>
         <span class="card-tag">Markdown</span>
-        <span class="card-tag">128+ 篇</span>
+        <span class="card-tag">148+ 篇</span>
         <span class="card-arrow">→</span>
       </div>
     </div>
