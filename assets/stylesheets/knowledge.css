@@ -1,0 +1,312 @@
+/* ==========================================
+   Knowledge Base — Nordic Geometric
+   ========================================== */
+
+/* ===== Hero ===== */
+.kb-hero {
+  position: relative;
+  padding: 3.5rem 2.8rem;
+  background:
+    radial-gradient(circle at 85% 20%, rgba(92,124,138,0.10) 0%, transparent 50%),
+    radial-gradient(circle at 15% 80%, rgba(122,155,138,0.10) 0%, transparent 50%),
+    linear-gradient(145deg, #F0F2F4 0%, #E8EBEE 100%);
+  border-radius: var(--ng-radius-lg, 10px);
+  margin-bottom: 2.5rem;
+  overflow: hidden;
+  color: var(--ng-text, #2C3A47);
+}
+
+/* Geometric grid overlay */
+.kb-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(135deg, var(--ng-border, #E5E9ED) 1px, transparent 1px),
+    linear-gradient(225deg, var(--ng-border, #E5E9ED) 1px, transparent 1px);
+  background-size: 50px 50px;
+  opacity: 0.3;
+  pointer-events: none;
+}
+/* Decorative elements */
+.kb-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -50px;
+  right: 40px;
+  width: 160px;
+  height: 160px;
+  border: 1.5px solid var(--ng-border, #E5E9ED);
+  border-radius: 50%;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.kb-hero-inner {
+  position: relative;
+  z-index: 1;
+}
+.kb-hero h1 {
+  color: var(--ng-text, #2C3A47);
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.6rem;
+  letter-spacing: -0.3px;
+}
+.kb-hero-desc {
+  color: var(--ng-text-sub, #6B8299);
+  font-size: 1rem;
+  max-width: 560px;
+  margin: 0 0 1.8rem;
+  line-height: 1.7;
+}
+
+.kb-hero-stats {
+  display: flex;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+}
+.kb-hero-stat {
+  text-align: center;
+  min-width: 70px;
+}
+.kb-hero-stat-num {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--ng-text, #2C3A47);
+  line-height: 1.2;
+}
+.kb-hero-stat-label {
+  font-size: 0.75rem;
+  color: var(--ng-text-sub, #6B8299);
+  margin-top: 0.2rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ===== Section Header ===== */
+.kb-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 3rem 0 1.5rem;
+}
+.kb-section-header span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--ng-text-fade, #9AADBD);
+}
+.kb-section-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--ng-border, #E5E9ED);
+}
+.kb-section-dot {
+  width: 5px !important;
+  height: 5px !important;
+  border-radius: 50%;
+  background: var(--ng-text-fade, #9AADBD);
+  flex-shrink: 0;
+  font-size: 0 !important;
+  letter-spacing: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ===== Domain Grid ===== */
+.kb-domain-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+}
+.kb-domain-card {
+  background: #fff;
+  border: 1px solid var(--ng-border, #E5E9ED);
+  border-radius: var(--ng-radius-lg, 10px);
+  padding: 1.4rem 1.5rem;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  transition: all var(--ng-trans, 0.25s cubic-bezier(0.4,0,0.2,1));
+}
+.kb-domain-card:hover {
+  border-color: var(--ng-text-sub, #6B8299);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+
+.kb-domain-icon-wrap {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--ng-radius, 6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+.kb-domain-icon-wrap.purple { background: #EDF2F7; }
+.kb-domain-icon-wrap.orange { background: #FDF2EB; }
+.kb-domain-icon-wrap.green  { background: #ECF8F0; }
+.kb-domain-icon-wrap.blue   { background: #EDF2F7; }
+.kb-domain-icon-wrap.violet { background: #F4F0F9; }
+.kb-domain-icon-wrap.teal   { background: #EAF8F6; }
+.kb-domain-icon-wrap.red    { background: #FDF0ED; }
+
+.kb-domain-body { flex: 1; min-width: 0; }
+.kb-domain-name {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  color: var(--ng-text, #2C3A47);
+}
+.kb-domain-desc {
+  font-size: 0.8rem;
+  color: var(--ng-text-sub, #6B8299);
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
+}
+.kb-domain-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: var(--ng-surface, #F7F8F9);
+  color: var(--ng-text-fade, #9AADBD);
+}
+.kb-domain-tag.active {
+  background: #E3F0E8;
+  color: #3D7056;
+}
+
+/* ===== Usage Cards ===== */
+.kb-usage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+}
+.kb-usage-card {
+  background: #fff;
+  border: 1px solid var(--ng-border, #E5E9ED);
+  border-radius: var(--ng-radius-lg, 10px);
+  padding: 1.4rem;
+}
+.kb-usage-card-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.6rem;
+}
+.kb-usage-card h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.93rem;
+  font-weight: 700;
+  color: var(--ng-text, #2C3A47);
+}
+.kb-usage-card p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ng-text-sub, #6B8299);
+  line-height: 1.6;
+}
+
+/* ===== Status ===== */
+.kb-status-row {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-bottom: 2.5rem;
+}
+.kb-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--ng-text-sub, #6B8299);
+}
+.kb-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.kb-status-dot.effective { background: #6B9080; }
+.kb-status-dot.draft     { background: #D4C5B9; }
+.kb-status-dot.outdated  { background: #C4908A; }
+
+/* ===== Footer ===== */
+.kb-footer {
+  text-align: center;
+  padding: 2rem 0;
+  color: var(--ng-text-sub, #6B8299);
+}
+.kb-footer p {
+  margin: 0.3rem 0;
+}
+.kb-footer .kb-footer-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ng-text, #2C3A47);
+  margin-bottom: 0.4rem;
+}
+.kb-footer .kb-footer-sub {
+  font-size: 0.78rem;
+  color: var(--ng-text-fade, #9AADBD);
+}
+
+/* ===============================
+   Dark Mode
+   =============================== */
+[data-md-color-scheme="slate"] .kb-hero {
+  background:
+    radial-gradient(circle at 85% 20%, rgba(92,124,138,0.08) 0%, transparent 50%),
+    radial-gradient(circle at 15% 80%, rgba(122,155,138,0.06) 0%, transparent 50%),
+    linear-gradient(145deg, #20242A 0%, #1A1E24 100%);
+}
+[data-md-color-scheme="slate"] .kb-hero::before {
+  background-image:
+    linear-gradient(135deg, #2A2E36 1px, transparent 1px),
+    linear-gradient(225deg, #2A2E36 1px, transparent 1px);
+}
+[data-md-color-scheme="slate"] .kb-hero::after { border-color: #2E323A; }
+
+[data-md-color-scheme="slate"] .kb-domain-card,
+[data-md-color-scheme="slate"] .kb-usage-card { background: #20242A; border-color: var(--ng-border, #2E323A); }
+[data-md-color-scheme="slate"] .kb-domain-card:hover,
+[data-md-color-scheme="slate"] .kb-usage-card:hover { background: #252930; border-color: #5E6874; }
+
+[data-md-color-scheme="slate"] .kb-domain-icon-wrap.purple,
+[data-md-color-scheme="slate"] .kb-domain-icon-wrap.blue { background: #1E2630; }
+[data-md-color-scheme="slate"] .kb-domain-icon-wrap.orange { background: #261E18; }
+[data-md-color-scheme="slate"] .kb-domain-icon-wrap.green  { background: #1A241E; }
+[data-md-color-scheme="slate"] .kb-domain-icon-wrap.violet { background: #201C26; }
+[data-md-color-scheme="slate"] .kb-domain-icon-wrap.teal   { background: #1A2422; }
+[data-md-color-scheme="slate"] .kb-domain-icon-wrap.red    { background: #261A18; }
+
+[data-md-color-scheme="slate"] .kb-domain-tag { background: #252930; color: #5E6874; }
+[data-md-color-scheme="slate"] .kb-domain-tag.active { background: #1A2A22; color: #6B9080; }
+
+[data-md-color-scheme="slate"] .kb-status-dot.effective { background: #6B9080; }
+[data-md-color-scheme="slate"] .kb-status-dot.draft     { background: #8B7D72; }
+[data-md-color-scheme="slate"] .kb-status-dot.outdated  { background: #9B6B6B; }
+
+[data-md-color-scheme="slate"] .kb-section-header::after { background: #2E323A; }
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .kb-hero { padding: 2.5rem 1.5rem; }
+  .kb-hero h1 { font-size: 1.5rem; }
+  .kb-hero-stats { gap: 1.5rem; }
+  .kb-hero-stat-num { font-size: 1.6rem; }
+  .kb-domain-grid { grid-template-columns: 1fr; }
+  .kb-usage-grid { grid-template-columns: 1fr; }
+  .kb-section-header { margin: 2.5rem 0 1rem; }
+}
