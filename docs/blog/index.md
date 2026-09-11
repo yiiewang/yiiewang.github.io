@@ -1,6 +1,8 @@
 ---
 title: 博客
 render_macros: true
+hide:
+  - navigation
 ---
 
 # :material-post: 技术博客

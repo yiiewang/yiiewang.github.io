@@ -18,10 +18,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 从 Dockerfile 构建镜像：与本地 make dev/build/preview 完全一致，
-      # 且 Zensical 版本只在 Dockerfile 中定义（单一来源）。
-      - name: Build Zensical image
-        run: docker build -t "$DOCKER_IMAGE" -f .github/workflows/Dockerfile .
+      # 镜像由本地 `make docker-build` 构建后推送到 Docker Hub，CI 只拉取不构建。
+      - name: Pull Zensical image
+        run: docker pull "$DOCKER_IMAGE"
+
+      # 防漂移：镜像内的 zensical 版本必须与 Dockerfile 固定版本一致，
+      # 否则说明 Dockerfile 改了但镜像没重新推送，构建结果会与仓库不一致。
+      - name: Verify image version matches Dockerfile
+        run: |
+          pinned=$(sed -n 's/.*"zensical==\([0-9][0-9.]*\)".*/\1/p' .github/workflows/Dockerfile | head -1)
+          actual=$(docker run --rm --entrypoint zensical "$DOCKER_IMAGE" --version | tr -d '[:space:]')
+          echo "Dockerfile 固定版本: $pinned / 镜像内版本: $actual"
+          if [ "$pinned" != "$actual" ]; then
+            echo "::error::镜像版本 ($actual) 与 Dockerfile ($pinned) 不一致。请执行 make docker-build 后推送镜像。"
+            exit 1
+          fi
 
       # --user 让容器以 runner 用户身份运行：否则 site/ 归 root 所有，
       # 下一步的 touch 会因权限不足失败（touch: Permission denied）。

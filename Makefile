@@ -3,7 +3,7 @@
 # 全部通过 Docker 执行，宿主机无需安装 Python / Zensical。
 #
 # - mkdocs.yml 唯一配置源（Zensical 原生读取 mkdocs.yml，无需派生配置）
-# - 博客文章列表由项目根目录 main.py 的 macros 宏渲染（plugins: macros）
+# - 博客文章列表由 scripts/blog_macros.py 的 macros 宏渲染（plugins: macros）
 # - 镜像版本唯一定义在 .github/workflows/Dockerfile，CI 与本地共用同一镜像
 # - 部署由 GitHub Actions 完成（.github/workflows/ci.yml）
 #
@@ -19,6 +19,11 @@ DOCS_MOUNT   := -v $(CURDIR):/docs
 # 以宿主用户身份运行容器，避免 site/ .cache/ 被 root 拥有（否则 make clean 删不掉）
 DOCKER_USER  := --user "$(shell id -u):$(shell id -g)"
 
+# Dockerfile 内容哈希（前 16 位）：构建时写入镜像 label，用于判断镜像是否过期
+DOCKERFILE_HASH := $(shell sha256sum $(DOCKERFILE) 2>/dev/null | cut -c1-16)
+# 从 Dockerfile 提取固定的 zensical 版本号（如 0.0.60）
+PINNED_VERSION  := $(shell sed -n 's/.*"zensical==\([0-9][0-9.]*\)".*/\1/p' $(DOCKERFILE) | head -1)
+
 DEV_PORT     := 8000
 PREVIEW_PORT := 8001
 
@@ -26,17 +31,46 @@ PREVIEW_PORT := 8001
 
 # ========== 镜像 ==========
 
-# 镜像不存在时自动构建（存在则跳过，仅做一次 inspect）
+# 镜像不存在、或 Dockerfile 已变更时自动重建。
+# 哈希写在镜像 label 里，因此无需额外的状态文件。
 .PHONY: ensure-image
 ensure-image:
-	@docker image inspect $(DOCKER_IMAGE) >/dev/null 2>&1 || { \
-		echo ">>> 镜像 $(DOCKER_IMAGE) 不存在，开始构建..."; \
-		docker build -t $(DOCKER_IMAGE) -f $(DOCKERFILE) .; \
-	}
+	@current=$$(docker image inspect \
+		-f '{{if .Config.Labels}}{{index .Config.Labels "zensical.dockerfile-hash"}}{{end}}' \
+		$(DOCKER_IMAGE) 2>/dev/null); \
+	if [ "$$current" = "$(DOCKERFILE_HASH)" ]; then \
+		echo ">>> 镜像 $(DOCKER_IMAGE) 已是最新"; \
+	else \
+		if [ -n "$$current" ]; then \
+			echo ">>> Dockerfile 已变更（$$current → $(DOCKERFILE_HASH)），重建镜像..."; \
+		elif docker image inspect $(DOCKER_IMAGE) >/dev/null 2>&1; then \
+			echo ">>> 镜像存在但无哈希标记（如从 Hub 拉取），重建以启用变更检测..."; \
+		else \
+			echo ">>> 镜像 $(DOCKER_IMAGE) 不存在，开始构建..."; \
+		fi; \
+		docker build --label "zensical.dockerfile-hash=$(DOCKERFILE_HASH)" \
+			-t $(DOCKER_IMAGE) -f $(DOCKERFILE) .; \
+	fi
 
-# 强制重建镜像（Dockerfile 改动后执行）
+# 强制重建镜像（不比较哈希）
 docker-build:
-	docker build -t $(DOCKER_IMAGE) -f $(DOCKERFILE) .
+	docker build --label "zensical.dockerfile-hash=$(DOCKERFILE_HASH)" \
+		-t $(DOCKER_IMAGE) -f $(DOCKERFILE) .
+
+# 检查上游是否有更新的 zensical 版本（需联网，不参与 dev/build 流程）
+check-upstream:
+	@echo ">>> Dockerfile 中固定的版本: $(PINNED_VERSION)"
+	@latest=$$(curl -s --max-time 10 https://pypi.org/pypi/zensical/json \
+		| grep -oE '"version":"[^"]+"' | head -1 | cut -d'"' -f4); \
+	if [ -z "$$latest" ]; then \
+		echo "!!! 无法获取上游版本（网络不可用？）"; exit 1; \
+	fi; \
+	if [ "$$latest" = "$(PINNED_VERSION)" ]; then \
+		echo ">>> 已是最新版本 ($$latest)"; \
+	else \
+		echo ">>> 有新版本可用: $(PINNED_VERSION) → $$latest"; \
+		echo "    升级：修改 $(DOCKERFILE) 中的版本号，然后 make docker-build"; \
+	fi
 
 # ========== 开发 / 构建 / 预览 ==========
 
@@ -49,7 +83,7 @@ dev serve: ensure-image
 # 生产构建：clean 清缓存，产物在 site/
 build prod: ensure-image
 	@echo ">>> 生产构建中..."
-	docker run --rm $(DOCS_MOUNT) $(DOCKER_IMAGE) build -f mkdocs.yml --clean
+	docker run --rm $(DOCKER_USER) $(DOCS_MOUNT) $(DOCKER_IMAGE) build -f mkdocs.yml --clean
 	@echo ">>> 完成，产物在 site/"
 
 # 静态预览已构建的 site/（验证生产产物，不重新构建）
@@ -75,9 +109,11 @@ help:
 	@echo "  make preview   静态预览 site/（http://localhost:$(PREVIEW_PORT)）"
 	@echo ""
 	@echo "  make docker-build   强制重建镜像 $(DOCKER_IMAGE)"
+	@echo "  make check-upstream 检查上游是否有更新的 zensical 版本（需联网）"
 	@echo "  make clean          清理 site/ .cache/ __pycache__/"
 	@echo ""
-	@echo "镜像：$(DOCKER_IMAGE)（定义于 $(DOCKERFILE)）"
+	@echo "镜像：$(DOCKER_IMAGE)（定义于 $(DOCKERFILE)，版本 $(PINNED_VERSION)）"
+	@echo "      dev/build/preview 会自动检测镜像是否过期（Dockerfile 变更即重建）"
 	@echo "部署：推送到 master/main 后由 GitHub Actions 自动发布到 gh-pages"
 
-.PHONY: ensure-image docker-build dev serve build prod preview clean help
+.PHONY: ensure-image docker-build check-upstream dev serve build prod preview clean help
