@@ -1,76 +1,81 @@
-# MkDocs 站点管理
-# - mkdocs.yml     生产完整配置（所有插件启用）
-# - mkdocs.dev.yml 开发配置（禁 rss/social/privacy/optimize/tags/minify，~30s，保留博客+搜索）
-# dev 配置由 scripts/gen_dev_config.py 从 mkdocs.yml 派生，mkdocs.yml 是唯一真源
+# Zensical 站点管理
 #
-# 两种执行环境：
-# - 宿主机直接跑（make serve / make build）：快，依赖宿主已装 mkdocs + 插件
-# - Docker 容器跑（make docker-*）：环境隔离可复现，依赖镜像 cloaks/mkdocs:9.7.6
+# 全部通过 Docker 执行，宿主机无需安装 Python / Zensical。
+#
+# - mkdocs.yml 唯一配置源（Zensical 原生读取 mkdocs.yml，无需派生配置）
+# - 博客文章列表由项目根目录 main.py 的 macros 宏渲染（plugins: macros）
+# - 镜像版本唯一定义在 .github/workflows/Dockerfile，CI 与本地共用同一镜像
+# - 部署由 GitHub Actions 完成（.github/workflows/ci.yml）
+#
+# 目标：
+#   make dev      开发服务器（增量构建 + 热重载）
+#   make build    生产构建（clean，产物在 site/）
+#   make preview  静态预览已构建的 site/（验证生产产物）
+#   make clean    清理构建产物与缓存
 
-# Docker 镜像配置
-DOCKER_IMAGE := cloaks/mkdocs:9.7.6
+DOCKER_IMAGE := cloaks/zensical:0.0.60
 DOCKERFILE   := .github/workflows/Dockerfile
-DOCKER_RUN   := docker run --rm -v $(CURDIR):/docs -p 8000:8000 $(DOCKER_IMAGE)
+DOCS_MOUNT   := -v $(CURDIR):/docs
+
+DEV_PORT     := 8000
+PREVIEW_PORT := 8001
 
 .DEFAULT_GOAL := help
 
-# ========== 宿主机直接执行 ==========
+# ========== 镜像 ==========
 
-# 开发：保留博客+搜索，禁其余重插件（~30s）
-serve: mkdocs.dev.yml
-	mkdocs serve -f mkdocs.dev.yml --dev-addr=0.0.0.0:8000 --dirty
+# 镜像不存在时自动构建（存在则跳过，仅做一次 inspect）
+.PHONY: ensure-image
+ensure-image:
+	@docker image inspect $(DOCKER_IMAGE) >/dev/null 2>&1 || { \
+		echo ">>> 镜像 $(DOCKER_IMAGE) 不存在，开始构建..."; \
+		docker build -t $(DOCKER_IMAGE) -f $(DOCKERFILE) .; \
+	}
 
-dev: serve
-
-# 生产构建：完整配置 + clean
-build:
-	mkdocs build -f mkdocs.yml --clean
-
-prod: build
-
-# 派生开发配置（mkdocs.yml 改动后自动重新生成）
-mkdocs.dev.yml: mkdocs.yml scripts/gen_dev_config.py
-	@python3 scripts/gen_dev_config.py
-
-# 仅生成开发配置（不启动）
-dev-config: mkdocs.dev.yml
-
-# ========== Docker 容器执行 ==========
-
-# 构建镜像（首次或 Dockerfile 改动后执行）
+# 强制重建镜像（Dockerfile 改动后执行）
 docker-build:
 	docker build -t $(DOCKER_IMAGE) -f $(DOCKERFILE) .
 
-# 容器开发：dev 配置 + dirty + 热重载（~30s）
-docker-serve: mkdocs.dev.yml
-	$(DOCKER_RUN) serve -f mkdocs.dev.yml --dirty --dev-addr=0.0.0.0:8000
+# ========== 开发 / 构建 / 预览 ==========
 
-# 容器生产构建：完整配置 + clean
-docker-prod:
-	$(DOCKER_RUN) build -f mkdocs.yml --clean
+# 开发服务器：增量构建 + 热重载
+dev serve: ensure-image
+	@echo ">>> 开发服务器 http://localhost:$(DEV_PORT)"
+	docker run --rm $(DOCS_MOUNT) -p $(DEV_PORT):8000 $(DOCKER_IMAGE) \
+		serve -f mkdocs.yml -a 0.0.0.0:8000
 
-# 容器部署：gh-deploy 推送到 GitHub Pages（需容器内配置 git 凭证）
-docker-deploy:
-	$(DOCKER_RUN) gh-deploy --force
+# 生产构建：clean 清缓存，产物在 site/
+build prod: ensure-image
+	@echo ">>> 生产构建中..."
+	docker run --rm $(DOCS_MOUNT) $(DOCKER_IMAGE) build -f mkdocs.yml --clean
+	@echo ">>> 完成，产物在 site/"
+
+# 静态预览已构建的 site/（验证生产产物，不重新构建）
+preview: ensure-image
+	@test -d site || { echo "!!! site/ 不存在，请先执行 make build"; exit 1; }
+	@echo ">>> 预览已构建站点 http://localhost:$(PREVIEW_PORT)"
+	docker run --rm --entrypoint python3 \
+		-v $(CURDIR)/site:/site:ro -p $(PREVIEW_PORT):8000 $(DOCKER_IMAGE) \
+		-m http.server 8000 --directory /site
 
 # ========== 通用 ==========
 
-# 清理构建产物与派生配置
+# 清理构建产物与缓存
 clean:
-	rm -rf site .cache mkdocs.dev.yml
+	rm -rf site .cache
+	find . -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true
 
 help:
-	@echo "宿主机执行（需本地装 mkdocs）："
-	@echo "  make serve            开发启动（dirty，~30s，博客+搜索可用）"
-	@echo "  make build            生产构建（完整配置，clean）"
-	@echo "  make dev-config       仅生成 mkdocs.dev.yml"
+	@echo "Zensical 站点管理（全部通过 Docker 执行）"
 	@echo ""
-	@echo "Docker 执行（需先 make docker-build 构建镜像）："
-	@echo "  make docker-build     构建 $(DOCKER_IMAGE) 镜像"
-	@echo "  make docker-serve     容器开发（dirty，~30s，热重载）"
-	@echo "  make docker-prod      容器生产构建"
-	@echo "  make docker-deploy    容器部署到 GitHub Pages（需 git 凭证）"
+	@echo "  make dev       开发服务器（热重载，http://localhost:$(DEV_PORT)）"
+	@echo "  make build     生产构建（clean，产物在 site/）"
+	@echo "  make preview   静态预览 site/（http://localhost:$(PREVIEW_PORT)）"
 	@echo ""
-	@echo "  make clean            清理 site/ .cache/ mkdocs.dev.yml"
+	@echo "  make docker-build   强制重建镜像 $(DOCKER_IMAGE)"
+	@echo "  make clean          清理 site/ .cache/ __pycache__/"
+	@echo ""
+	@echo "镜像：$(DOCKER_IMAGE)（定义于 $(DOCKERFILE)）"
+	@echo "部署：推送到 master/main 后由 GitHub Actions 自动发布到 gh-pages"
 
-.PHONY: serve dev build prod dev-config docker-build docker-serve docker-prod docker-deploy clean help
+.PHONY: ensure-image docker-build dev serve build prod preview clean help

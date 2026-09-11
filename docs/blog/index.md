@@ -1,5 +1,6 @@
 ---
 title: 博客
+render_macros: true
 ---
 
 # :material-post: 技术博客
@@ -13,3 +14,7 @@ title: 博客
 ## :material-clock-outline: 最新文章
 
 按时间倒序排列，最新的在最前面 👇
+
+<!-- Zensical 构建时由 scripts/blog_macros.py 的 blog_list 宏渲染；
+     MkDocs 构建时渲染为空，由 material blog 插件自己追加文章列表 -->
+{{ blog_list() }}

@@ -313,8 +313,11 @@ hide:
     <a href="https://github.com/yiiewang/yiiewang.github.io" target="_blank" class="footer-link">
       <span>📦</span> 本站源码
     </a>
+    <!-- RSS 订阅：Zensical 尚未支持 rss 插件（feed_rss_created.xml 不会生成），
+         恢复订阅功能前先隐藏，避免 404 链接。
     <a href="feed_rss_created.xml" target="_blank" class="footer-link">
       <span>📡</span> RSS 订阅
     </a>
+    -->
   </div>
 </div>

@@ -4,30 +4,36 @@ on:
     branches:
       - master
       - main
+  workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      DOCKER_IMAGE: cloaks/zensical:0.0.60
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure Git Credentials
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+      # 从 Dockerfile 构建镜像：与本地 make dev/build/preview 完全一致，
+      # 且 Zensical 版本只在 Dockerfile 中定义（单一来源）。
+      - name: Build Zensical image
+        run: docker build -t "$DOCKER_IMAGE" -f .github/workflows/Dockerfile .
 
-      - name: Cache built site
-        uses: actions/cache@v4
+      - name: Build site
+        run: |
+          docker run --rm -v "$PWD":/docs "$DOCKER_IMAGE" build -f mkdocs.yml --clean
+          touch site/.nojekyll
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          key: mkdocs-material-${{ env.cache_id }}
-          path: site
-          restore-keys: |
-            mkdocs-material-site-
-
-      - name: Build and Deploy using MkDocs
-        run: |
-          docker run --rm \
-            -v $(pwd):/docs \
-            cloaks/mkdocs:latest \
-            gh-deploy --force
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          publish_branch: gh-pages
+          user_name: github-actions[bot]
+          user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          commit_message: "deploy: ${{ github.event.head_commit.message }}"

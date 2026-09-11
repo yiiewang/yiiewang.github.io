@@ -1,9 +1,12 @@
 # IDE & Editor
-.cache
 .idea
 .history
 .vscode
 .codebuddy
+
+# Python 缓存
+__pycache__/
+*.py[cod]
 
 # 草稿
 **/drafts
@@ -11,6 +14,6 @@
 # 私有文件
 private/
 
-# 构建产物
+# 构建产物与缓存
 site/
-mkdocs.dev.yml
+.cache/

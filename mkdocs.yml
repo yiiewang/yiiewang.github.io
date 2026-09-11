@@ -147,6 +147,13 @@ markdown_extensions:
 # Plugins
 # ---------------------------------------------------------------------------
 plugins:
+  # macros: 仅 Zensical 生效（MkDocs 侧未安装 mkdocs-macros-plugin 时会报未知插件）。
+  # render_by_default: false 为白名单模式——只有显式声明 render_macros: true
+  # 的页面（如 docs/blog/index.md）才走 Jinja 渲染，避免代码块中的 {{ }} 被误渲染。
+  # module_name 默认是 "main"（即项目根目录 main.py），这里指向 scripts/blog_macros.py。
+  - macros:
+      render_by_default: false
+      module_name: scripts/blog_macros
   - glightbox
   - meta
   - search:
@@ -156,41 +163,50 @@ plugins:
         kwds:
           case: lower
       tags_slugify_separator: _
-  - blog:
-      blog_toc: true
-      post_slugify: !!python/object/apply:pymdownx.slugs.slugify
-        kwds:
-          case: lower
-      post_slugify_separator: _
-      post_url_date_format: yyyy/MM
-      post_url_format: "posts/{date}/{file}"
-      archive: true
-      categories: true
-      pagination_per_page: 10
-      authors: true
-  - rss:
-      match_path: blog/posts/.*
-      date_from_meta:
-        as_creation: date
-      categories:
-        - categories
-        - tags
-      comments_path: "#__comments"
-  - social:
-      cards_layout_options:
-        font_family: Noto Sans SC
-  - privacy:
-      enabled: true
-      concurrency: 4
-      log_level: info
-      assets_exclude:
-        - cdn.jsdelivr.net/gh/jdecked/twemoji*
-  # optimize 与 mkdocs serve --dirty 不兼容（on_env 的 files.remove 在 dirty 子集
-  # 上抛 ValueError）。生产 clean build 正常；开发配置由 Makefile 派生时禁用。
-  - optimize:
-      enabled: true
-      cache: true
-      cache_dir: .cache/plugins/optimize
+  # ---------------------------------------------------------------------------
+  # 以下插件 Zensical 0.0.60 尚未支持，暂时注释（保留原配置便于将来恢复）。
+  # 兼容列表：https://zensical.org/docs/compatibility/mkdocs/plugins/
+  #
+  # 对应功能现状：
+  #   blog     → 文章列表改由 scripts/blog_macros.py 的 blog_list() 宏渲染
+  #   rss      → feed_rss_created.xml 不再生成（页脚/首页/llms.txt 的 RSS 链接已隐藏）
+  #   social   → 不再生成社交分享卡片（OG 图）
+  #   privacy  → 外部 CDN 资源（mermaid/katex）不再本地化
+  #   optimize → 不再压缩图片、不生成 srcset 响应式变体
+  # ---------------------------------------------------------------------------
+  # - blog:
+  #     blog_toc: true
+  #     post_slugify: !!python/object/apply:pymdownx.slugs.slugify
+  #       kwds:
+  #         case: lower
+  #     post_slugify_separator: _
+  #     post_url_date_format: yyyy/MM
+  #     post_url_format: "posts/{date}/{file}"
+  #     archive: true
+  #     categories: true
+  #     pagination_per_page: 10
+  #     authors: true
+  # - rss:
+  #     match_path: blog/posts/.*
+  #     date_from_meta:
+  #       as_creation: date
+  #     categories:
+  #       - categories
+  #       - tags
+  #     comments_path: "#__comments"
+  # - social:
+  #     cards_layout_options:
+  #       font_family: Noto Sans SC
+  # - privacy:
+  #     enabled: true
+  #     concurrency: 4
+  #     log_level: info
+  #     assets_exclude:
+  #       - cdn.jsdelivr.net/gh/jdecked/twemoji*
+  # - optimize:
+  #     enabled: true
+  #     cache: true
+  #     cache_dir: .cache/plugins/optimize
   - minify:
       minify_html: true
 
@@ -228,8 +244,10 @@ extra:
           note: >-
             感谢您的反馈！使用我们的<a href="..." target="_blank" rel="noopener">反馈表</a>帮助我们改进此页面。
   social:
-    - icon: simple/rss
-      link: https://cloaks.cn/feed_rss_created.xml
+    # RSS 订阅：Zensical 尚未支持 rss 插件（feed_rss_created.xml 不会生成），
+    # 恢复订阅功能前先隐藏，避免页脚出现 404 链接。
+    # - icon: simple/rss
+    #   link: https://cloaks.cn/feed_rss_created.xml
     - icon: fontawesome/brands/github
       link: https://github.com/yiiewang
     - icon: fontawesome/brands/docker
@@ -365,7 +383,5 @@ nav:
               - design-patterns/behavioral-patterns/visitor/index.md
               - design-patterns/behavioral-patterns/iterator/index.md
               - design-patterns/behavioral-patterns/memento/index.md
-  - 博客:
-      - blog/index.md
-  - Workbench:
-      - workbench/index.md
+  - 博客: blog/index.md
+  - Workbench: workbench/index.md

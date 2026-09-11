@@ -46,7 +46,6 @@
 
 ## 订阅与联系
 
-- RSS 订阅: https://cloaks.cn/feed_rss_created.xml
 - GitHub: https://github.com/yiiewang
 - 邮箱: cloaks@qq.com
 

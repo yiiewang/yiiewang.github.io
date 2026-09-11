@@ -1,58 +1,34 @@
 # =============================================================================
-# cloaks/mkdocs Docker Image
-# 
-# Base:     squidfunk/mkdocs-material 9.7.6
-# Purpose:  Build & deploy yiiewang.github.io (cloaks.cn)
+# cloaks/zensical Docker Image
+#
+# Base:    python:3.12-slim
+# Purpose: Build & serve yiiewang.github.io (cloaks.cn) with Zensical
+#
+# Zensical 自带 Markdown / pymdown-extensions / 主题与模板，
+# 无需再安装 mkdocs、mkdocs-material 及各类插件。
+# 博客文章列表由项目根目录 main.py 的 macros 宏渲染（plugins: macros）。
+#
 # Usage:
-#   docker build -t cloaks/mkdocs:9.7.6 .
-#   docker run --rm -v $(pwd):/docs cloaks/mkdocs:9.7.6 build
-#   docker run --rm -v $(pwd):/docs cloaks/mkdocs:9.7.6 gh-deploy --force
-#   docker run --rm -v $(pwd):/docs -p 8000:8000 cloaks/mkdocs:9.7.6 serve --dev-addr=0.0.0.0:8000
+#   docker build -t cloaks/zensical:0.0.60 -f .github/workflows/Dockerfile .
+#   docker run --rm -v $(pwd):/docs cloaks/zensical:0.0.60 build -f mkdocs.yml --clean
+#   docker run --rm -v $(pwd):/docs -p 8000:8000 cloaks/zensical:0.0.60 \
+#     serve -f mkdocs.yml -a 0.0.0.0:8000
 #
 # Push:
-#   docker push cloaks/mkdocs:9.7.6
-#   docker push cloaks/mkdocs:latest
+#   docker push cloaks/zensical:0.0.60
+#   docker push cloaks/zensical:latest
 # =============================================================================
 
-FROM squidfunk/mkdocs-material:9.7.6
+FROM python:3.12-slim
 
 LABEL maintainer="cloaks@qq.com"
-LABEL description="MkDocs Material with plugins for yiiewang.github.io"
+LABEL description="Zensical static site generator for yiiewang.github.io (cloaks.cn)"
 
-# ---------------------------------------------------------------------------
-# System dependencies for social cards & optimize plugins
-#   Base image is Alpine → use apk
-# ---------------------------------------------------------------------------
-RUN apk add --no-cache \
-    cairo \
-    cairo-dev \
-    libjpeg-turbo-dev \
-    libpng-dev \
-    libwebp-dev
-
-# ---------------------------------------------------------------------------
-# Pip plugins and extensions
-#   glightbox  -> 图片灯箱放大效果 (plugins.glightbox)
-#   rss        -> RSS 订阅源生成 (plugins.rss)
-#   minify     -> HTML/CSS/JS 压缩 (plugins.minify)
-#   privacy    -> 外部资源本地化 (plugins.privacy)       -- needs aiohttp, jsbeautifier
-#   optimize   -> 图片压缩 + srcset (plugins.optimize)   -- needs pillow, cairosvg (already installed)
-#   pymdownx   -> 代码高亮 / Mermaid / Emoji 等 Markdown 扩展 (markdown_extensions)
-# ---------------------------------------------------------------------------
-RUN pip install --no-cache-dir \
-    "mkdocs-material[imaging]>=9.7" \
-    "mkdocs-glightbox>=0.4" \
-    "mkdocs-rss-plugin>=1.0" \
-    "mkdocs-minify-plugin>=0.8" \
-    "pymdown-extensions>=10" \
-    "aiohttp>=3" \
-    "jsbeautifier>=1"
+# 固定版本：Zensical 仍处于 0.0.x alpha，避免上游变更导致构建漂移
+RUN pip install --no-cache-dir "zensical==0.0.60"
 
 WORKDIR /docs
-ENTRYPOINT ["mkdocs"]
+ENTRYPOINT ["zensical"]
 
-# ---------------------------------------------------------------------------
-# Default command: development server with hot reload
-# --dev-addr=0.0.0.0:8000 绑定容器对外地址，配合 -p 8000:8000 宿主可访问
-# ---------------------------------------------------------------------------
-CMD ["serve", "--dev-addr=0.0.0.0:8000"]
+# 默认命令：完整构建（clean 清缓存，产物在 site/）
+CMD ["build", "-f", "mkdocs.yml", "--clean"]
