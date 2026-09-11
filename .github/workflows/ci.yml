@@ -23,9 +23,11 @@ jobs:
       - name: Build Zensical image
         run: docker build -t "$DOCKER_IMAGE" -f .github/workflows/Dockerfile .
 
+      # --user 让容器以 runner 用户身份运行：否则 site/ 归 root 所有，
+      # 下一步的 touch 会因权限不足失败（touch: Permission denied）。
       - name: Build site
         run: |
-          docker run --rm -v "$PWD":/docs "$DOCKER_IMAGE" build -f mkdocs.yml --clean
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/docs "$DOCKER_IMAGE" build -f mkdocs.yml --clean
           touch site/.nojekyll
 
       - name: Deploy to GitHub Pages

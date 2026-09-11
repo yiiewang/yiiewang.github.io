@@ -16,6 +16,8 @@
 DOCKER_IMAGE := cloaks/zensical:0.0.60
 DOCKERFILE   := .github/workflows/Dockerfile
 DOCS_MOUNT   := -v $(CURDIR):/docs
+# 以宿主用户身份运行容器，避免 site/ .cache/ 被 root 拥有（否则 make clean 删不掉）
+DOCKER_USER  := --user "$(shell id -u):$(shell id -g)"
 
 DEV_PORT     := 8000
 PREVIEW_PORT := 8001
@@ -41,7 +43,7 @@ docker-build:
 # 开发服务器：增量构建 + 热重载
 dev serve: ensure-image
 	@echo ">>> 开发服务器 http://localhost:$(DEV_PORT)"
-	docker run --rm $(DOCS_MOUNT) -p $(DEV_PORT):8000 $(DOCKER_IMAGE) \
+	docker run --rm $(DOCKER_USER) $(DOCS_MOUNT) -p $(DEV_PORT):8000 $(DOCKER_IMAGE) \
 		serve -f mkdocs.yml -a 0.0.0.0:8000
 
 # 生产构建：clean 清缓存，产物在 site/
@@ -54,7 +56,7 @@ build prod: ensure-image
 preview: ensure-image
 	@test -d site || { echo "!!! site/ 不存在，请先执行 make build"; exit 1; }
 	@echo ">>> 预览已构建站点 http://localhost:$(PREVIEW_PORT)"
-	docker run --rm --entrypoint python3 \
+	docker run --rm $(DOCKER_USER) --entrypoint python3 \
 		-v $(CURDIR)/site:/site:ro -p $(PREVIEW_PORT):8000 $(DOCKER_IMAGE) \
 		-m http.server 8000 --directory /site
 
