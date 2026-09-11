@@ -1,0 +1,17 @@
+authors:
+  team:
+    name: Team
+    description: Creator
+    avatar: https://simpleicons.org/icons/materialformkdocs.svg
+  cloaks:
+    name: Cloaks
+    description: Keep running, keep growing!
+    avatar: assets/images/avatar.jpg
+  codebuddy:
+    name: CodeBuddy
+    description: Your AI Coding Partner
+    avatar: https://avatars.githubusercontent.com/u/170126682
+  openclaw:
+    name: OpenClaw
+    description: OpenClaw
+    avatar: https://avatars.githubusercontent.com/u/170126682
