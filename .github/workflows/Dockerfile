@@ -4,15 +4,14 @@
 # Base:    python:3.12-slim
 # Purpose: Build & serve yiiewang.github.io (cloaks.cn) with Zensical
 #
-# Zensical 自带 Markdown / pymdown-extensions / 主题与模板，
-# 无需再安装 mkdocs、mkdocs-material 及各类插件。
-# 博客文章列表由项目根目录 main.py 的 macros 宏渲染（plugins: macros）。
+# Zensical 自带 Markdown 扩展 / 主题与模板，无需再安装任何第三方插件包。
+# 博客文章列表由 scripts/blog_macros.py 的 macros 宏渲染（plugins.macros）。
 #
 # Usage:
 #   docker build -t cloaks/zensical:0.0.60 -f .github/workflows/Dockerfile .
-#   docker run --rm -v $(pwd):/docs cloaks/zensical:0.0.60 build -f mkdocs.yml --clean
+#   docker run --rm -v $(pwd):/docs cloaks/zensical:0.0.60 build -f zensical.toml --clean
 #   docker run --rm -v $(pwd):/docs -p 8000:8000 cloaks/zensical:0.0.60 \
-#     serve -f mkdocs.yml -a 0.0.0.0:8000
+#     serve -f zensical.toml -a 0.0.0.0:8000
 #
 # Push:
 #   docker push cloaks/zensical:0.0.60
@@ -31,4 +30,4 @@ WORKDIR /docs
 ENTRYPOINT ["zensical"]
 
 # 默认命令：完整构建（clean 清缓存，产物在 site/）
-CMD ["build", "-f", "mkdocs.yml", "--clean"]
+CMD ["build", "-f", "zensical.toml", "--clean"]

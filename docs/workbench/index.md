@@ -17,34 +17,40 @@ hide:
   - toc
 ---
 
-<style>
-  /* Workbench 封面：复用 home.css 组件，仅微调 hero 布局（无头像，居中） */
-  .wb-hero .hero-content { justify-content: center; text-align: center; }
-  .wb-hero .hero-text { min-width: 0; }
-  .wb-hero .hero-title { justify-content: center; }
-  .wb-hero .hero-quote { margin: 0 auto 1.3rem; max-width: 560px; }
-  .wb-hero .hero-buttons { justify-content: center; }
-  .wb-hero .hero-name { font-size: 2.2rem; }
-</style>
+<!-- ===== Top Announce Bar ===== -->
+<div class="hero-topbar">
+  <div class="announce-bar">
+    <div class="announce-track">
+      <span class="announce-item">✦ Workbench · 个人开发工作台</span>
+      <span class="announce-item">🐹 Go + SQLite · 单二进制交付</span>
+      <span class="announce-item">🛠️ 文件 · Todo · 用户 · 分享 · 统计</span>
+      <span class="announce-item">🔄 持续迭代中 · 数据完全自持</span>
+      <span class="announce-item">✦ Workbench · 个人开发工作台</span>
+      <span class="announce-item">🐹 Go + SQLite · 单二进制交付</span>
+      <span class="announce-item">🛠️ 文件 · Todo · 用户 · 分享 · 统计</span>
+      <span class="announce-item">🔄 持续迭代中 · 数据完全自持</span>
+    </div>
+  </div>
+</div>
 
 <!-- ===== Hero ===== -->
-<div class="hero-banner wb-hero">
-  <div class="hero-content">
-    <div class="hero-text">
-      <div class="hero-greeting">
-        <span class="hero-greeting-dot"></span>
+<div class="hero hero--center">
+  <div class="hero__inner">
+    <div class="hero__text">
+      <div class="hero__eyebrow">
+        <span class="hero__eyebrow-dot"></span>
         <span>Personal Dev Workbench</span>
       </div>
-      <div class="hero-name">Workbench</div>
-      <div class="hero-title">
-        <span class="hero-title-tag">🛠️ 个人开发工作台</span>
-        <span class="hero-title-tag">🐹 Go + SQLite</span>
-        <span class="hero-title-tag">⚡ 单二进制</span>
+      <div class="hero__name">Workbench</div>
+      <div class="hero__tags">
+        <span class="hero__tag">🛠️ 个人开发工作台</span>
+        <span class="hero__tag">🐹 Go + SQLite</span>
+        <span class="hero__tag">⚡ 单二进制</span>
       </div>
-      <div class="hero-quote">把个人数据全攥在自己手里，想加什么功能就加什么功能。不是又一个"演示项目"，而是打开浏览器就能干活的东西。</div>
-      <div class="hero-buttons">
-        <a href="https://github.com/yiiewang/workbench" target="_blank" class="hero-btn hero-btn-primary">🐙 GitHub</a>
-        <a href="http://159.75.112.77/" target="_blank" class="hero-btn hero-btn-secondary">🚀 在线体验</a>
+      <div class="hero__quote">把个人数据全攥在自己手里，想加什么功能就加什么功能。不是又一个"演示项目"，而是打开浏览器就能干活的东西。</div>
+      <div class="hero__actions">
+        <a href="https://github.com/yiiewang/workbench" target="_blank" class="btn btn--primary">🐙 GitHub</a>
+        <a href="http://159.75.112.77/" target="_blank" class="btn btn--secondary">🚀 在线体验</a>
       </div>
     </div>
   </div>
@@ -76,53 +82,53 @@ hide:
 
 <div class="card-grid">
 
-  <div class="feature-card">
-    <div class="feature-card-head">
-      <div class="feature-icon-wrap blue">📁</div>
-      <div class="card-title">文件浏览器</div>
+  <div class="card card--link">
+    <div class="card__head">
+      <div class="icon-box blue">📁</div>
+      <div class="card__title">文件浏览器</div>
     </div>
-    <div class="card-body">
-      <div class="card-desc">目录树、Tab 编辑、Markdown / JSON / 代码预览，跨文件链接跳转。</div>
-    </div>
-  </div>
-
-  <div class="feature-card">
-    <div class="feature-card-head">
-      <div class="feature-icon-wrap orange">✅</div>
-      <div class="card-title">Todo 看板</div>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">多用户多组织任务管理，冲突检测、版本同步、多设备协作。</div>
+    <div class="card__body">
+      <div class="card__desc">目录树、Tab 编辑、Markdown / JSON / 代码预览，跨文件链接跳转。</div>
     </div>
   </div>
 
-  <div class="feature-card">
-    <div class="feature-card-head">
-      <div class="feature-icon-wrap green">👥</div>
-      <div class="card-title">用户与组织管理</div>
+  <div class="card card--link">
+    <div class="card__head">
+      <div class="icon-box orange">✅</div>
+      <div class="card__title">Todo 看板</div>
     </div>
-    <div class="card-body">
-      <div class="card-desc">角色体系、组织切换、功能开关，每个用户在每个组织有独立权限。</div>
-    </div>
-  </div>
-
-  <div class="feature-card">
-    <div class="feature-card-head">
-      <div class="feature-icon-wrap violet">🔗</div>
-      <div class="card-title">下载与分享</div>
-    </div>
-    <div class="card-body">
-      <div class="card-desc">带访问次数、时间范围、密码的分享链接，文件夹递归包含子目录。</div>
+    <div class="card__body">
+      <div class="card__desc">多用户多组织任务管理，冲突检测、版本同步、多设备协作。</div>
     </div>
   </div>
 
-  <div class="feature-card">
-    <div class="feature-card-head">
-      <div class="feature-icon-wrap teal">📊</div>
-      <div class="card-title">访问统计</div>
+  <div class="card card--link">
+    <div class="card__head">
+      <div class="icon-box green">👥</div>
+      <div class="card__title">用户与组织管理</div>
     </div>
-    <div class="card-body">
-      <div class="card-desc">按访问者与页面统计，持久化到 SQLite，数据完全自持。</div>
+    <div class="card__body">
+      <div class="card__desc">角色体系、组织切换、功能开关，每个用户在每个组织有独立权限。</div>
+    </div>
+  </div>
+
+  <div class="card card--link">
+    <div class="card__head">
+      <div class="icon-box violet">🔗</div>
+      <div class="card__title">下载与分享</div>
+    </div>
+    <div class="card__body">
+      <div class="card__desc">带访问次数、时间范围、密码的分享链接，文件夹递归包含子目录。</div>
+    </div>
+  </div>
+
+  <div class="card card--link">
+    <div class="card__head">
+      <div class="icon-box teal">📊</div>
+      <div class="card__title">访问统计</div>
+    </div>
+    <div class="card__body">
+      <div class="card__desc">按访问者与页面统计，持久化到 SQLite，数据完全自持。</div>
     </div>
   </div>
 
@@ -130,16 +136,16 @@ hide:
 
 ## 技术栈
 
-<div class="tech-chips">
-  <span class="tech-chip"><span class="tech-chip-icon">🐹</span>Go</span>
-  <span class="tech-chip"><span class="tech-chip-icon">🗄️</span>SQLite</span>
-  <span class="tech-chip"><span class="tech-chip-icon">⚡</span>Vite</span>
-  <span class="tech-chip"><span class="tech-chip-icon">🟢</span>Vue3</span>
-  <span class="tech-chip"><span class="tech-chip-icon">🔷</span>TypeScript</span>
-  <span class="tech-chip"><span class="tech-chip-icon">🧩</span>Element Plus</span>
-  <span class="tech-chip"><span class="tech-chip-icon">📦</span>golang-migrate</span>
-  <span class="tech-chip"><span class="tech-chip-icon">🔐</span>HMAC-SHA256</span>
-  <span class="tech-chip"><span class="tech-chip-icon">📝</span>slog</span>
+<div class="chips">
+  <span class="chip"><span class="chip__icon">🐹</span>Go</span>
+  <span class="chip"><span class="chip__icon">🗄️</span>SQLite</span>
+  <span class="chip"><span class="chip__icon">⚡</span>Vite</span>
+  <span class="chip"><span class="chip__icon">🟢</span>Vue3</span>
+  <span class="chip"><span class="chip__icon">🔷</span>TypeScript</span>
+  <span class="chip"><span class="chip__icon">🧩</span>Element Plus</span>
+  <span class="chip"><span class="chip__icon">📦</span>golang-migrate</span>
+  <span class="chip"><span class="chip__icon">🔐</span>HMAC-SHA256</span>
+  <span class="chip"><span class="chip__icon">📝</span>slog</span>
 </div>
 
 ## 从"能用"到"好用"：几个关键决策

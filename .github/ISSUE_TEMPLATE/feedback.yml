@@ -1,0 +1,53 @@
+name: 页面反馈
+description: 对站点页面内容的纠错或改进建议
+title: "页面反馈："
+labels: [feedback]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！请填写以下信息，帮助快速定位问题。
+
+        提交后我们会在本 issue 中回复（GitHub 会向你发送通知）；如不常登录 GitHub，建议在下方留下邮箱，方便我们联系你。
+  - type: input
+    id: page-url
+    attributes:
+      label: 页面地址
+      description: 有问题的页面 URL，可从浏览器地址栏复制
+      placeholder: https://cloaks.cn/...
+    validations:
+      required: true
+  - type: input
+    id: page-title
+    attributes:
+      label: 页面标题
+      description: 页面标题或所在栏目
+      placeholder: 例如「Go · 知识库」
+  - type: dropdown
+    id: feedback-type
+    attributes:
+      label: 反馈类型
+      options:
+        - 内容有误
+        - 内容过时
+        - 表述不清
+        - 建议补充内容
+        - 页面显示异常
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 请具体描述问题或改进建议，截图可直接拖入
+      placeholder: |
+        1. 预期是什么……
+        2. 实际看到什么……
+    validations:
+      required: true
+  - type: input
+    id: contact
+    attributes:
+      label: 你的联系方式（选填）
+      description: 邮箱或其他联系方式，方便我们回复你

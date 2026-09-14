@@ -2,8 +2,7 @@
 
 > 欢迎来到我的博客！这里是我分享个人见解、技术文章、生活点滴和创意的地方。
 
-站点使用 **Zensical** 构建（Material for MkDocs 团队的新一代静态站点生成器），
-配置沿用 `mkdocs.yml`（Zensical 原生读取 MkDocs 配置格式）。
+站点使用 **Zensical** 构建，配置为 `zensical.toml`（Zensical 原生 TOML 配置格式）。
 
 ## 🚀 快速开始
 
@@ -14,7 +13,7 @@
 make docker-build
 
 # 启动开发服务器
-make docker-serve
+make dev
 ```
 
 **访问地址**：http://localhost:8000
@@ -45,7 +44,7 @@ make build
 ├── overrides/             # 主题模板覆盖
 ├── scripts/
 │   └── blog_macros.py     # 博客列表宏（Zensical macros 插件加载）
-├── mkdocs.yml             # 站点配置（唯一配置源）
+├── zensical.toml          # 站点配置（唯一配置源）
 ├── Makefile               # 构建入口
 └── .github/workflows/     # CI 与 Dockerfile
 ```
@@ -63,16 +62,16 @@ make build
 
 ### 博客列表宏
 
-Zensical 0.0.x 尚未实现 Material 的 blog 插件，`docs/blog/index.md` 通过
+Zensical 0.0.x 尚未实现 blog 插件，`docs/blog/index.md` 通过
 `{{ blog_list() }}` 调用 `scripts/blog_macros.py` 中的宏，扫描
 `docs/blog/posts/` 下的全部文章并按时间倒序渲染卡片。
 
-宏通过 `plugins: macros` 加载，配置项：
+宏通过 `zensical.toml` 的 `[project.plugins.macros]` 加载，配置项：
 
-- `module_name: scripts/blog_macros` —— 指向宏模块（默认值是 `main`，
+- `module_name = "scripts/blog_macros"` —— 指向宏模块（默认值是 `main`，
   即要求项目根目录有 `main.py`，这里改到 `scripts/` 下）
-- `render_by_default: false` —— 白名单模式，只有声明了 `render_macros: true`
-  的页面才会走 Jinja 渲染，避免代码块中的 `{{ }}` 被误渲染
+- `render_by_default = false` —— 白名单模式，只有声明了 `render_macros: true`
+  的页面才会走模板渲染，避免代码块中的 `{{ }}` 被误渲染
 
 ## 📖 写作规范
 
@@ -85,7 +84,7 @@ Zensical 0.0.x 尚未实现 Material 的 blog 插件，`docs/blog/index.md` 通�
 
 推送到 `master` / `main` 分支后，GitHub Actions 会自动：
 
-1. 安装 Zensical 并执行 `zensical build -f mkdocs.yml --clean`
+1. 安装 Zensical 并执行 `zensical build -f zensical.toml --clean`
 2. 将 `site/` 发布到 `gh-pages` 分支（GitHub Pages 源）
 
 配置文件：`.github/workflows/ci.yml`
@@ -102,7 +101,7 @@ Zensical 自带差分构建缓存（`.cache/`），重复构建只需数秒：
 ```bash
 # 保留缓存卷，跨容器复用构建缓存
 docker run --rm -v $(pwd):/docs -v zensical-cache:/docs/.cache \
-  cloaks/zensical:0.0.60 build -f mkdocs.yml
+  cloaks/zensical:0.0.60 build -f zensical.toml
 ```
 
 ### 限制资源使用
@@ -114,7 +113,7 @@ docker run --rm \
   -v $(pwd):/docs \
   -p 8000:8000 \
   cloaks/zensical:0.0.60 \
-  serve -f mkdocs.yml -a 0.0.0.0:8000
+  serve -f zensical.toml -a 0.0.0.0:8000
 ```
 
 ## 📄 许可证

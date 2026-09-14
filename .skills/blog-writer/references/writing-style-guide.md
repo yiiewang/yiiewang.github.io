@@ -93,7 +93,7 @@
 - 长代码加 `title="filename"`：` ```go title="main.go" `
 - 行内短代码用 `` ` ` ``
 
-## 六、Material for MkDocs 增强语法
+## 六、Zensical 增强语法
 
 ### 警告框与提示框
 - **信息提示**：`!!! info "标题"` 或 `!!! info`

@@ -2,7 +2,7 @@
 #
 # 全部通过 Docker 执行，宿主机无需安装 Python / Zensical。
 #
-# - mkdocs.yml 唯一配置源（Zensical 原生读取 mkdocs.yml，无需派生配置）
+# - zensical.toml 唯一配置源（Zensical 原生 TOML 配置，无需派生配置）
 # - 博客文章列表由 scripts/blog_macros.py 的 macros 宏渲染（plugins: macros）
 # - 镜像版本唯一定义在 .github/workflows/Dockerfile，CI 与本地共用同一镜像
 # - 部署由 GitHub Actions 完成（.github/workflows/ci.yml）
@@ -78,12 +78,12 @@ check-upstream:
 dev serve: ensure-image
 	@echo ">>> 开发服务器 http://localhost:$(DEV_PORT)"
 	docker run --rm $(DOCKER_USER) $(DOCS_MOUNT) -p $(DEV_PORT):8000 $(DOCKER_IMAGE) \
-		serve -f mkdocs.yml -a 0.0.0.0:8000
+		serve -f zensical.toml -a 0.0.0.0:8000
 
 # 生产构建：clean 清缓存，产物在 site/
 build prod: ensure-image
 	@echo ">>> 生产构建中..."
-	docker run --rm $(DOCKER_USER) $(DOCS_MOUNT) $(DOCKER_IMAGE) build -f mkdocs.yml --clean
+	docker run --rm $(DOCKER_USER) $(DOCS_MOUNT) $(DOCKER_IMAGE) build -f zensical.toml --clean
 	@echo ">>> 完成，产物在 site/"
 
 # 静态预览已构建的 site/（验证生产产物，不重新构建）

@@ -11,12 +11,8 @@ hide:
 
 这里记录着我在技术路上的所见所思——有踩过的坑、有解决问题的喜悦、也有对技术趋势的思考。希望这些内容对你有所帮助。
 
----
+<!-- 分类导航与分组列表由 scripts/blog_macros.py 的 blog_index 宏自动生成：
+     篇数实时统计自文章 frontmatter；新增文章的未收录分类会自动附加分组，
+     无需手改本页。已知分类的顺序/图标/描述在宏的 _CATEGORY_META 中维护。 -->
+{{ blog_index() }}
 
-## :material-clock-outline: 最新文章
-
-按时间倒序排列，最新的在最前面 👇
-
-<!-- Zensical 构建时由 scripts/blog_macros.py 的 blog_list 宏渲染；
-     MkDocs 构建时渲染为空，由 material blog 插件自己追加文章列表 -->
-{{ blog_list() }}

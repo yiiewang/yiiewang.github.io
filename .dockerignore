@@ -7,7 +7,6 @@
 .venv-zen
 .cache
 site
-site.mkdocs.bak
 private
 example
 __pycache__

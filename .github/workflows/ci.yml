@@ -38,7 +38,7 @@ jobs:
       # 下一步的 touch 会因权限不足失败（touch: Permission denied）。
       - name: Build site
         run: |
-          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/docs "$DOCKER_IMAGE" build -f mkdocs.yml --clean
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/docs "$DOCKER_IMAGE" build -f zensical.toml --clean
           touch site/.nojekyll
 
       - name: Deploy to GitHub Pages

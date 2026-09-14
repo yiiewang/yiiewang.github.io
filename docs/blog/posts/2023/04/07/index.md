@@ -2,8 +2,8 @@
 date: 2023-04-07
 authors:
   - cloaks
-categories: 
-  - 札记
+categories:
+  - Go 语言
 tags:
   - Go
   - 模块管理
