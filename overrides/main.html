@@ -1,17 +1,11 @@
 {% extends "base.html" %}
 
-{#- 首页动效所需的 three.js 模块映射。importmap 只是一张映射表，
-    本身不产生网络请求；three.js 只在首页真正加载（见下方 hero 块）。 -#}
+{#- 首页动效：hero.js 已预打包为单文件 hero.bundle.js（make hero-bundle）。
+    同源自托管只需 1 个请求且可长期缓存，不再依赖 CDN；extrahead 里的
+    modulepreload 让脚本赶在 body 渲染前就开始下载。 -#}
 {% block extrahead %}
   {% if page and page.meta and page.meta.hero %}
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
-  }
-}
-</script>
+<link rel="modulepreload" href="{{ 'assets/javascripts/hero.bundle.js' | url }}">
   {% endif %}
 {% endblock %}
 
@@ -27,7 +21,7 @@
       </div>
       <button type="button" class="home-hero__scroll">向下滚动 ↓</button>
     </div>
-    <script type="module" src="{{ 'assets/javascripts/hero.js' | url }}"></script>
+    <script type="module" src="{{ 'assets/javascripts/hero.bundle.js' | url }}"></script>
   {% endif %}
 {% endblock %}
 

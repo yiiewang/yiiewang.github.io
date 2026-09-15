@@ -17,6 +17,11 @@
  *   9. 生命周期跟随 Material 的 document$：每次导航先卸载旧实例，再按新 DOM 挂载
  *
  * 可调参数集中在 CONFIG 里。
+ *
+ * 部署：overrides/main.html 引用的是打包产物 hero.bundle.js（同源自托管，
+ * 避免原生 ESM 经 CDN 按依赖逐层拉取 ~10 个文件）。改动本文件或升级
+ * three 后需重新打包：make hero-bundle（node 工程在 scripts/hero/ 下），
+ * 并把新的 hero.bundle.js 提交进仓库。
  */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -25,22 +30,26 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { AfterimagePass } from 'three/addons/postprocessing/AfterimagePass.js';
 
 const CONFIG = {
-  steps: 120000,      // 环形轨迹缓冲长度（越大曲线越密）
-  dt: 0.006,          // 积分步长
+  steps: 300000,      // 环形轨迹缓冲长度（越大曲线越密）
+  dt: 0.002,         // 积分步长：更小 → 折线更贴合真实曲线（细腻度主参数）
   b: 0.18,            // 吸引子参数基准值：0.19 最稳定，0.13~0.21 形态各异
   bSwing: 0.045,      // b 的自动漂移幅度：形态随时间变化的来源（覆盖 0.135~0.225）
   bPeriod: 40,        // 漂移周期（秒）
   rebuildSeconds: 1.2, // 环形缓冲整体换一遍所需时间（秒）。必须远小于 bPeriod：
                        // 否则缓冲里会叠着好几个 b 的形态，曲线会「糊」成一团
-  count: 4000,        // 粒子数
-  speed: 60,          // 粒子沿轨迹的视觉流速（索引/帧），越大拖尾越长
-  size: 0.011,        // 粒子尺寸
-  damp: 0.90,         // 残影衰减：0.9~0.96，越大拖尾越长
+  count: 6000,        // 粒子数：铺得更满，流光更连贯
+  speed: 100,         // 粒子沿轨迹的视觉流速（索引/帧）；速度 ∝ speed × dt，
+                      // dt 调小后等比上调以保持原有流速
+  size: 0.005,        // 粒子尺寸：更小的点颗粒更细，靠叠加辉光补亮度
+  damp: 0.90,         // 残影衰减：越大拖尾越长越柔；>0.95 容易糊成一片
   rescanEvery: 30,    // 每隔多少帧重新量一次缓冲尺度
   scaleLerp: 0.06,    // 尺度趋近速度：越小越平滑
   color: 0xff7735,    // 主色（官网同款橙）
   bg: 0x0b0c0f,       // 背景色
   maxPixelRatio: 2,   // 像素比上限（性能兜底）
+  viewAzimuth: -109.7, // 初始水平方位角（度）：0 = 正面，正值绕竖直轴向右转
+  viewElevation: -32.8, // 初始仰角（度）：0 = 平视，正值从上往下俯视（负值从下往上仰视）
+  debugHud: true,    // 调参 HUD：左下角实时显示相机机位与等效参数，需要再调时改 true
 };
 
 /* ---------- 挂载 / 卸载 ----------
@@ -113,7 +122,33 @@ function init(host) {
   scene.background = new THREE.Color(CONFIG.bg);
 
   const camera = new THREE.PerspectiveCamera(60, 1, 0.01, 100);
-  camera.position.set(0, 0, 3.2);
+
+  /* ---------- 初始机位：距离自适应，角度来自 CONFIG ----------
+     吸引子经 rescanScale 归一化后整体近似落在半径 ~1.2 的球内；
+     FIT_RADIUS 是相对该球的比例，越小相机越近、画面越满，
+     当前值来自 HUD 实测的最佳视角。fitDistance 按「球面顶到视口
+     边缘」反推距离：宽屏以视高为准（两侧允许少量溢出，更沉浸），
+     窄屏同时约束视宽防溢出。机位只在挂载时算一次，用户手动
+     拖拽/缩放后 resize 不会重置。 */
+  const FIT_RADIUS = 0.609;
+
+  function fitDistance() {
+    const half = (camera.fov * Math.PI) / 360; // 垂直半视角
+    const aspect = (host.clientWidth || 1) / (host.clientHeight || 1);
+    const distV = FIT_RADIUS / Math.tan(half);
+    const distH = FIT_RADIUS / (Math.tan(half) * aspect);
+    return aspect >= 1 ? distV : Math.max(distV, distH);
+  }
+  // 角度：相机放在半径 fitDist 的球面上，由 CONFIG 的方位角/仰角定位，
+  // OrbitControls 会让它始终看向原点（距离自适应逻辑见上方 fitDistance）
+  const azimuth = (CONFIG.viewAzimuth * Math.PI) / 180;
+  const elevation = (CONFIG.viewElevation * Math.PI) / 180;
+  const fitDist = fitDistance();
+  camera.position.set(
+    fitDist * Math.cos(elevation) * Math.sin(azimuth),
+    fitDist * Math.sin(elevation),
+    fitDist * Math.cos(elevation) * Math.cos(azimuth)
+  );
 
   /* ---------- 吸引子轨迹：环形缓冲 + 持续重积分 ----------
      Thomas 循环对称吸引子：
@@ -210,6 +245,42 @@ function init(host) {
   controls.minDistance = 0.6;
   controls.maxDistance = 6;
 
+  /* ---------- 调参 HUD：拖拽/缩放时实时打印相机机位 ----------
+     把相机位置换算回球坐标：方位角/仰角可直接抄进 CONFIG.viewAzimuth /
+     viewElevation；缩放距离与 FIT_RADIUS 成正比（dist ∝ FIT_RADIUS），
+     据此给出等效 FIT_RADIUS。拖拽结束时会往控制台打一条同样的日志，
+     方便直接复制。调完后把 CONFIG.debugHud 改为 false 整体关闭。 */
+  let hud = null;
+  let refreshHud = null;
+  let logHud = null;
+
+  if (CONFIG.debugHud) {
+    hud = document.createElement('pre');
+    hud.style.cssText =
+      'position:absolute;left:12px;bottom:1.4rem;z-index:2;margin:0;' +
+      'padding:6px 10px;font:12px/1.7 ui-monospace,SFMono-Regular,monospace;' +
+      'color:rgba(255,255,255,.78);background:rgba(0,0,0,.35);' +
+      'border-radius:6px;pointer-events:none;white-space:pre;';
+    host.appendChild(hud);
+
+    function hudText() {
+      const p = camera.position;
+      const r = p.length();
+      const az = (Math.atan2(p.x, p.z) * 180) / Math.PI;
+      const el = (Math.asin(p.y / r) * 180) / Math.PI;
+      return (
+        `x ${p.x.toFixed(3)}  y ${p.y.toFixed(3)}  z ${p.z.toFixed(3)}\n` +
+        `viewAzimuth: ${az.toFixed(1)},  viewElevation: ${el.toFixed(1)},  ` +
+        `FIT_RADIUS: ${(FIT_RADIUS * (r / fitDist)).toFixed(3)}`
+      );
+    }
+    refreshHud = () => { hud.textContent = hudText(); };
+    logHud = () => { console.log('[hero 机位]', hudText()); };
+    controls.addEventListener('change', refreshHud);
+    controls.addEventListener('end', logHud);
+    refreshHud();
+  }
+
   /* ---------- 滚动提示：点击滚到首屏内容 ----------
      减掉顶栏高度，让正文正好落在吸顶的顶栏下方。 */
   const scrollHint = host.querySelector('.home-hero__scroll');
@@ -304,6 +375,11 @@ function init(host) {
     window.removeEventListener('resize', resize);
     if (scrollHint) scrollHint.removeEventListener('click', scrollToContent);
     renderer.domElement.remove();
+    if (hud) {
+      controls.removeEventListener('change', refreshHud);
+      controls.removeEventListener('end', logHud);
+      hud.remove();
+    }
 
     controls.dispose();
     geometry.dispose();

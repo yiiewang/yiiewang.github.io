@@ -1,0 +1,12 @@
+{
+  "name": "hero-bundler",
+  "private": true,
+  "description": "首页 hero 动效打包工具：把 docs/assets/javascripts/hero.js 打成单文件 hero.bundle.js。node 工程收在本子目录，避免污染仓库根目录。",
+  "scripts": {
+    "build:hero": "node build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "three": "0.169.0"
+  }
+}

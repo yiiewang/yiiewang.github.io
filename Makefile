@@ -94,6 +94,14 @@ preview: ensure-image
 		-v $(CURDIR)/site:/site:ro -p $(PREVIEW_PORT):8000 $(DOCKER_IMAGE) \
 		-m http.server 8000 --directory /site
 
+# ========== 首页动效打包 ==========
+
+# 重新生成 docs/assets/javascripts/hero.bundle.js（升级 three 版本后执行；
+# 产物已提交仓库，CI/Zensical 构建不依赖 node。
+# node 工程收在 scripts/hero/ 下，避免污染仓库根目录）
+hero-bundle:
+	cd scripts/hero && npm install && npm run build:hero
+
 # ========== 通用 ==========
 
 # 清理构建产物与缓存
@@ -107,6 +115,7 @@ help:
 	@echo "  make dev       开发服务器（热重载，http://localhost:$(DEV_PORT)）"
 	@echo "  make build     生产构建（clean，产物在 site/）"
 	@echo "  make preview   静态预览 site/（http://localhost:$(PREVIEW_PORT)）"
+	@echo "  make hero-bundle    重新打包首页动效（hero.bundle.js）"
 	@echo ""
 	@echo "  make docker-build   强制重建镜像 $(DOCKER_IMAGE)"
 	@echo "  make check-upstream 检查上游是否有更新的 zensical 版本（需联网）"
@@ -116,4 +125,4 @@ help:
 	@echo "      dev/build/preview 会自动检测镜像是否过期（Dockerfile 变更即重建）"
 	@echo "部署：推送到 master/main 后由 GitHub Actions 自动发布到 gh-pages"
 
-.PHONY: ensure-image docker-build check-upstream dev serve build prod preview clean help
+.PHONY: ensure-image docker-build check-upstream dev serve build prod preview hero-bundle clean help

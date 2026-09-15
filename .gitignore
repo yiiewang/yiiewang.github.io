@@ -17,3 +17,4 @@ private/
 # 构建产物与缓存
 site/
 .cache/
+node_modules/
