@@ -1,5 +1,5 @@
 ---
-title: 首页
+title: 把复杂系统拆到第一性原理，再重新装配。
 hero: true
 hide:
   - navigation
