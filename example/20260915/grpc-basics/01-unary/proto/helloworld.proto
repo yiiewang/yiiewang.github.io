@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+// 生成命令（生成物 helloworld.pb.go 已提交，无需重新生成）：
+//   protoc --go_out=plugins=grpc:. helloworld.proto
+// path 表示生成的 go 文件的存放地址，会自动生成目录；
+// name 表示生成的 go 文件所属的包名。
+option go_package = "./;proto";
+
+service Greeter {
+    rpc SayHello(HelloRequest) returns (HelloReply);
+}
+
+message HelloRequest {
+    string name = 1;
+}
+
+message HelloReply {
+    string message = 1;
+}

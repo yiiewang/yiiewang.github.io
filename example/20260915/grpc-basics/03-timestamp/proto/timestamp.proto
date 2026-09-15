@@ -1,0 +1,23 @@
+syntax="proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "./gen/timestamp/v1";
+
+service HelloServer {
+    rpc SayHello(HelloRequest) returns (HelloResponse);
+}
+
+enum Gender {
+    MALE = 0;
+    FEMALE = 1;
+}
+
+message HelloRequest {
+    Gender gender = 1;
+    google.protobuf.Timestamp createTime = 2;
+}
+
+message HelloResponse {
+    string data =1;
+}

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+// 生成命令（生成物 proto/gen/interceptor/v1/interceptor.pb.go 已提交，无需重新生成）：
+//   protoc -I . interceptor.proto --go_out=plugins=grpc:.
+option go_package = "./gen/interceptor/v1";
+
+service HelloService {
+    rpc SayHello(HelloRequest) returns (HelloResponse);
+}
+
+message HelloRequest {
+    string name = 1;
+}
+
+message HelloResponse {
+    string data = 1;
+}

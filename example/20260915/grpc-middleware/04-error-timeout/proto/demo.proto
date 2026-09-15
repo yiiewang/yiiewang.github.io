@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+// 生成命令（生成物 proto/gen/demo/v1/demo.pb.go 已提交，无需重新生成）：
+//   protoc -I . demo.proto --go_out=plugins=grpc:.
+option go_package = "./gen/demo/v1";
+
+service DemoService {
+    rpc SayHello(DemoRequest) returns (DemoResponse);
+}
+
+message DemoRequest {
+    string name = 1;
+}
+
+message DemoResponse {
+    string message = 1;
+}

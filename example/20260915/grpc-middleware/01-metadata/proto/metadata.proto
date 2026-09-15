@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+// 生成命令（生成物 proto/gen/metadata/v1/metadata.pb.go 已提交，无需重新生成）：
+//   protoc -I . metadata.proto --go_out=plugins=grpc:.
+option go_package = "./gen/metadata/v1";
+
+service HelloServer {
+    rpc SayHello(HelloRequest) returns (HelloReply);
+}
+
+message HelloRequest {
+    string name = 1;
+}
+
+message HelloReply {
+    string message = 1;
+}

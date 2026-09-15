@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+// 生成命令（生成物 proto/v1/stream.pb.go 已提交，无需重新生成）：
+//   protoc -I . stream.proto --go_out=plugins=grpc:./v1
+option go_package = "./v1";
+
+service Greeter {
+    rpc GetStream(StreamReqData) returns (stream StreamResData); // server stream
+    rpc PutStream(stream StreamReqData) returns (StreamResData); // client stream
+    rpc AllStream(stream StreamReqData) returns (stream StreamResData); // all stream
+}
+
+message StreamReqData {
+    string data = 1;
+}
+
+message StreamResData {
+    string data = 1;
+}
