@@ -297,6 +297,10 @@ body:has(.home-hero, .hero--row, .hero--center, .hero--plain) .md-typeset h1 {
   box-shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
 .hero--plain .hero__name { margin-bottom: 0.3rem; }
+/* 居中变体：定宽块与 flex 容器都要显式居中（text-align 管不到它们） */
+.hero--plain .hero__desc { margin: 0 auto 1.8rem; }
+.hero--plain .hero__tags,
+.hero--plain .hero__actions { justify-content: center; }
 
 /* ===== 3.2 btn — 按钮 =====
    变体：--primary（实底）/ --secondary（描边）/ --sm（小号） */

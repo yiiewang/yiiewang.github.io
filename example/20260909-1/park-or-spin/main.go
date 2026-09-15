@@ -1,14 +1,15 @@
 // park-or-spin：验证《队列满了，到底该自旋、让出还是睡觉》一文的实验。
 //
-//   -exp=stall   实验 1：SPSC 队列满之后，消费者多久能被调度？
-//                三种等待策略：纯自旋 / Gosched 让出 / Sleep 睡眠
-//   -exp=ladder  实验 2：各种"等一下"的单次成本阶梯（原子 / Gosched / channel park）
+//	-exp=stall   实验 1：SPSC 队列满之后，消费者多久能被调度？
+//	             三种等待策略：纯自旋 / Gosched 让出 / Sleep 睡眠
+//	-exp=ladder  实验 2：各种"等一下"的单次成本阶梯（原子 / Gosched / channel park）
 //
 // 用法：
-//   go run ./20260909-1/park-or-spin -exp=stall  -procs=1
-//   go run ./20260909-1/park-or-spin -exp=stall  -procs=2
-//   go run ./20260909-1/park-or-spin -exp=ladder -procs=1
-//   go run ./20260909-1/park-or-spin -exp=ladder -procs=2
+//
+//	go run ./20260909-1/park-or-spin -exp=stall  -procs=1
+//	go run ./20260909-1/park-or-spin -exp=stall  -procs=2
+//	go run ./20260909-1/park-or-spin -exp=ladder -procs=1
+//	go run ./20260909-1/park-or-spin -exp=ladder -procs=2
 package main
 
 import (
