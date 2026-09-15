@@ -270,8 +270,8 @@ function init(host) {
       const el = (Math.asin(p.y / r) * 180) / Math.PI;
       return (
         `x ${p.x.toFixed(3)}  y ${p.y.toFixed(3)}  z ${p.z.toFixed(3)}\n` +
-        `viewAzimuth: ${az.toFixed(1)},  viewElevation: ${el.toFixed(1)},  ` +
-        `FIT_RADIUS: ${(FIT_RADIUS * (r / fitDist)).toFixed(3)}`
+        `az ${az.toFixed(1)}  el ${el.toFixed(1)}`
+        // `FIT_RADIUS: ${(FIT_RADIUS * (r / fitDist)).toFixed(3)}`
       );
     }
     refreshHud = () => { hud.textContent = hudText(); };
