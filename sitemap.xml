@@ -271,6 +271,15 @@
         <loc>https://cloaks.cn/blog/</loc>
       </url>
       <url>
-        <loc>https://cloaks.cn/workbench/</loc>
+        <loc>https://cloaks.cn/lab/</loc>
+      </url>
+      <url>
+        <loc>https://cloaks.cn/lab/project/</loc>
+      </url>
+      <url>
+        <loc>https://cloaks.cn/lab/examples/</loc>
+      </url>
+      <url>
+        <loc>https://cloaks.cn/lab/tools/zsh-setup/</loc>
       </url>
 </urlset>
