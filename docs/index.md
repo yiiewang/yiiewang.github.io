@@ -269,7 +269,7 @@ hide:
     </div>
   </a>
 
-  <a href="workbench/" class="card card--link">
+  <a href="lab/project/" class="card card--link">
     <div class="card__head">
       <div class="icon-box green">🌐</div>
       <div class="card__title">在线工作台</div>

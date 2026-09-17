@@ -178,7 +178,12 @@ nav = [
     { "算法" = "blog/posts/2023/02/15.md" },
   ] },
   { "博客" = "blog/index.md" },
-  { "Workbench" = "workbench/index.md" },
+  { "实验室" = [
+    { "概览" = "lab/index.md" },
+    { "Workbench 项目" = "lab/project/index.md" },
+    { "示例代码" = "lab/examples/index.md" },
+    { "zsh 一键安装" = "lab/tools/zsh-setup.md" },
+  ] },
 ]
 
 # ---------------------------------------------------------------------------
