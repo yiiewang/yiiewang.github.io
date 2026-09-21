@@ -9,14 +9,16 @@ hide:
 <div class="hero-topbar">
   <div class="announce-bar">
     <div class="announce-track">
-      <span class="announce-item">✦ 实验室 · 项目 / 示例 / 工具</span>
+      <span class="announce-item">✦ 实验室 · 项目 / 示例 / 工具 / 电子书</span>
       <span class="announce-item">🛠️ 自研工作台 · Go + SQLite 单二进制</span>
       <span class="announce-item">📦 博客示例 · 5 组 88 个 Go 文件</span>
       <span class="announce-item">⌨️ 效率工具 · 持续收录</span>
-      <span class="announce-item">✦ 实验室 · 项目 / 示例 / 工具</span>
+      <span class="announce-item">📚 电子书架 · 原件入库</span>
+      <span class="announce-item">✦ 实验室 · 项目 / 示例 / 工具 / 电子书</span>
       <span class="announce-item">🛠️ 自研工作台 · Go + SQLite 单二进制</span>
       <span class="announce-item">📦 博客示例 · 5 组 88 个 Go 文件</span>
       <span class="announce-item">⌨️ 效率工具 · 持续收录</span>
+      <span class="announce-item">📚 电子书架 · 原件入库</span>
     </div>
   </div>
 </div>
@@ -25,7 +27,7 @@ hide:
 <div class="hero">
   <div class="hero__inner">
     <h1>🧪 实验室</h1>
-    <p class="hero__desc">我的开发阵地——自研项目、博客示例代码、效率工具。不是演示项目的堆砌，而是天天在用的东西。</p>
+    <p class="hero__desc">我的开发阵地——自研项目、博客示例代码、效率工具与电子书架。不是演示项目的堆砌，而是天天在用的东西。</p>
     <div class="stats stats--bare">
       <div class="stat">
         <div class="stat__num">1</div>
@@ -43,11 +45,15 @@ hide:
         <div class="stat__num">1</div>
         <div class="stat__label">效率工具</div>
       </div>
+      <div class="stat">
+        <div class="stat__num">1</div>
+        <div class="stat__label">电子书</div>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="section-header"><span class="section-header__label">🧭 三大板块</span><div class="section-header__line"></div><span class="section-header__dot"></span></div>
+<div class="section-header"><span class="section-header__label">🧭 四大板块</span><div class="section-header__line"></div><span class="section-header__dot"></span></div>
 
 <div class="card-grid">
 
@@ -75,6 +81,15 @@ hide:
       <div class="card__title">效率工具</div>
       <div class="card__desc">首件：setup-zsh.sh——一行 curl 装好 zsh + oh-my-zsh + 插件，幂等可重跑。</div>
       <span class="badge">1 件</span>
+    </div>
+  </a>
+
+  <a href="ebooks/" class="card card--link card--pad card--row">
+    <div class="icon-box orange">📚</div>
+    <div class="card__body">
+      <div class="card__title">电子书</div>
+      <div class="card__desc">书架：PDF 原件入库、站点直接伺服，在线阅读与下载皆可，链接永不过期。首本：xv6 教学操作系统书。</div>
+      <span class="badge badge--success">持续收录</span>
     </div>
   </a>
 

@@ -3,5 +3,16 @@
 # 隐藏左侧导航侧栏：文章页不在 nav 树中，配合 navigation.tabs 时
 # 侧栏（md-nav--lifted）没有任何激活分区，会渲染成一大片空白占位。
 # 隐藏后正文可占用该空间，实现宽屏阅读。
-hide:
-  - navigation
+#
+# ⚠️ 停用全局隐藏时，hide 键必须整行一起注释掉：
+# 只注释列表项会留下 `hide:`（null），与页面 frontmatter 里的
+# `hide: - navigation`（list）类型不一致，合并元数据直接失败：
+#   RuntimeError: error merging page metadata: metadata types do not match
+# 需要隐藏侧栏的页面，改为在该页 frontmatter 中单独声明。
+# hide:
+#   - navigation
+#
+# 占位说明：本文件不能只剩注释——meta 插件要求恰好一个 YAML 文档，
+# 空文件会报 "metadata must contain exactly one YAML document"。
+# 这里保留一个空映射；要全局启用隐藏时，把上面的 hide 两行取消注释并删除 `{}`。
+{}

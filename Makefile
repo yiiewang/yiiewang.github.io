@@ -13,7 +13,6 @@
 #   make preview  静态预览已构建的 site/（验证生产产物）
 #   make clean    清理构建产物与缓存
 
-DOCKER_IMAGE := cloaks/zensical:0.0.60
 DOCKERFILE   := .github/workflows/Dockerfile
 DOCS_MOUNT   := -v $(CURDIR):/docs
 # 以宿主用户身份运行容器，避免 site/ .cache/ 被 root 拥有（否则 make clean 删不掉）
@@ -21,8 +20,10 @@ DOCKER_USER  := --user "$(shell id -u):$(shell id -g)"
 
 # Dockerfile 内容哈希（前 16 位）：构建时写入镜像 label，用于判断镜像是否过期
 DOCKERFILE_HASH := $(shell sha256sum $(DOCKERFILE) 2>/dev/null | cut -c1-16)
-# 从 Dockerfile 提取固定的 zensical 版本号（如 0.0.60）
+# 从 Dockerfile 提取固定的 zensical 版本号（如 0.0.60）—— 全仓唯一版本源
 PINNED_VERSION  := $(shell sed -n 's/.*"zensical==\([0-9][0-9.]*\)".*/\1/p' $(DOCKERFILE) | head -1)
+# 镜像 tag 由 PINNED_VERSION 推导：升级版本只需改 Dockerfile，tag 自动跟随
+DOCKER_IMAGE := cloaks/zensical:$(PINNED_VERSION)
 
 DEV_PORT     := 8000
 PREVIEW_PORT := 8001
@@ -69,7 +70,10 @@ check-upstream:
 		echo ">>> 已是最新版本 ($$latest)"; \
 	else \
 		echo ">>> 有新版本可用: $(PINNED_VERSION) → $$latest"; \
-		echo "    升级：修改 $(DOCKERFILE) 中的版本号，然后 make docker-build"; \
+		echo "    升级（版本源只有 $(DOCKERFILE)，镜像 tag 自动跟随）："; \
+		echo "      1) 把 $(DOCKERFILE) 里的 zensical==$(PINNED_VERSION) 改为 $$latest"; \
+		echo "      2) make docker-build && docker push cloaks/zensical:$$latest"; \
+		echo "      3) 同步文档中的版本字面量：README.md / deploy/github-workflow.md"; \
 	fi
 
 # ========== 开发 / 构建 / 预览 ==========

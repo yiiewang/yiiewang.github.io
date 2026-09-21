@@ -14,9 +14,21 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      DOCKER_IMAGE: cloaks/zensical:0.0.60
+      DOCKER_REPO: cloaks/zensical
     steps:
       - uses: actions/checkout@v4
+
+      # 镜像 tag 由 Dockerfile 中的固定版本推导（全仓唯一版本源），
+      # 避免改了 Dockerfile 却忘了同步这里的 tag。
+      - name: Resolve image tag from Dockerfile
+        run: |
+          pinned=$(grep -oE "zensical==[0-9.]+" .github/workflows/Dockerfile | head -1 | cut -d= -f3)
+          if [ -z "$pinned" ]; then
+            echo "::error::无法从 .github/workflows/Dockerfile 解析 zensical 固定版本"
+            exit 1
+          fi
+          echo "DOCKER_IMAGE=$DOCKER_REPO:$pinned" >> "$GITHUB_ENV"
+          echo ">>> 镜像: $DOCKER_REPO:$pinned"
 
       # 镜像由本地 `make docker-build` 构建后推送到 Docker Hub，CI 只拉取不构建。
       - name: Pull Zensical image

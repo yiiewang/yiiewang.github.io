@@ -66,9 +66,20 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      DOCKER_IMAGE: cloaks/zensical:0.0.60
+      DOCKER_REPO: cloaks/zensical
     steps:
       - uses: actions/checkout@v4
+
+      # 镜像 tag 由 Dockerfile 中的固定版本推导（全仓唯一版本源）
+      # 避免改了 Dockerfile 却忘了同步这里的 tag
+      - name: Resolve image tag from Dockerfile
+        run: |
+          pinned=$(grep -oE "zensical==[0-9.]+" .github/workflows/Dockerfile | head -1 | cut -d= -f3)
+          if [ -z "$pinned" ]; then
+            echo "::error::无法从 .github/workflows/Dockerfile 解析 zensical 固定版本"
+            exit 1
+          fi
+          echo "DOCKER_IMAGE=$DOCKER_REPO:$pinned" >> "$GITHUB_ENV"
 
       # 镜像由本地 `make docker-build` 构建后推送到 Docker Hub，CI 只拉取不构建
       - name: Pull Zensical image
@@ -128,10 +139,10 @@ Zensical 自带 Markdown 扩展、主题与模板，不需要安装任何第三�
 
 ### 版本防漂移
 
-`zensical` 的版本同时出现在两处：
+`zensical` 的版本只固定在一处 —— `.github/workflows/Dockerfile` 的 `pip install "zensical==0.0.60"`（全仓唯一版本源）。镜像 tag 由它推导，不再手工同步：
 
-- `.github/workflows/Dockerfile` 的 `pip install "zensical==0.0.60"`
-- `.github/workflows/ci.yml` 的 `DOCKER_IMAGE: cloaks/zensical:0.0.60`（镜像 tag）
+- **Makefile**：`PINNED_VERSION` 解析 Dockerfile 得到版本号，`DOCKER_IMAGE := cloaks/zensical:$(PINNED_VERSION)`
+- **`.github/workflows/ci.yml`**：`Resolve image tag from Dockerfile` 步骤解析同一行并写入 `$GITHUB_ENV`
 
 CI 中的 `Verify image version matches Dockerfile` 步骤会实际进容器执行 `zensical --version`，与 Dockerfile 里写的版本比对。这样能拦住一种静默失败：**改了 Dockerfile 但忘了重新构建并推送镜像**——否则 CI 会用旧镜像构建出与仓库不一致的结果。
 
@@ -160,13 +171,12 @@ docker push cloaks/zensical:latest
 
 升级 Zensical 版本的完整流程：
 
-1. 修改 `.github/workflows/Dockerfile` 中的 `zensical==x.y.z`
-2. 同步修改 `.github/workflows/ci.yml` 的 `DOCKER_IMAGE` tag 与 Makefile 的 `DOCKER_IMAGE`
-3. 修改 `README.md` 中提到的版本号
-4. `make docker-build && docker push cloaks/zensical:x.y.z`
-5. 本地 `make build` 验证产物无误后推送
+1. 修改 `.github/workflows/Dockerfile` 中的 `zensical==x.y.z`（唯一版本源；Makefile 与 CI 的镜像 tag 自动跟随，无需改动）
+2. 同步文档中引用的版本字面量：`README.md`、`deploy/github-workflow.md`
+3. `make docker-build && docker push cloaks/zensical:x.y.z`
+4. 本地 `make build` 验证产物无误后推送
 
-`make check-upstream` 可以查询 PyPI 上是否有更新的 Zensical 版本。
+`make check-upstream` 可以查询 PyPI 上是否有更新的 Zensical 版本，并打印上述升级步骤。
 
 ---
 
@@ -218,7 +228,7 @@ Settings → Actions → General → Workflow permissions 选 **Read and write p
 Error response from daemon: manifest for cloaks/zensical:0.0.60 not found
 ```
 
-确认镜像已推送到 Docker Hub，且 tag 与 `ci.yml` 中的 `DOCKER_IMAGE` 完全一致。
+确认镜像已推送到 Docker Hub，且 tag 与 Dockerfile 中的固定版本一致（CI 的 tag 由 Dockerfile 自动推导）。
 
 ### 5. 页面 404
 
