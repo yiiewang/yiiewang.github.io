@@ -21,7 +21,7 @@
         ↓
 GitHub Actions 触发（.github/workflows/ci.yml）
         ↓
-拉取预构建镜像 cloaks/zensical:0.0.60
+拉取预构建镜像 cloaks/zensical:0.0.66
         ↓
 校验镜像内版本与 Dockerfile 固定版本一致
         ↓
@@ -38,7 +38,7 @@ GitHub Pages 自动更新
 
 1. **GitHub Pages 已启用** —— 仓库 Settings → Pages → Source 设为 `gh-pages` 分支
 2. **Actions 有写权限** —— Settings → Actions → General → Workflow permissions 选 **Read and write permissions**
-3. **Docker Hub 上存在镜像** —— `cloaks/zensical:0.0.60`（CI 只拉取，不构建）
+3. **Docker Hub 上存在镜像** —— `cloaks/zensical:0.0.66`（CI 只拉取，不构建）
 
 ---
 
@@ -139,7 +139,7 @@ Zensical 自带 Markdown 扩展、主题与模板，不需要安装任何第三�
 
 ### 版本防漂移
 
-`zensical` 的版本只固定在一处 —— `.github/workflows/Dockerfile` 的 `pip install "zensical==0.0.60"`（全仓唯一版本源）。镜像 tag 由它推导，不再手工同步：
+`zensical` 的版本只固定在一处 —— `.github/workflows/Dockerfile` 的 `pip install "zensical==0.0.66"`（全仓唯一版本源）。镜像 tag 由它推导，不再手工同步：
 
 - **Makefile**：`PINNED_VERSION` 解析 Dockerfile 得到版本号，`DOCKER_IMAGE := cloaks/zensical:$(PINNED_VERSION)`
 - **`.github/workflows/ci.yml`**：`Resolve image tag from Dockerfile` 步骤解析同一行并写入 `$GITHUB_ENV`
@@ -165,7 +165,7 @@ GitHub Pages 默认用 Jekyll 处理分支内容，会忽略下划线开头的�
 make docker-build
 
 # 推送
-docker push cloaks/zensical:0.0.60
+docker push cloaks/zensical:0.0.66
 docker push cloaks/zensical:latest
 ```
 
@@ -225,7 +225,7 @@ Settings → Actions → General → Workflow permissions 选 **Read and write p
 ### 4. 拉取镜像失败
 
 ```
-Error response from daemon: manifest for cloaks/zensical:0.0.60 not found
+Error response from daemon: manifest for cloaks/zensical:0.0.66 not found
 ```
 
 确认镜像已推送到 Docker Hub，且 tag 与 Dockerfile 中的固定版本一致（CI 的 tag 由 Dockerfile 自动推导）。
