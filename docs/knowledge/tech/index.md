@@ -10,7 +10,7 @@ summary: "编程语言、区块链、架构设计、云原生、网络协议、�
 
 <div class="stats indigo">
   <div class="stat stat--card">
-    <div class="stat__num">9</div>
+    <div class="stat__num">10</div>
     <div class="stat__label">已填充条目</div>
   </div>
   <div class="stat stat--card">
@@ -36,7 +36,7 @@ summary: "编程语言、区块链、架构设计、云原生、网络协议、�
   <div class="list">
     <a href="languages/go/" class="list-item">
       <span class="list-item__title">Go 语言</span>
-      <span class="badge badge--success">4</span>
+      <span class="badge badge--success">5</span>
     </a>
     <a href="languages/java/" class="list-item">
       <span class="list-item__title">Java</span>

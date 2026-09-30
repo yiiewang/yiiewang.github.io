@@ -98,6 +98,43 @@ preview: ensure-image
 		-v $(CURDIR)/site:/site:ro -p $(PREVIEW_PORT):8000 $(DOCKER_IMAGE) \
 		-m http.server 8000 --directory /site
 
+# ========== 图表预渲染（ditaa / svgbob → SVG） ==========
+# 适合 mermaid 画不了的图：内存布局、格子阵列、指针标注等"位置语义"图。
+# 用法：在文章的 images/ 目录放 _名称.ditaa.txt（或 _名称.svgbob.txt）源文件，
+#       make diagrams 会在同目录生成 _名称.svg，源文件与产物都提交仓库
+#       （同 hero.bundle.js 哲学：CI 不依赖渲染工具）。
+# 约定：
+#   - 源文件下划线前缀：标识"图源"（zensical 不支持 exclude_docs，
+#     .txt 会随产物发布，约 1KB/张，无害——已验证 0.0.66 无此配置项）
+#   - 中文字符在 ditaa 源码里按 1 列计数（与编辑器视觉宽度不同，注意对齐）
+#   - 请求必须带 charset=utf-8（否则中文 400）；产物字号统一归一为 13
+#     （ditaa 对 CJK/ASCII 混排会给出 10-15 的散乱字号）
+KROKI_IMAGE := yuzutech/kroki:0.32.1
+KROKI_PORT  := 8097
+DIAGRAM_SRC := $(shell find docs \( -name '_*.ditaa.txt' -o -name '_*.svgbob.txt' \) 2>/dev/null)
+
+.PHONY: diagrams
+diagrams:
+	@test -n "$(DIAGRAM_SRC)" && { echo ">>> 发现 $(words $(DIAGRAM_SRC)) 个图源：$(DIAGRAM_SRC)"; } || { echo "!!! 没有找到 _*.ditaa.txt / _*.svgbob.txt，无事可做"; exit 0; }
+	@docker rm -f kroki-render >/dev/null 2>&1 || true
+	@echo ">>> 启动 kroki 渲染服务 $(KROKI_IMAGE)（首次拉取需数分钟）"
+	@docker run -d --rm --name kroki-render -p $(KROKI_PORT):8000 $(KROKI_IMAGE) >/dev/null
+	@until curl -sf http://localhost:$(KROKI_PORT)/healthz >/dev/null 2>&1; do sleep 0.3; done
+	@rc=0; for src in $(DIAGRAM_SRC); do \
+		lang=$$(basename $$src | sed -E 's/^_.*\.(ditaa|svgbob)\.txt$$/\1/'); \
+		out=$${src%.txt}.svg; \
+		if curl -sS -X POST "http://localhost:$(KROKI_PORT)/$$lang/svg" \
+			-H 'Content-Type: text/plain; charset=utf-8' \
+			--data-binary @$$src \
+			| sed -E 's/font-size="[0-9]+"/font-size="13"/g' > $$out; then \
+			echo "  渲染 $$src -> $$out"; \
+		else \
+			echo "  !!! 失败 $$src"; rc=1; \
+		fi; \
+	done; \
+	docker rm -f kroki-render >/dev/null 2>&1; \
+	exit $$rc
+
 # ========== 首页动效打包 ==========
 
 # 重新生成 docs/assets/javascripts/hero.bundle.js（升级 three 版本后执行；
@@ -119,6 +156,7 @@ help:
 	@echo "  make dev       开发服务器（热重载，http://localhost:$(DEV_PORT)）"
 	@echo "  make build     生产构建（clean，产物在 site/）"
 	@echo "  make preview   静态预览 site/（http://localhost:$(PREVIEW_PORT)）"
+	@echo "  make diagrams  预渲染图表：_*.ditaa.txt/_*.svgbob.txt -> 同目录 .svg"
 	@echo "  make hero-bundle    重新打包首页动效（hero.bundle.js）"
 	@echo ""
 	@echo "  make docker-build   强制重建镜像 $(DOCKER_IMAGE)"
@@ -129,4 +167,4 @@ help:
 	@echo "      dev/build/preview 会自动检测镜像是否过期（Dockerfile 变更即重建）"
 	@echo "部署：推送到 master/main 后由 GitHub Actions 自动发布到 gh-pages"
 
-.PHONY: ensure-image docker-build check-upstream dev serve build prod preview hero-bundle clean help
+.PHONY: ensure-image docker-build check-upstream dev serve build prod preview diagrams hero-bundle clean help

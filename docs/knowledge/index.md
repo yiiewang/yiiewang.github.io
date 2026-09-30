@@ -34,7 +34,7 @@ hide:
         <div class="stat__label">知识子域</div>
       </div>
       <div class="stat">
-        <div class="stat__num">16</div>
+        <div class="stat__num">17</div>
         <div class="stat__label">知识条目</div>
       </div>
     </div>
@@ -50,7 +50,7 @@ hide:
     <div class="card__body">
       <div class="card__title">技术能力</div>
       <div class="card__desc">Go · 区块链 · 架构设计 · 云原生 · 网络 · 存储 · 测试</div>
-      <span class="badge badge--success">9 条知识</span>
+      <span class="badge badge--success">10 条知识</span>
     </div>
   </a>
 
