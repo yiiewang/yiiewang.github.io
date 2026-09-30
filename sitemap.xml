@@ -472,6 +472,9 @@
         <loc>https://cloaks.cn/blog/posts/2026/09/29/</loc>
       </url>
       <url>
+        <loc>https://cloaks.cn/blog/posts/2026/09/30/</loc>
+      </url>
+      <url>
         <loc>https://cloaks.cn/design-patterns/</loc>
       </url>
       <url>
@@ -668,6 +671,9 @@
       </url>
       <url>
         <loc>https://cloaks.cn/knowledge/tech/languages/go/</loc>
+      </url>
+      <url>
+        <loc>https://cloaks.cn/knowledge/tech/languages/go/atomic-value-boxing/</loc>
       </url>
       <url>
         <loc>https://cloaks.cn/knowledge/tech/languages/go/bit-addressing/</loc>
