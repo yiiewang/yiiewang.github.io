@@ -180,6 +180,11 @@ nav = [
   ]},
   {"博客" = [
     "blog/index.md",
+    {"货殖列传系列" = [
+      {"精讲：把市场规律说透的一篇文章" = "blog/posts/2026/10/02.md"},
+      {"「活钱」作战手册" = "blog/posts/2026/10/03.md"},
+      {"范蠡的周期模型" = "blog/posts/2026/10/04.md"},
+    ]},
     {"xv6 学习历程" = [
       {"总索引" = "blog/posts/2026/09/17.md"},
       {"00 · 出发与环境" = "blog/posts/2026/09/17-1.md"},
@@ -367,7 +372,7 @@ md_in_html = {}
 toc = {}
 # pymdownx
 pymdownx.arithmatex.generic = true
-pymdownx.betterem.smart_enable = "all"
+pymdownx.betterem.smart_enable = "underscore"
 pymdownx.caret = {}
 pymdownx.details = {}
 pymdownx.emoji.emoji_generator = "zensical.extensions.emoji.to_svg"
