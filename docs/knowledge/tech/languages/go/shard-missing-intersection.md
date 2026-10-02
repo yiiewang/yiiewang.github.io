@@ -146,7 +146,7 @@ for _, id := range txIds {
 | :--- | :--- | :--- | :--- |
 | 删除法 | O(K_i + \|候选集\|) | 1 张索引表 | 1 + N 个 map |
 | 重建法 | O(K_i) | 1 个新 map，旧的变垃圾 | 1 + N 个 map |
-| 计数法 | O(K_i) | **0** | **1 个 map** |
+| 计数法 | O(K_i) | **0**|**1 个 map** |
 
 三版时间同为 O(ΣK_i)，但计数法零 per-shard 分配，GC 压力最小；代价仅 map 的 value 从 `struct{}` 变 `int`（每 entry 多 8 字节）。
 

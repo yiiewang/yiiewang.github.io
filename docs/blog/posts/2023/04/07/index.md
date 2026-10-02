@@ -69,7 +69,7 @@ $ git push
 
 如果图片中的 module1 发布 v1.2.3 版本，应该遵循以下规约：
 
-* 模块路径：**example.com/mymodules/module1**
+* 模块路径：`example.com/mymodules/module1`
 * 版本 tag: **module1/v1.2.3**
 * 包导入路径: **example.com/mymodules/module1/package1**
 * 用户的 require 指令中给出的模块路径: **example.com/mymodules/module1 module1/v1.2.3**
