@@ -71,6 +71,12 @@ _CATEGORY_META: list[dict] = [
         "desc": "趋势跟踪、量化策略与宏观经济——把交易也当工程做。",
     },
     {
+        "name": "商业观察",
+        "anchor": "business",
+        "icon": "briefcase",
+        "desc": "企业、产业与政商关系——把一门生意当系统拆。",
+    },
+    {
         "name": "读书与思考",
         "anchor": "reading",
         "icon": "book-open-variant",
