@@ -39,16 +39,20 @@ extra_javascript = [
   "assets/javascripts/tooltip-scroll-fix.js",
   "assets/javascripts/katex.js",
   "assets/javascripts/mermaid.js",
-  "https://cdn.jsdelivr.net/npm/mermaid@11.3.0/dist/mermaid.min.js",
-  "https://unpkg.com/katex@0/dist/katex.min.js",
-  "https://unpkg.com/katex@0/dist/contrib/auto-render.min.js",
+  # KaTeX / Mermaid 已本地化（assets/vendor/，scripts/vendor_sync.sh 同步）：
+  # unpkg / jsdelivr 在大陆访问不稳定，拖累 LCP 与爬虫渲染——二者均为排名信号。
+  # 初始化脚本（katex.js / mermaid.js）只依赖全局对象，无需改动。
+  "assets/vendor/mermaid/mermaid.min.js",
+  "assets/vendor/katex/katex.min.js",
+  "assets/vendor/katex/auto-render.min.js",
 ]
 
 extra_css = [
   # 唯一样式表：设计令牌 → 主题层 → 全局基础组件库（hero/btn/stats/card/list/chip/badge…），
   # 页面不持有样式，只组合组件
   "assets/stylesheets/site.css",
-  "https://unpkg.com/katex@0/dist/katex.min.css",
+  # KaTeX 本地化副本（字体仅保留 woff2，见 scripts/vendor_sync.sh）
+  "assets/vendor/katex/katex.min.css",
 ]
 
 # ---------------------------------------------------------------------------
@@ -406,9 +410,9 @@ pymdownx.tilde = {}
 # Zensical 未支持的插件（blog / rss / social / privacy / optimize）不再列出，
 # 对应功能现状：
 #   blog     → 文章列表改由 scripts/blog_macros.py 的 blog_list() 宏渲染
-#   rss      → feed_rss_created.xml 不再生成（页脚/首页的 RSS 链接已隐藏）
-#   social   → 不再生成社交分享卡片（OG 图）
-#   privacy  → 外部 CDN 资源（mermaid/katex）不再本地化
+#   rss      → feed 由 scripts/gen_seo.py 构建时生成（docs/rss.xml，构建前经 make seo / CI 注入）
+#   social   → 不再生成社交分享卡片（OG 图）；分享预览统一使用 assets/images/og-card.png
+#   privacy  → 外部 CDN 资源已手动本地化（mermaid/katex → assets/vendor/）
 #   optimize → 不再压缩图片、不生成 srcset 响应式变体
 # 兼容列表：https://zensical.org/docs/compatibility/mkdocs/plugins/
 # ---------------------------------------------------------------------------
@@ -469,11 +473,10 @@ icon = "material/emoticon-sad-outline"
 name = "此页面可以改进。"
 note = '''感谢您的反馈！请通过<a href="https://github.com/yiiewang/yiiewang.github.io/issues/new?labels=feedback&amp;title=%E9%A1%B5%E9%9D%A2%E5%8F%8D%E9%A6%88%EF%BC%9A{title}&amp;body=%23%23%23%20%E6%9D%A5%E6%BA%90%E9%A1%B5%E9%9D%A2%0A-%20%E6%A0%87%E9%A2%98%EF%BC%9A{title}%0A-%20%E5%9C%B0%E5%9D%80%EF%BC%9A{url}%0A%0A%23%23%23%20%E5%8F%8D%E9%A6%88%E7%B1%BB%E5%9E%8B%0A%3C%21--%20%E5%86%85%E5%AE%B9%E6%9C%89%E8%AF%AF%20%2F%20%E5%86%85%E5%AE%B9%E8%BF%87%E6%97%B6%20%2F%20%E8%A1%A8%E8%BF%B0%E4%B8%8D%E6%B8%85%20%2F%20%E5%BB%BA%E8%AE%AE%E8%A1%A5%E5%85%85%20%2F%20%E6%98%BE%E7%A4%BA%E5%BC%82%E5%B8%B8%20%2F%20%E5%85%B6%E4%BB%96%20--%3E%0A%0A%23%23%23%20%E9%97%AE%E9%A2%98%E6%8F%8F%E8%BF%B0%0A%3C%21--%20%E8%AF%B7%E5%85%B7%E4%BD%93%E6%8F%8F%E8%BF%B0%E9%97%AE%E9%A2%98%E6%88%96%E6%94%B9%E8%BF%9B%E5%BB%BA%E8%AE%AE%20--%3E%0A%0A%23%23%23%20%E4%BD%A0%E7%9A%84%E8%81%94%E7%B3%BB%E6%96%B9%E5%BC%8F%EF%BC%88%E9%80%89%E5%A1%AB%EF%BC%89%0A%3C%21--%20%E9%82%AE%E7%AE%B1%E6%88%96%E5%85%B6%E4%BB%96%E8%81%94%E7%B3%BB%E6%96%B9%E5%BC%8F%EF%BC%8C%E6%96%B9%E4%BE%BF%E6%88%91%E4%BB%AC%E5%9B%9E%E5%A4%8D%E4%BD%A0%20--%3E" target="_blank" rel="noopener">反馈表</a>告诉我们具体问题（来源页面已自动附上），我们会在 issue 中回复你。'''
 
-# RSS 订阅：Zensical 尚未支持 rss 插件（feed_rss_created.xml 不会生成），
-# 恢复订阅功能前先隐藏，避免页脚出现 404 链接。
-# [[project.extra.social]]
-# icon = "simple/rss"
-# link = "https://cloaks.cn/feed_rss_created.xml"
+# RSS 订阅：feed 由 scripts/gen_seo.py 构建时生成到 docs/rss.xml（构建前运行）
+[[project.extra.social]]
+icon = "simple/rss"
+link = "https://cloaks.cn/rss.xml"
 
 [[project.extra.social]]
 icon = "fontawesome/brands/github"

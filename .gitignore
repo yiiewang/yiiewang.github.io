@@ -18,3 +18,8 @@ private/
 site/
 .cache/
 node_modules/
+
+# SEO 产物：由 scripts/gen_seo.py 构建时生成（make seo / CI 注入），不入库
+docs/llms.txt
+docs/llms-full.txt
+docs/rss.xml

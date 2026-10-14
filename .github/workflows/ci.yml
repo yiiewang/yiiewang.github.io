@@ -48,6 +48,13 @@ jobs:
 
       # --user 让容器以 runner 用户身份运行：否则 site/ 归 root 所有，
       # 下一步的 touch 会因权限不足失败（touch: Permission denied）。
+      # SEO 产物（llms.txt / llms-full.txt / rss.xml）构建前生成进 docs/，
+      # 随站点发布；不入库（见 .gitignore），保证永远与内容同步。
+      - name: Generate SEO files
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/docs \
+            --entrypoint python3 "$DOCKER_IMAGE" scripts/gen_seo.py
+
       - name: Build site
         run: |
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/docs "$DOCKER_IMAGE" build -f zensical.toml --clean
@@ -62,3 +69,15 @@ jobs:
           user_name: github-actions[bot]
           user_email: 41898282+github-actions[bot]@users.noreply.github.com
           commit_message: "deploy: ${{ github.event.head_commit.message }}"
+
+      # IndexNow 主动推送（Bing / Yandex / Naver / Seznam 即时索引；
+      # Google 不支持此协议，收录走 Search Console 的 sitemap）。
+      # key 即公开文件 docs/<key>.txt（协议约定：key 命名、站点根目录可访问）。
+      # 推送失败不阻塞部署。
+      - name: Ping IndexNow
+        continue-on-error: true
+        env:
+          INDEXNOW_KEY: 64a30b4ea9a3b4788dc0e6a70faf239c
+        run: |
+          curl -fsS --max-time 20 \
+            "https://api.indexnow.org/indexnow?url=https%3A%2F%2Fcloaks.cn%2F&key=${INDEXNOW_KEY}"

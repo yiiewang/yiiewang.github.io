@@ -78,14 +78,21 @@ check-upstream:
 
 # ========== 开发 / 构建 / 预览 ==========
 
+# SEO / AI 检索产物：llms.txt / llms-full.txt / rss.xml（构建前生成进 docs/，
+# 随站点发布；不入库——见 .gitignore，保证永远与内容同步，不再手写腐化）
+seo: ensure-image
+	@echo ">>> 生成 SEO / AI 检索文件（llms.txt / llms-full.txt / rss.xml）"
+	docker run --rm $(DOCKER_USER) $(DOCS_MOUNT) --entrypoint python3 $(DOCKER_IMAGE) \
+		scripts/gen_seo.py
+
 # 开发服务器：增量构建 + 热重载
-dev serve: ensure-image
+dev serve: seo
 	@echo ">>> 开发服务器 http://localhost:$(DEV_PORT)"
 	docker run --rm $(DOCKER_USER) $(DOCS_MOUNT) -p $(DEV_PORT):8000 $(DOCKER_IMAGE) \
 		serve -f zensical.toml -a 0.0.0.0:8000
 
 # 生产构建：clean 清缓存，产物在 site/
-build prod: ensure-image
+build prod: seo
 	@echo ">>> 生产构建中..."
 	docker run --rm $(DOCKER_USER) $(DOCS_MOUNT) $(DOCKER_IMAGE) build -f zensical.toml --clean
 	@echo ">>> 完成，产物在 site/"
@@ -156,6 +163,7 @@ help:
 	@echo "  make dev       开发服务器（热重载，http://localhost:$(DEV_PORT)）"
 	@echo "  make build     生产构建（clean，产物在 site/）"
 	@echo "  make preview   静态预览 site/（http://localhost:$(PREVIEW_PORT)）"
+	@echo "  make seo       单独重新生成 llms.txt / llms-full.txt / rss.xml"
 	@echo "  make diagrams  预渲染图表：_*.ditaa.txt/_*.svgbob.txt -> 同目录 .svg"
 	@echo "  make hero-bundle    重新打包首页动效（hero.bundle.js）"
 	@echo ""
@@ -167,4 +175,4 @@ help:
 	@echo "      dev/build/preview 会自动检测镜像是否过期（Dockerfile 变更即重建）"
 	@echo "部署：推送到 master/main 后由 GitHub Actions 自动发布到 gh-pages"
 
-.PHONY: ensure-image docker-build check-upstream dev serve build prod preview diagrams hero-bundle clean help
+.PHONY: ensure-image docker-build check-upstream seo dev serve build prod preview diagrams hero-bundle clean help

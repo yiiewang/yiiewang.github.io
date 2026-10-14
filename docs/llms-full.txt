@@ -1,107 +1,317 @@
-# Cloaks｜Yiiewang Blog - 完整内容索引
-# 为 AI 系统提供详细的站点内容描述
+# Cloaks｜Yiiewang — 完整内容索引
 
-## 博客文章精选
+> Cloaks｜Yiiewang 的个人站点 —— 博客记录思考过程，知识库沉淀能力体系。涵盖技术、工程实践、思维方法、领域知识、人文素养、工具效率和职业发展七大能力域。欢迎浏览、搜索和留言讨论。
 
-### DevOps 系列
-- 使用 CodeBuddy 快速部署项目到腾讯云 Lighthouse
-  URL: /blog/2026/02/06/使用-codebuddy-快速部署项目到腾讯云-lighthouse/
-  摘要: 介绍如何使用 AI 编程助手 CodeBuddy 快速完成 Nginx 反向代理部署、SSL 证书配置等工作
+本文件由构建时自动生成，为 AI 系统提供全站索引：共 165 篇博文 + 导航内全部页面。
+链接格式：[标题](绝对URL)：摘要
 
-### Golang 编程实践
-- Go 方法接收者的值类型与指针类型详解
-  主题: 值接收者和指针接收者的行为区别、内存分配、性能考量
+## 博客文章
 
-### 设计模式
-本站包含完整的 23 种设计模式讲解：
+### Go 语言
 
-创建型模式:
-- 单例模式 (Singleton)
-- 原型模式 (Prototype)  
-- 工厂模式 (Factory)
-- 抽象工厂模式 (Abstract Factory)
+- [锁外回调、队列锁、分片锁：一句追问引出的死锁预防链](https://cloaks.cn/blog/posts/2026/10/01/)：回应《不用堆的延迟队列》里那句「锁外回调」的追问：把队列锁、分片锁、ABBA 死锁讲透，再按代价排开五级手段（锁排序／锁外回调／TryLock 回退／不可重入拆变体／atomic 不可变），最后复盘那条「锁外回调→Cleanup 不持锁→…
+- [队列的内存演进史：从链表到 [][]string 的五个台阶](https://cloaks.cn/blog/posts/2026/09/30/)：从链表、单一 slice、环形缓冲到分段切片，五个台阶讲清队列的内存演进：每一步解决上一步的什么痛点，Go channel、Linux kfifo、Disruptor、Go GC workbuf 各自站在哪级台阶上。读完看懂 delay_…
+- [一个交集，三种写法：分片缺失交易查询的三版演进](https://cloaks.cn/blog/posts/2026/09/29/)：分片系统里查"所有分片都缺失的交易"，本质是求交集。用同一个单测例子拆解三版实现——删除法、重建法、计数法，结果一致表达各异，说说计数法为什么胜出，顺带算清效率账与真正的瓶颈。
+- [不用堆的延迟队列：一条决策链，和链上炸出的 panic](https://cloaks.cn/blog/posts/2026/09/29-3/)：拆解一个不用堆的 TTL 延迟队列：凭什么 O(1)（2.35µs vs 117ms 实测）、只看队首为什么不会漏（反证）、内存结构让位姊妹篇后深挖 Cleanup 路径实测炸出的 makeslice panic 与测试盲区，并发设计三段…
+- [从全量遍历到 O(1)：跨链交易追踪器的三次手术与两处隐患](https://cloaks.cn/blog/posts/2026/09/29-2/)：跨链 SDK 的交易追踪表做三次手术：分片锁、双向索引、延迟队列清理，读写清理全 O(1)；再用 Go 内存模型审计终版代码，挖出两处隐患——清理与绑定的 TOCTOU 竞态、失败路径不回滚的真泄漏。顺带拆 typed nil 与 hoo…
+- [atomic.Value 存接口为什么会 panic：装箱惯用法拆解](https://cloaks.cn/blog/posts/2026/09/29-1/)：atomic.Value 首次 Store 固定具体类型，存接口值时不同实现是不同类型，热更新一切换就 panic。拆解 ChainMaker 分片计算器的 shardCalculatorBox 装箱惯用法：固定外壳，内藏接口。
+- [从字节流到持久化：Go 后端一条线上的八件事](https://cloaks.cn/blog/posts/2026/09/15/)：一条请求从网卡到磁盘要穿过八层：TCP 字节流、手写 RPC、gRPC 契约与横切面、gin、gorm、WAL/LevelDB/MySQL、滑动窗口缓存。每层配一组可运行的最小示例，以及它自己的语义陷阱。
+- [位打包两行代码的完全解剖：(N+7)/8 与 1<<(7-i%8)](https://cloaks.cn/blog/posts/2026/09/04/)：把 []bool 压成 []byte 的位打包，核心就两行：(len(bits)+7)/8 算容量，out[i/8] |= 1<<(7-i%8) 放数据。拆开讲清除法的数学本质、位寻址、掩码置位与 MSB/LSB 位序取舍。
+- [Go 并发编程：锁与同步的 15 个反模式及正确做法](https://cloaks.cn/blog/posts/2026/06/04/)：系统梳理 Go 并发编程中锁与同步的 15 个常见反模式及对应正确做法，结合长安链项目中 Stop/Close 机制、stopC 通道、context 级联等真实案例，给出可落地的并发安全准则。
+- [Go 并发资源关闭类缺陷排查实战 —— 从一个 SDK 死锁案例说起](https://cloaks.cn/blog/posts/2026/06/03/)：一个真实的 Go 死锁案例——长安链 SDK-Go ClientConnectionPool.Close() 在重复调用 3 次后必然死锁。本文从问题模型、死锁推演、排查清单、修复范式四个维度系统总结 Go 中 Close/Stop 类方…
+- [Go 优雅退出完全指南：signal.NotifyContext 实战](https://cloaks.cn/blog/posts/2026/03/23/)：深入解析 Go 语言中利用 signal.NotifyContext 实现优雅退出的标准实践，涵盖 HTTP 服务器、批量任务、带清理的长时间运行任务等典型场景。
+- [一次重复回调引发的库存事故：Go 服务幂等设计实战](https://cloaks.cn/blog/posts/2026/02/28/)：以支付回调为例，拆解 Go 后端中“防重复执行”的幂等落地方案，覆盖数据模型、事务边界与可观测性实践。
+- [高性能滑动窗口缓存设计：环形缓冲区 + 分片锁](https://cloaks.cn/blog/posts/2026/02/12/)：设计一个高性能的滑动窗口缓存，使用环形缓冲区和分片锁实现 O(1) 查询和高并发写入。
+- [gRPC Stream 三种模式详解：服务端流、客户端流、双向流](https://cloaks.cn/blog/posts/2026/02/11/)：深入理解 gRPC 的三种流模式：服务端流、客户端流、双向流，附完整代码示例。
+- [Go TCP 网络编程实战：Echo、Proxy、Scanner](https://cloaks.cn/blog/posts/2026/02/10/)：Go 语言 TCP 网络编程实战，实现 Echo Server、TCP Proxy 和端口扫描器三个经典案例。
+- [解决：bufio.Scanner: token too long 错误](https://cloaks.cn/blog/posts/2025/07/24/)：解决 bufio.Scanner token too long 错误的方法，包括自定义缓冲区和使用 bufio.Reader。
+- [读写分离 `sync.Map`](https://cloaks.cn/blog/posts/2025/01/25/)：详解 Go 语言 sync.Map 的读写分离特性，包括读缓存优化机制和适用于高并发读多写少场景的设计原理。
+- [无锁编程：内存屏障与无锁栈、队列的实现](https://cloaks.cn/blog/posts/2025/01/25-4/)：详解无锁编程技术，包括内存屏障的原理以及无锁栈和无锁队列的 Go 语言实现。
+- [深入理解 Go 的原子操作与 `unsafe.Pointer`](https://cloaks.cn/blog/posts/2025/01/25-3/)：深入探讨 Go 语言原子操作的原理，解释为什么需要使用 unsafe.Pointer 以及如何实现自定义原子指针类型。
+- [理解 Go 语言中结构体拷贝和锁的行为](https://cloaks.cn/blog/posts/2025/01/25-2/)：深入理解 Go 语言中结构体拷贝和锁的行为，解释为什么锁拷贝会导致问题以及如何正确共享锁对象。
+- [理解 Go 语言中的 NoCopy 机制](https://cloaks.cn/blog/posts/2025/01/25-1/)：理解 Go 语言中 NoCopy 机制的作用，通过嵌入字段和静态检查工具防止结构体被不安全拷贝。
+- [长连接与短链接的学习](https://cloaks.cn/blog/posts/2025/01/24/)：详解长连接与短连接的区别、适用场景以及 Go 语言中通过 http.Transport 实现长连接的方法和优化技巧。
+- [读写锁（`sync.RWMutex`）的底层实现原理](https://cloaks.cn/blog/posts/2025/01/24-1/)：深入分析 Go 语言 sync.RWMutex 读写锁的底层实现原理，包括读锁、写锁的获取与释放机制。
+- [Go 方法接收者的值类型与指针类型详解](https://cloaks.cn/blog/posts/2025/01/18/)：详解 Go 语言中方法接收者的值类型与指针类型的区别，分析各自对原始对象的影响和使用场景。
+- [正确关闭 HTTP Response.Body 的重要性](https://cloaks.cn/blog/posts/2025/01/18-1/)：详解如何正确关闭 HTTP Response.Body 以避免资源泄露和确保连接复用，包括常见错误和最佳实践。
+- [Golang 中的意外变量幽灵（Accidental Variable Shadowing）](https://cloaks.cn/blog/posts/2025/01/17/)：详解 Go 语言中的变量幽灵问题，理解短变量声明如何导致变量遮蔽以及如何避免。
+- [Go 语言中字符串与 `rune` 的迭代与非 UTF-8 字符的处理](https://cloaks.cn/blog/posts/2025/01/17-4/)：深入理解 Go 语言中字符串与 rune 的迭代机制，以及如何正确处理包含非 UTF-8 字节的字符串。
+- [Go 语言中字符串与 `[]byte` 之间的转换与性能优化](https://cloaks.cn/blog/posts/2025/01/17-3/)：探讨 Go 语言中字符串与 []byte 之间转换的内存消耗问题，以及使用 map 缓存和 range 遍历的优化方法。
+- [Go 语言中 `map` 的内存分配与容量管理](https://cloaks.cn/blog/posts/2025/01/17-2/)：详解 Go 语言中 map 的内存分配机制、容量管理以及为什么不能使用 cap 函数查询 map 容量。
+- [Go 语言中的 `nil` 和变量初始化规则](https://cloaks.cn/blog/posts/2025/01/17-1/)：深入理解 Go 语言中 nil 的特性和变量初始化规则，解释为什么不能直接使用 nil 初始化未指定类型的变量。
+- [Go 切片中删除元素的两种方法对比](https://cloaks.cn/blog/posts/2025/01/12/)：对比 Go 语言中删除切片元素的两种方法：append 方法和替换删除法，分析各自的优缺点和适用场景。
+- [GC 垃圾回收算法](https://cloaks.cn/blog/posts/2024/12/12/)：GC 标记-清除算法详解，涵盖评价标准（吞吐量、暂停时间、堆效率、局部性）、标记阶段、清除阶段和内存分配机制。
+- [版本管理：追溯数据的生长链](https://cloaks.cn/blog/posts/2024/12/10/)：基于 Go 语言实现的轻量级版本号管理方案，支持主版本 + 次版本规则，实现普通更新和归档更新两种模式。
+- [Go 条件编译实践](https://cloaks.cn/blog/posts/2024/05/27/)：Go 条件编译实践指南，解决 "build constraints exclude all Go files" 错误，掌握跨平台编译和构建标签的正确使用方法。
+- [我对 Context 包的理解](https://cloaks.cn/blog/posts/2024/04/03/)：深入理解 Go Context 包的设计与使用，涵盖 Background、TODO、WithCancel、WithTimeout 等核心方法，掌握并发控制与超时管理的最佳实践。
+- [Go 函数式编程：装饰器与工厂模式](https://cloaks.cn/blog/posts/2023/04/14/)：Go 函数式编程探索，通过 var CommandLine = func() func {} 语法实现装饰器模式和工厂函数。
+- [Go 模块开发与发布指南](https://cloaks.cn/blog/posts/2023/04/07/)：Go 模块开发与发布指南，包含单仓库/多仓库模块管理、版本控制、私有仓库配置等最佳实践。
+- [Go 反射（reflect）详解](https://cloaks.cn/blog/posts/2023/03/26-2/)：Go reflect 包详解，包含 Type、Value、Kind 等核心类型的使用方法，以及反射实现 BeanUtils.CopyProperties() 的完整示例。
+- [Go 语言非侵入式架构设计](https://cloaks.cn/blog/posts/2023/03/26-1/)：Go 语言非侵入式架构设计指南，通过接口、组合、依赖注入、反射和配置文件实现松耦合的模块化系统。
 
-结构型模式:
-- 适配器模式 (Adapter)
-- 外观模式 (Facade)
-- 组合模式 (Composite)
-- 代理模式 (Proxy)
-- 装饰器模式 (Decorator)
-- 桥接模式 (Bridge)
+### 系统与架构
 
-行为型模式:
-- 模板方法模式 (Template Method)
-- 状态模式 (State)
-- 策略模式 (Strategy)
-- 责任链模式 (Chain of Responsibility)
-- 命令模式 (Command)
-- 观察者模式 (Observer)
-- 中介者模式 (Mediator)
-- 访问者模式 (Visitor)
-- 迭代器模式 (Iterator)
+- [事件驱动入门：从“A 调 B”到手写一个事件总线](https://cloaks.cn/blog/posts/2026/10/09-2/)：写给没接触过事件驱动的人：从“A 调 B 调 C”的痛点出发，手写一个 20 行的事件总线，再一步步加上异步、Hook，最后用 ChainMaker 跨链两阶段提交收尾。
+- [xv6 学习历程 01 · Ch.1 操作系统接口：进程、fd 与管道](https://cloaks.cn/blog/posts/2026/09/18/)：xv6 学习历程第 1 篇：不进内核，先站在用户态把 Ch.1 的接口读一遍——进程抽象、fork/exec/exit/wait、文件描述符与重定向、管道，再对照 sh.c 看 shell 怎么把原语拼成命令行。
+- [xv6 学习历程 02 · Ch.2 操作系统组织：宏内核与第一次 ecall](https://cloaks.cn/blog/posts/2026/09/18-1/)：xv6 学习历程第 2 篇：进内核看组织——多路复用、隔离、交互三大需求，宏内核与微内核的分野，struct proc 进程状态机，从 entry.S 到 main 再到第一次系统调用 exec 的完整链路。
+- [xv6 学习历程：路线图与总索引](https://cloaks.cn/blog/posts/2026/09/17/)：xv6 学习历程的总索引：教材信息、九章学习路线图、历程清单与系列约定。正文随阅读进度逐篇发布在博客，读一章写一篇。
+- [xv6 学习历程 00 · 出发：为什么读 xv6，怎么读](https://cloaks.cn/blog/posts/2026/09/17-1/)：xv6 学习历程第 0 篇：为什么选这本教学操作系统作为读内核源码的入口、整个系列的读法约定，以及从零搭建 RISC-V + QEMU 运行环境的完整步骤。
+- [从一个落盘方案到六百万 TPS：十五篇的因果链](https://cloaks.cn/blog/posts/2026/09/10/)：九月十五篇文章的完整地图：从 review 一个布谷鸟过滤器落盘方案时答不上的那句「叫什么名字」开始，滚出存储与无锁两条线，最后在 LMAX 精读汇流。附因果链、发表顺序与依赖顺序的对照、三篇快速通道。
+- [「满：等消费者腾地方」——把这句注释实测一遍](https://cloaks.cn/blog/posts/2026/09/09-1/)：「满：等消费者腾地方」这句注释引出的追问：串行忙等为什么要 runtime.Gosched？拆开自旋、让出、park/唤醒三种等待的运行时路径，用 GOMAXPROCS=1 与 asyncpreemptoff 实测验证，并修正一个想当然的…
+- [写了不等于看得见：内存屏障与 Go 内存模型](https://cloaks.cn/blog/posts/2026/09/08/)：SPSC 队列里「先写数据后发布 head」凭什么成立：从编译器重排、store buffer 到 x86 TSO 与 ARM 弱序，再到 Go 1.19 内存模型、sync/atomic 的顺序一致语义与 -race 的 vector…
+- [六百万 TPS 的单线程：LMAX 架构与 Disruptor 精读](https://cloaks.cn/blog/posts/2026/09/08-8/)：按"可复刻"标准重写的 LMAX 精读：Sequence 与缓存行填充、单/多生产者两种 Sequencer、availableBuffer 缺口检查、Barrier 批量消费者、journal 格式与 crc 截断、快照原子转正、恢复三…
+- [归并写者：把竞争消灭在架构层](https://cloaks.cn/blog/posts/2026/09/08-7/)：数据结构层的并发修复是让竞争变便宜（CAS、mutex、per-slot），架构层的修法是让竞争不存在：Actor 的单消费者 mailbox、LMAX 的单线程业务核心、事件溯源的单写者 journal——把 N 个写者收敛成 1 个，…
+- [实测：channel 到底比无锁队列慢多少](https://cloaks.cn/blog/posts/2026/09/08-6/)：无锁队列真的比 channel 快吗？在 32 核 Xeon 上实测 SPSC、MPSC、MPMC 与 channel 的 1P1C/4P1C/4P4C 吞吐：单对单四者挤在 110~160ns，竞争一上来 channel 反超手写队列一…
+- [切换必须原子：双缓冲家族的命根子](https://cloaks.cn/blog/posts/2026/09/08-5/)：双缓冲的三步舞谁都会跳，难点全在切换那一步：前后缓冲的页翻转、蓝绿的路由表、LevelDB 的一行指针赋值、Redis 的 fork——拆每个案例「切换」的物理载体与旧份去留哲学，附 COW 这个隐形亲戚和一句检验标准。
+- [dirty 是一张欠条：writeback 的调度哲学](https://cloaks.cn/blog/posts/2026/09/08-4/)：脏页标记把「哪些数据欠磁盘一次回写」变成可查询的账本。Linux 双阈值节流、InnoDB flush list、fsync 与 O_DIRECT 的取舍——把 04-1 没展开的「什么时候还钱」讲透：掉电窗口与批量回写的乘积权衡。
+- [重放与影分身：崩溃恢复的两条路线](https://cloaks.cn/blog/posts/2026/09/08-3/)：崩溃一致性要求断电后要么旧要么新、不能是半个。WAL+checkpoint 用顺序追加换重放恢复，shadow paging 用写时复制换 O(1) 恢复；从 torn page、ARIES、full_page_writes 到 ZFS…
+- [从自旋到休眠：「等」的成本谱系](https://cloaks.cn/blog/posts/2026/09/08-2/)：Gosched 一句带过的「自旋与休眠的妥协」展开成完整谱系：纯自旋、让步自旋、混合自旋、futex、goroutine park，五档等待机制各自的让出单位、唤醒成本与适用判据，附 Go runtime 的实现对应。
+- [一把锁罩住一切：Go channel 为什么不追求无锁](https://cloaks.cn/blog/posts/2026/09/08-1/)：拆 runtime/chan.go：hchan 用一把锁罩住所有字段，看似土实则是必然——状态纠缠、调度器配合、select 可组合，锁是唯一能同时摆平三者的答案。附直接发送优化与快慢路径分析。
+- [单写多读：无锁环形队列为什么敢不用锁](https://cloaks.cn/blog/posts/2026/09/07/)：SPSC 环形队列为什么敢不用锁：把每个共享字段收敛到唯一写者，写冲突自然消失，剩下的只是"发布"与"观察"两个动作，用 release/acquire 衔接。附最小 Go 实现与多生产者翻车现场。
+- [两个生产者之后：给无锁环形队列加同步的三条路](https://cloaks.cn/blog/posts/2026/09/07-1/)：SPSC 无锁队列被第二个生产者击穿之后怎么修：CAS 认领加提交计数、生产者侧 mutex、per-slot 序列号与归并写者，三条路线的完整 Go 实现与选型对比。
+- [状态上移，原子下沉：包装优于修改的设计取舍](https://cloaks.cn/blog/posts/2026/09/06/)：改动已在跑的代码是有成本的。本文以 filterSnapshot 重构为案例，拆解「状态上移、原子下沉」如何把决策与执行分离，用包装与协调代替给稳定代码加状态。
+- [一个没有名字的持久化设计：五个经典思想的排列组合](https://cloaks.cn/blog/posts/2026/09/04-1/)：从一个布谷鸟过滤器分片的落盘方案出发，溯源 Ring Buffer、脏页 writeback、双缓冲、WAL checkpoint 与 Shadow Paging 五个经典思想的来龙去脉，附 kfifo、Disruptor、InnoDB、…
+- [高频 `R/W` 场景下的性能设计方案](https://cloaks.cn/blog/posts/2025/03/27/)：高频读写场景下的缓存策略详解，包括 Cache-Aside、Read-Through、Write-Through 和 Write-Behind 模式。
+- [分布式系统的核心问题](https://cloaks.cn/blog/posts/2025/03/14/)：分布式系统核心问题详解，包括一致性问题、FLP 不可能原理、CAP 原理和 ACID 原则。
+- [负载均衡设计思路与实践指南](https://cloaks.cn/blog/posts/2025/01/19/)：介绍负载均衡的常见策略，包括轮询、随机选择、权重选择和洗牌算法，以及健康检查与重试机制的实现。
+- [云服务的数据存储设计](https://cloaks.cn/blog/posts/2023/06/21/)：云服务数据存储设计指南，包含数据特性分析（性能、易变性、容量等）、多租户架构选择以及 SQL/NoSQL 数据库类型对比。
+- [如何设计一个应用解决方案？](https://cloaks.cn/blog/posts/2023/06/15/)：应用解决方案设计方法论，通过 5W1H 分析框架和业务架构图，帮助架构师选择合适的云服务模式和部署模式。
+- [云服务模式详解：SaaS、PaaS、IaaS](https://cloaks.cn/blog/posts/2023/06/13/)：云服务三大模式（SaaS、PaaS、IaaS）详解，包含云计算五大特征、云堆栈架构以及公有云、私有云、混合云的部署模式对比。
+- [C10K 问题：单机一万并发](https://cloaks.cn/blog/posts/2023/03/01/)：C10K 问题详解，探讨单机万级并发的 I/O 架构和策略，包含 select、poll、epoll、kqueue 等多路复用技术对比。
+- [Service Mesh 服务网格详解](https://cloaks.cn/blog/posts/2023/02/16-2/)：Service Mesh（服务网格）概念详解，了解它如何简化微服务架构中的服务间通信管理。
+- [Istio 服务网格架构详解](https://cloaks.cn/blog/posts/2023/02/16-1/)：Istio 服务网格架构详解，包括数据平面（Envoy 代理）和控制平面（Pilot、Citadel、Galley）的功能与核心特性。
+- [UDP 协议详解](https://cloaks.cn/blog/posts/2022/12/30-2/)：UDP 协议详解，包括协议格式、端口机制、与 ARP 的交互，以及 UDP 的适用场景和安全防护。
+- [ICMP 协议详解](https://cloaks.cn/blog/posts/2022/12/30-1/)：深入理解 ICMP 协议，包括协议类型、报文格式，以及 ping 和 traceroute 命令的工作原理。
 
-### 代码重构
+### 区块链
 
-#### 代码坏味道 (Code Smells)
-- 过长参数列表 (Long Parameter List)
-- 数据类 (Data Class)
+- [长安链 SDK-Go：从跑通到用对](https://cloaks.cn/blog/posts/2026/10/09-1/)：长安链 SDK-Go 从跑通到用对的完整指南，涵盖身份与配置、合约调用、多方签名、请求与响应、订阅优化及归档；保留四组演示、版本变更与配置和接口速查，厘清 Go 应用接入链时的关键边界。
+- [长安链模块测试 · 实战手册（Module Test Playbook）](https://cloaks.cn/blog/posts/2026/05/27/)：长安链模块测试实战手册——从认知建立到落地执行的完整方法论。覆盖五件套架构、五大核心范式、6 维场景骨架、零侵入约束，附 store 模块真实案例和可复用模板，帮助研发同学在分钟级反馈内拦截过去只能靠跑链才能发现的 bug。
+- [环形缓冲区（Ring Buffer）：从原理到区块链交易去重的实战应用](https://cloaks.cn/blog/posts/2026/05/26/)：环形缓冲区（Ring Buffer）是一种固定大小、O(1) 操作、自动淘汰的数据结构。本文从原理出发，结合 ChainMaker BirdsNest 模块的交易去重实战案例，解析环形缓冲区 + 布谷鸟过滤器如何以极低内存开销实现数百万级…
+- [长安链运维与压测手册](https://cloaks.cn/blog/posts/2026/03/7/)：长安链命令级操作手册：Ansible 批量运维、节点与分片管理、CMC 命令行（链配置 · 合约 · 系统合约 · 链上查询）、压测与数据分片、日志分析、性能调优，可直接复制执行。
+- [区块 DAG（Directed Acyclic Graph，有向无环图）](https://cloaks.cn/blog/posts/2025/05/06/)：详解区块 DAG 有向无环图的工作原理，通过具体示例理解其在区块链中的应用。
+- [零知识证明：不泄露秘密的证明艺术](https://cloaks.cn/blog/posts/2025/04/11/)：零知识证明（ZKP）是密码学中最优雅的发明之一——证明你知道某件事，却不透露任何细节。本文从直觉、原理到应用，带你全面理解这项改变隐私计算的核心技术。
+- [比特币的创新设计](https://cloaks.cn/blog/posts/2025/03/20/)：分析比特币的创新设计，包括避免作恶的博弈论原理、负反馈调节和基于 PoW 的共识机制。
+- [拜占庭问题解析](https://cloaks.cn/blog/posts/2025/03/12-2/)：系统解析拜占庭问题的起源、核心挑战和解决方案，包括 BFT 算法和 PoW 机制。
+- [PBFT（Practical Byzantine Fault Tolerance）共识算法](https://cloaks.cn/blog/posts/2025/03/12-1/)：深入解析 PBFT 实用拜占庭容错算法的原理与实现，包括三阶段协议和视图变更机制。
+- [去中心化应用详解](https://cloaks.cn/blog/posts/2023/02/28/)：去中心化应用（dApp）详解，包含去中心化的历史背景、生态系统（数据、财富、身份、计算、带宽）以及 IPFS 架构介绍。
 
-#### 重构技术
-- 提取方法 (Extract Method)
-- 以查询取代临时变量 (Replace Temp with Query)
-- 分解临时变量 (Split Temporary Variable)
-- 移动方法 (Move Method)
-- 封装字段 (Encapsulate Field)
-- 封装集合 (Encapsulate Collection)
-- 以方法调用取代参数 (Replace Parameter with Method Call)
-- 保持对象完整 (Preserve Whole Object)
-- 引入参数对象 (Introduce Parameter Object)
+### 算法与数据结构
 
-### 软考高级架构师
+- [时间轮算法：高效实现滑动时间窗口统计](https://cloaks.cn/blog/posts/2025/12/15/)：深入探讨时间轮算法的原理与 Go 语言实现，高效解决滑动时间窗口统计问题。
+- [堆排序](https://cloaks.cn/blog/posts/2025/08/18/)：详解堆排序算法的原理与 Go 语言实现，时间复杂度 O(nlogn) 的选择排序算法。
+- [关于组合问题的算法设计](https://cloaks.cn/blog/posts/2025/03/8/)：详解递归回溯算法如何解决组合问题，通过选择与撤销的思想遍历所有可能的子集。
+- [回文十进制数](https://cloaks.cn/blog/posts/2025/01/15/)：使用 Go 语言求解同时满足十进制、二进制、八进制表示都是回文数的最小值问题。
+- [异或运算的应用场景](https://cloaks.cn/blog/posts/2023/03/05/)：异或运算（XOR）的四大应用场景：生成常数 0、位翻转、奇偶校验、无额外空间交换变量值。
+- [位运算算法详解](https://cloaks.cn/blog/posts/2023/02/20/)：位运算算法详解，包含按位与、或、异或、移位等基本操作，常用位运算技巧表，以及 LeetCode 例题（判断 2 的幂、汉明重量）。
+- [动态规划算法详解](https://cloaks.cn/blog/posts/2023/02/19/)：动态规划（DP）算法详解，通过将问题分解为子问题并记录结果来优化计算效率，包含状态压缩技巧。
+- [pin: true](https://cloaks.cn/blog/posts/2023/02/15/)：刷题总结的正确打开方式：一道题只沉淀三个问题（结构性质、不变量、边界），13 类题型的特征速查地图，附数据结构复杂度速查表与跨题型易错清单。
+- [递归与回溯算法详解](https://cloaks.cn/blog/posts/2023/02/14-2/)：递归与回溯算法详解，理解如何将问题分解为子问题，以及通过回溯穷举所有可能的解。
+- [深度优先搜索算法详解](https://cloaks.cn/blog/posts/2023/02/14-1/)：深度优先搜索（DFS）算法详解，对每个分支深入到底再回溯，适用于路径搜索、连通性判断等问题。
+- [广度优先搜索算法详解](https://cloaks.cn/blog/posts/2023/02/13/)：广度优先搜索（BFS）算法详解，从根节点开始按层遍历，适用于最短路径、层序遍历等问题。
+- [双指针：从「背模板」到「懂不变量」](https://cloaks.cn/blog/posts/2023/02/05/)：双指针把 O(n²) 的配对扫描压到 O(n)，但「两端向中间」「一快一慢」只是口诀——真正让指针敢淘汰候选的是不变量。以两数之和、Floyd 判圈、链表中点为例，把正确性论证补齐。
+- [二分查找算法详解](https://cloaks.cn/blog/posts/2023/02/04/)：二分查找算法详解，包含精确值查找、左边界查找和插入位置查找的代码模板，以及 LeetCode 经典例题。
+- [滑动窗口算法详解](https://cloaks.cn/blog/posts/2023/02/03/)：滑动窗口算法详解，包含固定窗口、最长/最短子序列的代码模板和 LeetCode 经典例题，如无重复字符的最长子串、长度最小的子数组等。
 
-基础知识:
-- 计算机基础
-- 嵌入式系统
-- 计算机网络
-- 企业信息化
-- 信息安全
-- 系统工程
-- 软件工程
-- 数据库设计
-- 知识产权
+### DevOps 与工具
 
-中级知识:
-- 软件架构设计
-- 系统质量属性与架构评估
-- 可靠性设计
-- 软件架构演化
+- [一行 ProxyJump，VS Code 直达内网机器](https://cloaks.cn/blog/posts/2026/09/09/)：内网机器藏在跳板机后面，逐级手动 SSH 再开发是原始人操作。在 ~/.ssh/config 里写一行 ProxyJump，VS Code 就能一键直达目标机器，跳板机只转发流量、不留私钥。
+- [用反向 SSH 隧道穿透内网：一次完整的踩坑实践](https://cloaks.cn/blog/posts/2026/09/02/)：内网机没有公网 IP，用 ssh -R 反向隧道 + autossh 守护随时拿回 shell 的完整实践，重点记录 7 个真实踩到的坑——其中 pgrep 的 argv[0] 陷阱与 ClientAlive 缺失导致的僵尸监听，网上几乎…
+- [ps -ef | grep ssh 查不到的端口转发](https://cloaks.cn/blog/posts/2026/09/02-1/)：浏览器能访问 localhost:8000，服务器上 ps -ef | grep ssh 却查不到任何转发进程。复盘这次反直觉排查：对比 ssh -L 与 VSCode Remote-SSH 两条转发路线，说清为什么服务器端零转发进程，本…
+- [使用 CodeBuddy 快速部署项目到腾讯云 Lighthouse](https://cloaks.cn/blog/posts/2026/02/6/)：本文介绍如何使用 CodeBuddy AI 编程助手，快速将项目部署到腾讯云轻量应用服务器（Lighthouse）。通过 Nginx 反向代理 GitHub Pages 博客，配置 HTTPS 证书，整个过程只需几分钟即可完成。
+- [使用 Shell 脚本管理 OpenVPN 守护进程](https://cloaks.cn/blog/posts/2025/01/2/)：使用 Shell 脚本管理 OpenVPN 守护进程的完整指南，包括 nohup 后台运行、PID 文件管理和自动重启机制。
+- [Gaoman 数位板 M6 Linux 配置](https://cloaks.cn/blog/posts/2024/08/11/)：Linux 下 Gaoman 高漫 M6 数位板配置指南，使用 xrandr 和 xsetwacom 命令实现多屏幕场景下的数位板映射设置。
+- [GitLab CI/CD 配置手册](https://cloaks.cn/blog/posts/2024/07/09/)：GitLab CI/CD 配置指南，详解 artifacts 产物管理、路径配置、过期时间设置以及跨作业共享等关键功能。
+- [Shell 脚本编程【循环】](https://cloaks.cn/blog/posts/2024/06/27/)：Shell 脚本编程循环结构详解，涵盖 for、while、until 循环，以及 IFS 字段分隔符、嵌套循环、break 等高级用法。
+- [Navicat for Linux 试用期重置](https://cloaks.cn/blog/posts/2024/06/24/)：Navicat for Linux 试用期重置方法，通过简单命令清除配置文件实现无限试用。
+- [Code Server 部署指南](https://cloaks.cn/blog/posts/2024/02/27-1/)：Code Server 部署指南，让你在任何设备上使用 VSCode 进行远程开发。支持平板、手机等移动设备访问，摆脱传统开发环境的束缚。
+- [Hexo 使用技巧补充](https://cloaks.cn/blog/posts/2022/12/16/)：记录使用 Hexo 博客框架过程中发现的一些官方文档未详细说明的内容，包括 post 与 page 的区别、摘要功能的使用方法等。
+- [Linux lshw 命令：硬件信息查看利器](https://cloaks.cn/blog/posts/2022/12/12/)：Linux lshw 命令详解，用于获取完整的系统硬件信息，包括 CPU、内存、主板、存储设备等配置详情。
+- [Linux watch 命令：实时监控利器](https://cloaks.cn/blog/posts/2022/12/10-2/)：Linux watch 命令详解，学会周期性执行命令并监控输出变化，适用于日志监控、系统状态跟踪等场景。
+- [Linux lspci 命令详解](https://cloaks.cn/blog/posts/2022/12/09/)：详解 Linux lspci 命令的使用方法，包括基础用法、常用参数选项和实际输出示例，帮助你快速查看和诊断 PCI 设备信息。
 
-高级知识:
-- 信息系统架构
-- 层次化架构
-- 云原生架构
-- 面向服务架构
-- 嵌入式架构
-- 通信系统
-- 安全架构
-- Web架构
+### AI 实践
 
-## 技术栈
+- [让 AI 落地，瓶颈往往不在模型](https://cloaks.cn/blog/posts/2026/07/31/)：一张 AWS Summit 的幻灯片把 AI 落地说透了——瓶颈往往不在模型，在把「给人看」的业务说明书适配成「给 AI 看」的 Pipeline。
+- [LangChain & LangGraph 学习路线图与水平定位](https://cloaks.cn/blog/posts/2026/05/07/)：基于个人测评结果定制的 LangChain & LangGraph 系统学习路线图，涵盖四阶段学习计划、水平定位分析、核心陡峭点识别及专属学习建议，总耗时预估2-3个月，从API调用到复杂决策Agent架构设计。
+- [AI Prompt 工具箱：不同场景下的实用提示词](https://cloaks.cn/blog/posts/2026/04/15/)：记录日常开发中各类场景下实用的 AI Prompt，涵盖 Git 工作流、代码审查、博客写作、性能分析等，持续更新。
+- [多智能体协同：从理论到工程的完整实战指南](https://cloaks.cn/blog/posts/2026/03/19/)：从为什么到怎么做，系统梳理多智能体协作的理论框架、两种实战方案（自定义 Skill 与平台级 Agent Teams）、效果数据与最佳实践。
+- [当 AI 开始"圆桌讨论"：一次代码决策的新体验](https://cloaks.cn/blog/posts/2026/03/19-2/)：记录一次使用 multi-expert skill 进行代码设计评审的实战经历，展示多角色协作如何帮助做出更好的技术决策。
+- [从失败到智能创造：人机协作突破全记录](https://cloaks.cn/blog/posts/2026/03/14/)：记录一次从失败开始的人机协作突破历程，展示了如何从技术失误出发，通过坦诚反思、渐进验证和信任发展，最终创造出永久可用的工程能力。
+- [黄仁勋长文解读：AI 是"五层蛋糕"基础设施](https://cloaks.cn/blog/posts/2026/03/11/)：黄仁勋发表第七篇公开长文，提出 AI 产业"五层蛋糕"框架——从能源到芯片、基础设施、模型再到应用，AI 正在成为如同电力和互联网一般不可或缺的底层基础设施。
 
-本站作者擅长的技术栈：
-- 后端: Go, Java, Python
-- 前端: Vue, React
-- 数据库: MySQL, PostgreSQL, Redis, MongoDB
-- 容器: Docker, Kubernetes
-- 云平台: 腾讯云, AWS
-- CI/CD: GitHub Actions, Jenkins
+### 投资与交易
 
-## 联系方式
+- [「活钱」作战手册：把货殖列传翻译给现代人看](https://cloaks.cn/blog/posts/2026/10/02/)：把《货殖列传》的「活钱」哲学翻译成现代作战手册：无息币对应现金流管理与 CCC，旱则资舟对应逆周期左侧布局，逐什一之利对应薄利快周转的复购生意。落到个人、开店、企业、投资四个场景，每条附可执行的自检指标。
+- [三句话，三块仪表盘：用现代数据验证范蠡的周期模型](https://cloaks.cn/blog/posts/2026/10/02-2/)
+- [三句话，一个闭环：范蠡经商智慧的周期模型](https://cloaks.cn/blog/posts/2026/10/02-1/)：把范蠡的经商智慧收拢成一个周期思维模型：钱不能停、货不能烂、人弃我取三句话如何构成一个循环，以及「定趋势→抓执行→稳运营→会退出→等下一轮」的执行闭环，为什么断一环就失效。
+- [《史记·货殖列传》精讲：两千年前把市场规律说透的一篇文章](https://cloaks.cn/blog/posts/2026/10/01-1/)：《史记·货殖列传》精讲：逐段对照原文与白话，拆解司马迁的经济哲学——善者因之、天下熙熙、贵上极则反贱、无财作力少有斗智既饶争时，并引申亚当·斯密、奥派经济学、行为金融与康波周期等现代理论互证，看两千年前这篇「经济列传」如何把市场规律说透。
+- [当趋势策略遇上震荡市：一套全天候复合交易系统的设计手记](https://cloaks.cn/blog/posts/2026/04/30/)：为什么单一交易策略总是"赚了又赔回去"？一套三层架构的复合交易系统（V2.1），通过战略底仓、趋势跟踪和网格交易的智能协同，让震荡市和单边行情都能从容应对。新增三档阶梯止盈策略，用均线移动止损实现分批落袋与利润奔跑的平衡。
+- [风暴尚未过去：CTA 全面转空，系统性抛压或创年内之最](https://cloaks.cn/blog/posts/2026/03/10-1/)：高盛与摩根大通最新交易台预警显示，CTA 全面转空，系统性抛压未来一周或创年内最大。市场深层结构性问题远未解决，仓位未充分出清，二次探底风险犹存。
+- [HALO：AI 时代的投资新范式](https://cloaks.cn/blog/posts/2026/02/25/)：高盛最新报告指出，AI时代的投资逻辑正在发生转变，市场开始奖励重资产、低淘汰率的HALO公司，本文解读这一投资趋势。
+- [配对交易实战：GLD 与 GDX 的均值回归策略](https://cloaks.cn/blog/posts/2026/02/9/)：以 GLD 和 GDX 配对交易为例，用 Golang 从零实现完整策略。重点讲解数学公式原理：对冲比率、Z-Score、夏普比率的计算方法和实际意义。
+- [货币中性策略：不看大盘也能赚钱的交易方法](https://cloaks.cn/blog/posts/2026/02/8/)：从零开始理解货币中性策略，详细讲解选股方法、股指期货对冲、牛熊市配置，让小白也能掌握这种「不看大盘」的交易方式。
+- [《量化交易：如何建立自己的算法交易事业》读书笔记](https://cloaks.cn/blog/posts/2026/02/7/)：《量化交易：如何建立自己的算法交易事业》读书笔记。本书由 Ernest P. Chan 撰写，是量化交易领域的经典入门书籍，涵盖策略开发、回测、风险管理和交易系统搭建的完整流程。
+- [股票上涨的本质](https://cloaks.cn/blog/posts/2025/12/04/)：分析股票涨跌的本质——预期与资金的博弈，以及期指与股票之间的双向反馈关系。
+- [农产品价格和通胀的关系](https://cloaks.cn/blog/posts/2025/05/05-2/)：分析农产品价格上涨引发通货膨胀的传导机制，包括直接效应、货币乘数效应和国际传导。
+- [什么是通货膨胀？](https://cloaks.cn/blog/posts/2025/05/05-1/)：详解通货膨胀的成因、类型、衡量指标及其对经济的影响，以及应对策略。
+- [经济杂谈](https://cloaks.cn/blog/posts/2024/10/18/)：经济杂谈合集，涵盖房地产分析、养老金统筹、央行国债操作、股市投资策略、固收保险等多维度经济话题探讨。
+- [本轮牛市的风险与机会](https://cloaks.cn/blog/posts/2024/10/16/)：2024 年 A 股牛市分析，解读三波上涨节奏、资金入场逻辑、行业轮动规律以及定投策略建议。
+- [什么是美林时钟？](https://cloaks.cn/blog/posts/2024/10/13/)：美林投资时钟详解，理解经济周期四阶段（衰退、复苏、过热、滞胀）与资产配置（债券、股票、大宗商品、现金）的对应关系。
+- [爱在深秋](https://cloaks.cn/blog/posts/2024/10/02-1/)：2024 年 9 月末 A 股历史性大涨回顾，上证指数单日涨幅 8.06%，深成指涨幅 10.67%，见证爱在深秋的行情启动。
+- [《有效资产管理》读书笔记](https://cloaks.cn/blog/posts/2023/02/18/)：《有效资产管理》读书笔记，探讨风险与收益的关系、多元化投资组合的构建方法。
 
-如需技术交流或合作，请通过以下方式联系：
-- GitHub: https://github.com/yiiewang
-- Email: cloaks@qq.com
-- 博客评论区
+### 商业观察
 
----
-本文件为 AI 系统提供站点详细信息，帮助更好地理解和引用本站内容。
+- [当一家钢厂开始建城：县域支柱民企的创业、管理与未来](https://cloaks.cn/blog/posts/2026/10/05-3/)：一家县城支柱民企从建厂到「建城」的完整推演：早期拿地扩产与用工稳定的张力、中期用整村帮扶降低各种摩擦成本、后期把关系项目化台账化；以及共生何时滑向寄生、公共资产何时被实操成企业可控资产——六个可核查判据与一组 IF-THEN 结论。
+
+### 读书与思考
+
+- [把《国富论》第一章读成一张盈利地图](https://cloaks.cn/blog/posts/2026/10/05/)：把《国富论》第一章「论分工」读成一张盈利地图：分工三原因与制针推演、农业为什么是分工的边界、红利外溢链条，以及两个自己的观点——环节创业论（扮演好一个环节即可盈利）与框架盈利论（不做事，做让人做事的底座，利润=费率×流量，存活线是单次获益…
+- [把《国富论》第五章读成一把会漂移的秤](https://cloaks.cn/blog/posts/2026/10/05-2/)：财富用什么记账？《国富论》第五章给财富找秤：真实的秤是劳动，日常的秤是货币，而秤本身会漂移。读后展开两个自己的观点——投资超额收益是变相延寿，房贷是这个时代的主租约，本质是与计价单位对赌。
+- [把《国富论》二三四章读成一套传动系统](https://cloaks.cn/blog/posts/2026/10/05-1/)：《国富论》二三四章读后：交换是天性、市场范围限定分工、货币是演化的产物。用传动系统串起三章因果链，并展开三个自己的观点——交换是天生流量入口、市场半径决定分工半径、铸币是信任外包的第一步。
+- [读毛选《我们的经济政策》—— 战略与战术的辩证法](https://cloaks.cn/blog/posts/2026/07/04/)：读毛选《我们的经济政策》的读书笔记。用"战略与战术"的框架拆解这篇经典：原则是纲，中心是目，提纲挈领才能成事。
+- [君子不器](https://cloaks.cn/blog/posts/2025/06/03/)：君子不器——不应局限于单一用途，应具备广泛的知识和才能来应对人生各种挑战。
+- [组件设计原则](https://cloaks.cn/blog/posts/2025/03/31/)：《Clean Architecture》组件章节读书笔记，理解组件作为部署单元的设计原则，包括 REP、CCP、CRP 三大内聚原则。
+- [2025-03-23 有感](https://cloaks.cn/blog/posts/2025/03/23/)：君子不器，成功的人要敢于迎接挑战，在挑战中释放自己的才能。
+- [爱的艺术](https://cloaks.cn/blog/posts/2025/03/3/)：《爱的艺术》读书笔记，弗洛姆关于爱的本质——爱不是找到对的人，而是培养爱的能力。
+- [当时只道是寻常](https://cloaks.cn/blog/posts/2025/02/17/)：当时只道是寻常，珍惜眼前人，珍惜当下的美好时光。
+- [男人来自火星，女人来自金星](https://cloaks.cn/blog/posts/2025/02/3/)：《男人来自火星，女人来自金星》读书笔记，探讨男女在沟通、情感、压力应对上的核心差异。
+- [B-Tree 与崩溃恢复](https://cloaks.cn/blog/posts/2024/12/4/)：B-Tree 深入解析，涵盖高度平衡特性、嵌套数组视角、节点分裂与合并、磁盘存储以及写时复制崩溃恢复机制。
+- [B-Tree 数据结构](https://cloaks.cn/blog/posts/2024/12/3/)：B-Tree 数据结构学习笔记，详解节点结构设计：类型、键数量、指针列表、偏移量列表和键值对的存储格式。
+- [从头开始构建你自己的数据库](https://cloaks.cn/blog/posts/2024/11/25/)：通过使用简单的 Golang 代码逐步构建自己的数据库，从下到上了解数据库。 1. 从 B+树开始，B+树是用于查询和操作数据的数据结构。 2. 使其持久，这就是数据库与文件的不同之处。 3. 在写时复制 B+树 KV 之上具有并发事务的…
+- [用不到 100 行 Go 语言构建自己的容器](https://cloaks.cn/blog/posts/2024/11/23/)：2013 年 3 月 Docker 的开源发布引发了软件开发行业打包和部署现代应用程序方式的重大转变。在 Docker 发布之后，许多相互竞争、相互补充和相互支持的容器技术也随之诞生，这导致了围绕这一领域的许多炒作和一些幻灭。本系列文章旨…
+- [使用 Go 实现 BitTorrent 客户端](https://cloaks.cn/blog/posts/2024/11/13/)：BitTorrent 是一个通过网络下载和分发文件的协议。与传统的客户端/服务器关系相比，下载者连接到中央服务器（例如：在 Netflix 上观看电影，或加载您正在阅读的网页），BitTorrent 网络中的参与者（称为对等点）下载彼此之…
+
+### 软考
+
+- [高级架构师高频题型总结](https://cloaks.cn/blog/posts/2025/03/12/)：高级架构师考试高频题型总结，包括英文选择题、简答题和论文写作要点。
+- [论面向对象设计](https://cloaks.cn/blog/posts/2024/11/09-1/)：面向对象设计论文，结合三维数据轻量化异构项目实践，详解 RUP 统一过程模型在软件工程中的应用。
+- [论软件的可靠性设计](https://cloaks.cn/blog/posts/2024/11/07/)：软件可靠性设计论文，探讨容错设计、N 版本程序设计、冗余设计等关键技术在三维轻量化异构项目中的应用实践。
+- [论软件系统架构风格](https://cloaks.cn/blog/posts/2024/10/04/)：软件系统架构风格论文，结合移动信息化开放平台实践，详解三层分层架构的设计原理、实施方案与运行效果。
+- [论软件架构的选择](https://cloaks.cn/blog/posts/2024/10/02-2/)：软件架构选择与应用论文，以移动信息化开放平台为例，探讨三层分层架构在安全性、开发维护和系统稳定性方面的优势。
+
+### 札记
+
+- [如何做一场有效的汇报？](https://cloaks.cn/blog/posts/2026/06/30/)：如何做一场有效的汇报？从内容设计到表达技巧，系统性地提升汇报能力，让领导听懂、认可并支持你的方案。
+- [集成测试流程设计方案](https://cloaks.cn/blog/posts/2026/06/15/)：集成测试流程设计方案，明确研发与结对同学的分工协作，建立用例生成、审核、执行的标准化流程
+- [深入了解 COM（Component Object Model）](https://cloaks.cn/blog/posts/2025/02/21/)：深入了解微软 COM（Component Object Model）组件对象模型的背景、核心概念、工作原理及应用场景。
+- [使用 C++ 实现 COM 组件的示例](https://cloaks.cn/blog/posts/2025/02/21-1/)：使用 C++ 实现 COM 组件的示例，涵盖接口定义、组件实现、引用计数和对象创建等核心概念。
+- [项目管理必备的 8 个核心文档](https://cloaks.cn/blog/posts/2024/08/05/)：项目管理必备的 8 个核心文档详解：商业案例、项目章程、项目管理计划、工作分解结构、风险登记册、状态报告、经验教训报告和项目结束文件。
+- [XML 读书笔记](https://cloaks.cn/blog/posts/2024/07/20/)：XML 规范详解，涵盖 XML 声明、标记语法、CDATA 段、属性、命名空间以及 DTD 文档类型定义等核心知识点。
+- [大数据平台层级结构](https://cloaks.cn/blog/posts/2024/04/12-2/)：大数据平台层级架构详解，深入理解 ODS 原始数据层、数据仓库（基础层、主题层、数据集市）和数据应用层的设计与功能。
+- [指标体系搭建方法论](https://cloaks.cn/blog/posts/2024/04/12-1/)：数据指标体系搭建方法论详解，涵盖 OSM 模型、AARRR 海盗模型、人货场分析模型等主流框架，帮助你构建科学的数据分析体系。
+- [Java 线程编程详解](https://cloaks.cn/blog/posts/2023/02/27/)：Java 线程编程详解，包含进程与线程的区别、线程生命周期、三种创建线程的方式（Runnable、Thread、Callable）以及 ThreadLocal 的使用。
+- [工控系统网络安全：纵深防御策略](https://cloaks.cn/blog/posts/2023/01/26/)：深入探讨工控系统面临的网络安全挑战，以及如何采取纵深防御策略来提升关键基础设施的安全防护能力。
+- [Java 日期格式化详解](https://cloaks.cn/blog/posts/2023/01/03/)：Java 中日期格式化的完整指南，详细介绍 DateFormat 和 SimpleDateFormat 类的使用方法及常见格式化模式。
+
+## 站点页面索引
+
+### 知识库
+
+- [概览](https://cloaks.cn/knowledge/index/)
+- [技术能力/概览](https://cloaks.cn/knowledge/tech/index/)：编程语言、区块链、架构设计、云原生、网络协议、数据存储、测试工程 — 最核心的硬技能沉淀
+- [技术能力/Go](https://cloaks.cn/knowledge/tech/languages/go/index/)：Go 语言深度使用经验：并发编程、网络编程、类型系统、工具链
+- [技术能力/Java](https://cloaks.cn/knowledge/tech/languages/java/index/)：Java 后端开发经验：Spring 生态、JVM 调优、设计模式实战
+- [技术能力/Python](https://cloaks.cn/knowledge/tech/languages/python/index/)：Python 脚本工具、数据分析、自动化
+- [技术能力/区块链](https://cloaks.cn/knowledge/tech/blockchain/index/)：共识算法、智能合约、分布式账本、ChainMaker 区块链架构
+- [技术能力/架构设计](https://cloaks.cn/knowledge/tech/architecture/index/)：分布式系统、微服务、设计模式、系统设计实践
+- [技术能力/云原生](https://cloaks.cn/knowledge/tech/cloud-native/index/)：Docker、Kubernetes、CI/CD、容器化实践
+- [技术能力/网络协议](https://cloaks.cn/knowledge/tech/network/index/)：TCP/IP、HTTP/2、gRPC、网络编程与抓包分析
+- [技术能力/数据存储](https://cloaks.cn/knowledge/tech/storage/index/)：MySQL 索引优化、Redis 数据结构、MongoDB 使用场景
+- [技术能力/测试工程](https://cloaks.cn/knowledge/tech/testing/index/)：单元测试、集成测试、性能测试、TDD/BDD
+- [工程实践/概览](https://cloaks.cn/knowledge/engineering/index/)：项目复盘、踩坑记录、性能优化、代码审查 —— 从真实项目中提取的可复用经验
+- [工程实践/代码评审](https://cloaks.cn/knowledge/engineering/code-review/index/)：CR 清单、常见问题、高效审查方法
+- [工程实践/性能优化](https://cloaks.cn/knowledge/engineering/performance/index/)：性能分析工具、瓶颈定位、优化案例
+- [工程实践/踩坑记录](https://cloaks.cn/knowledge/engineering/pitfalls/index/)：生产事故、疑难 bug、配置错误及解决方案
+- [工程实践/复盘总结](https://cloaks.cn/knowledge/engineering/retrospectives/index/)：重要项目回顾：目标、过程、收获、改进点
+- [思维方法/概览](https://cloaks.cn/knowledge/thinking/index/)：学习方法论、问题拆解、决策框架、系统思维 —— 元能力的系统化
+- [思维方法/决策方法](https://cloaks.cn/knowledge/thinking/decision-making/index/)：技术选型矩阵、成本收益分析、假设驱动决策
+- [思维方法/学习方法](https://cloaks.cn/knowledge/thinking/learning/index/)：费曼学习法、间隔重复、主题阅读、知识内化
+- [思维方法/问题解决](https://cloaks.cn/knowledge/thinking/problem-solving/index/)：5 Why、鱼骨图、MECE 原则、第一性原理
+- [思维方法/系统思维](https://cloaks.cn/knowledge/thinking/systems-thinking/index/)：反馈循环、杠杆点、涌现、存量和流量
+- [思维方法/AI 业务落地](https://cloaks.cn/knowledge/thinking/ai-implementation/index/)：AI 落地的工程化方法论：规则边界、数据埋点、黄金样本、反馈闭环
+- [思维方法/有效汇报](https://cloaks.cn/knowledge/thinking/effective-reporting/)：从内容设计和表达技巧两个维度，系统性地提升汇报能力，让领导听懂、认可并支持你的方案。
+- [领域知识/概览](https://cloaks.cn/knowledge/domain/index/)：区块链行业洞察、金融与投资、经济学 —— 对所深耕领域的深度理解
+- [领域知识/区块链产业](https://cloaks.cn/knowledge/domain/blockchain-industry/index/)：Web3 生态、联盟链 vs 公链、监管政策、落地案例
+- [领域知识/经济学](https://cloaks.cn/knowledge/domain/economics/index/)：宏观经济学、货币理论、经济周期、博弈论
+- [领域知识/金融学](https://cloaks.cn/knowledge/domain/finance/index/)：资产配置、价值投资、技术分析、风险管理
+- [人文素养/概览](https://cloaks.cn/knowledge/humanities/index/)：读书笔记、写作、哲学思考 —— 技术之外的知识滋养与精神基建
+- [人文素养/哲学](https://cloaks.cn/knowledge/humanities/philosophy/index/)：技术伦理、人生意义、自由意志、存在与时间
+- [人文素养/阅读](https://cloaks.cn/knowledge/humanities/reading/index/)：技术书、社科书、文学书的读书摘要与感悟
+- [人文素养/写作](https://cloaks.cn/knowledge/humanities/writing/index/)：技术写作方法论、博客维护心得、写作习惯养成
+- [工具与效率/概览](https://cloaks.cn/knowledge/tools/index/)：开发工具、效率方法论、自动化脚本 —— 把自己从重复劳动中解放出来
+- [工具与效率/自动化](https://cloaks.cn/knowledge/tools/automation/index/)：Shell 脚本、Python 工具、Alfred/快捷指令
+- [工具与效率/开发工具](https://cloaks.cn/knowledge/tools/dev-tools/index/)：VS Code、JetBrains、Git、终端配置与使用技巧
+- [工具与效率/效率提升](https://cloaks.cn/knowledge/tools/productivity/index/)：GTD、番茄钟、深度工作、知识管理系统
+- [职业发展/概览](https://cloaks.cn/knowledge/career/index/)：面试准备、软技能、技术管理 —— 职业道路上的导航地图和工具箱
+- [职业发展/面试求职](https://cloaks.cn/knowledge/career/interview/index/)：算法题、系统设计面试、行为问题准备
+- [职业发展/软技能](https://cloaks.cn/knowledge/career/soft-skills/index/)：沟通、演讲、文档、协作、冲突处理
+- [职业发展/技术领导力](https://cloaks.cn/knowledge/career/tech-leadership/index/)：Tech Lead 职责、1-on-1、团队建设、技术规划
+
+### 学习笔记
+
+- [软考·架构师](https://cloaks.cn/ruankao/index/)
+- [软考·架构师/基础知识](https://cloaks.cn/ruankao/basics%20computer/index/)
+- [软考·架构师/基础知识](https://cloaks.cn/ruankao/basics%20embedded/index/)
+- [软考·架构师/基础知识](https://cloaks.cn/ruankao/basics%20network/index/)
+- [软考·架构师/基础知识](https://cloaks.cn/ruankao/basics%20enterprise-informatization/index/)
+- [软考·架构师/基础知识](https://cloaks.cn/ruankao/basics%20information%20security/index/)
+- [软考·架构师/基础知识](https://cloaks.cn/ruankao/basics%20system%20engineering/index/)
+- [软考·架构师/基础知识](https://cloaks.cn/ruankao/basics%20software%20engineering/index/)
+- [软考·架构师/基础知识](https://cloaks.cn/ruankao/basics%20database-design/index/)
+- [软考·架构师/基础知识](https://cloaks.cn/ruankao/basics%20intellectual%20property%20rights/index/)
+- [软考·架构师/中级知识](https://cloaks.cn/ruankao/medium%20software%20architecture/index/)
+- [软考·架构师/中级知识](https://cloaks.cn/ruankao/medium%20system-quality-attributes-and-architecture-assessment/index/)
+- [软考·架构师/中级知识](https://cloaks.cn/ruankao/medium%20reliability/index/)
+- [软考·架构师/中级知识](https://cloaks.cn/ruankao/medium%20software%20architecture%20evolution/index/)
+- [软考·架构师/中级知识](https://cloaks.cn/ruankao/medium%20future/index/)
+- [软考·架构师/高级知识](https://cloaks.cn/ruankao/advanced%20information-system-architecture/index/)
+- [软考·架构师/高级知识](https://cloaks.cn/ruankao/advanced%20hierarchical/index/)
+- [软考·架构师/高级知识](https://cloaks.cn/ruankao/advanced%20cloud-native/index/)
+- [软考·架构师/高级知识](https://cloaks.cn/ruankao/advanced%20service-oriented/index/)
+- [软考·架构师/高级知识](https://cloaks.cn/ruankao/advanced%20embedded/index/)
+- [软考·架构师/高级知识](https://cloaks.cn/ruankao/advanced%20communication%20system/index/)
+- [软考·架构师/高级知识](https://cloaks.cn/ruankao/advanced%20security%20architecture/index/)
+- [软考·架构师/高级知识](https://cloaks.cn/ruankao/advanced%20web/index/)
+- [软考·架构师/论文写作](https://cloaks.cn/ruankao/paper/index/)
+- [设计模式](https://cloaks.cn/design-patterns/index/)
+- [设计模式/创建型模式](https://cloaks.cn/design-patterns/creational-patterns/singleton/index/)
+- [设计模式/创建型模式](https://cloaks.cn/design-patterns/creational-patterns/prototype/index/)
+- [设计模式/创建型模式](https://cloaks.cn/design-patterns/creational-patterns/factory/index/)
+- [设计模式/创建型模式](https://cloaks.cn/design-patterns/creational-patterns/abstract-factory/index/)
+- [设计模式/创建型模式](https://cloaks.cn/design-patterns/creational-patterns/builder/index/)
+- [设计模式/结构型模式](https://cloaks.cn/design-patterns/structural-patterns/adapter/index/)
+- [设计模式/结构型模式](https://cloaks.cn/design-patterns/structural-patterns/facade/index/)
+- [设计模式/结构型模式](https://cloaks.cn/design-patterns/structural-patterns/composite/index/)
+- [设计模式/结构型模式](https://cloaks.cn/design-patterns/structural-patterns/proxy/index/)
+- [设计模式/结构型模式](https://cloaks.cn/design-patterns/structural-patterns/decorator/index/)
+- [设计模式/结构型模式](https://cloaks.cn/design-patterns/structural-patterns/bridge/index/)
+- [设计模式/结构型模式](https://cloaks.cn/design-patterns/structural-patterns/flyweight/index/)
+- [设计模式/行为模式](https://cloaks.cn/design-patterns/behavioral-patterns/template-method/index/)
+- [设计模式/行为模式](https://cloaks.cn/design-patterns/behavioral-patterns/state/index/)
+- [设计模式/行为模式](https://cloaks.cn/design-patterns/behavioral-patterns/strategy/index/)
+- [设计模式/行为模式](https://cloaks.cn/design-patterns/behavioral-patterns/chain-of-responsibility/index/)
+- [设计模式/行为模式](https://cloaks.cn/design-patterns/behavioral-patterns/command/index/)
+- [设计模式/行为模式](https://cloaks.cn/design-patterns/behavioral-patterns/observer/index/)
+- [设计模式/行为模式](https://cloaks.cn/design-patterns/behavioral-patterns/mediator/index/)
+- [设计模式/行为模式](https://cloaks.cn/design-patterns/behavioral-patterns/visitor/index/)
+- [设计模式/行为模式](https://cloaks.cn/design-patterns/behavioral-patterns/iterator/index/)
+- [设计模式/行为模式](https://cloaks.cn/design-patterns/behavioral-patterns/memento/index/)
+
+### 实验室
+
+- [概览](https://cloaks.cn/lab/index/)
+- [Workbench 项目](https://cloaks.cn/lab/project/index/)：从零到一做一个个人开发工作台，把文件浏览、Todo 看板、用户管理揉进一个 Go + SQLite 的二进制里。聊聊这半年踩过的坑和想明白的事。
+- [示例代码](https://cloaks.cn/lab/examples/index/)：博客全部可运行示例代码的目录：example/ 路径与文章同构（YYYY/MM/DD-序号），每个示例标注对应文章、源码位置与运行命令，go build / vet / race 全绿。
+- [电子书](https://cloaks.cn/lab/ebooks/index/)：实验室电子书架：技术书籍与文档的 PDF 原件入库，站点直接伺服，在线阅读、下载均可，链接永不过期。首本：xv6 教学操作系统书（RISC-V 版 rev3）。
+- [zsh 一键安装](https://cloaks.cn/lab/tools/zsh-setup/)：一行 curl 装好 zsh + oh-my-zsh + 自动建议/语法高亮/fzf：脚本怎么做到非交互、幂等、可降级，附三个使用场景与 ZSH 变量劫持踩坑实录。
+
+### 博客
+
+- [博客](https://cloaks.cn/blog/index/)
+
+### 其他
+
+- [首页](https://cloaks.cn/index/)
+- [关于我](https://cloaks.cn/about/)：写给新读者的自我介绍：一个做区块链底层的 Go 工程师，为什么在机器的秩序里写字——我是谁、为什么写字，以及这个站一半流动一半沉淀。

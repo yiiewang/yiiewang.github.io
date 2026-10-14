@@ -137,7 +137,13 @@ def _parse_post(path: Path, blog_root: Path) -> dict | None:
     date = str(date)[:10] if date else ""
 
     rel = path.relative_to(blog_root)
-    url = rel.with_suffix("").as_posix() + "/"
+    stem = rel.with_suffix("").as_posix()
+    # docs 下名为 index.md 的文章，Zensical 目录 URL 是其所在目录
+    # （如 posts/2023/04/07/index.md → /blog/posts/2023/04/07/），
+    # 不剥掉 /index 会生成 404 链接
+    if stem.endswith("/index"):
+        stem = stem[: -len("/index")]
+    url = stem + "/"
 
     desc = " ".join(str(meta.get("description") or "").split())
     if len(desc) > _DESC_LIMIT:
