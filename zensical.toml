@@ -294,6 +294,10 @@ nav = [
       {"第一章 天下未定，先识其人" = "novel/volume-1/chapter-01.md"},
       {"第二章 一斗粮的账" = "novel/volume-1/chapter-02.md"},
     ]},
+    {"分幕归档" = [
+      {"第一章 天下未定，先识其人" = "novel/volume-1/outlines/ch01.md"},
+      {"第二章 一斗粮的账" = "novel/volume-1/outlines/ch02.md"},
+    ]},
   ]},
   {"实验室" = [
     {"概览" = "lab/index.md"},
