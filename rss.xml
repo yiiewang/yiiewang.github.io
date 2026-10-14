@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 由 scripts/gen_seo.py 生成，勿手改 -->
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>Cloaks｜Yiiewang</title>
+  <link>https://cloaks.cn/</link>
+  <description>Cloaks｜Yiiewang 的个人站点 —— 博客记录思考过程，知识库沉淀能力体系。涵盖技术、工程实践、思维方法、领域知识、人文素养、工具效率和职业发展七大能力域。欢迎浏览、搜索和留言讨论。</description>
+  <language>zh-CN</language>
+  <lastBuildDate>Wed, 14 Oct 2026 05:24:30 GMT</lastBuildDate>
+  <atom:link href="https://cloaks.cn/rss.xml" rel="self" type="application/rss+xml"/>
+  <item>
+    <title>一个跨链事件的旅程：3 个子事件，恰好 1 次 Commit</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/12/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/12/</guid>
+    <pubDate>Mon, 12 Oct 2026 00:00:00 GMT</pubDate>
+    <description>以 TestE2E_MultiSubEvent_CommitOnce 为主线，逐行追踪跨链网关里一个跨链事件的完整旅程：文本解析、落库、子链执行、应答并发汇聚到恰好一次 Commit，拆解 commitGuard 原子占位如何驯服 che…</description>
+    <category>ChainMaker</category>
+    <category>Go</category>
+    <category>跨链</category>
+    <category>两阶段提交</category>
+    <category>并发</category>
+  </item>
+  <item>
+    <title>事件驱动入门：从“A 调 B”到手写一个事件总线</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/09-2/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/09-2/</guid>
+    <pubDate>Fri, 09 Oct 2026 00:00:00 GMT</pubDate>
+    <description>写给没接触过事件驱动的人：从“A 调 B 调 C”的痛点出发，手写一个 20 行的事件总线，再一步步加上异步、Hook，最后用 ChainMaker 跨链两阶段提交收尾。</description>
+    <category>Go</category>
+    <category>事件驱动</category>
+    <category>事件总线</category>
+    <category>Hook</category>
+    <category>ChainMaker</category>
+  </item>
+  <item>
+    <title>长安链 SDK-Go：从跑通到用对</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/09-1/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/09-1/</guid>
+    <pubDate>Fri, 09 Oct 2026 00:00:00 GMT</pubDate>
+    <description>长安链 SDK-Go 从跑通到用对的完整指南，涵盖身份与配置、合约调用、多方签名、请求与响应、订阅优化及归档；保留四组演示、版本变更与配置和接口速查，厘清 Go 应用接入链时的关键边界。</description>
+    <category>ChainMaker</category>
+    <category>Go</category>
+    <category>SDK</category>
+    <category>订阅</category>
+    <category>归档</category>
+  </item>
+  <item>
+    <title>把《国富论》第一章读成一张盈利地图</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/05/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/05/</guid>
+    <pubDate>Mon, 05 Oct 2026 00:00:00 GMT</pubDate>
+    <description>把《国富论》第一章「论分工」读成一张盈利地图：分工三原因与制针推演、农业为什么是分工的边界、红利外溢链条，以及两个自己的观点——环节创业论（扮演好一个环节即可盈利）与框架盈利论（不做事，做让人做事的底座，利润=费率×流量，存活线是单次获益…</description>
+    <category>国富论</category>
+    <category>亚当·斯密</category>
+    <category>分工</category>
+    <category>读书笔记</category>
+    <category>创业</category>
+    <category>商业模式</category>
+  </item>
+  <item>
+    <title>当一家钢厂开始建城：县域支柱民企的创业、管理与未来</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/05-3/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/05-3/</guid>
+    <pubDate>Mon, 05 Oct 2026 00:00:00 GMT</pubDate>
+    <description>一家县城支柱民企从建厂到「建城」的完整推演：早期拿地扩产与用工稳定的张力、中期用整村帮扶降低各种摩擦成本、后期把关系项目化台账化；以及共生何时滑向寄生、公共资产何时被实操成企业可控资产——六个可核查判据与一组 IF-THEN 结论。</description>
+    <category>企业研究</category>
+    <category>政商关系</category>
+    <category>区域经济</category>
+    <category>治理</category>
+    <category>隐形地主</category>
+  </item>
+  <item>
+    <title>把《国富论》第五章读成一把会漂移的秤</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/05-2/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/05-2/</guid>
+    <pubDate>Mon, 05 Oct 2026 00:00:00 GMT</pubDate>
+    <description>财富用什么记账？《国富论》第五章给财富找秤：真实的秤是劳动，日常的秤是货币，而秤本身会漂移。读后展开两个自己的观点——投资超额收益是变相延寿，房贷是这个时代的主租约，本质是与计价单位对赌。</description>
+    <category>国富论</category>
+    <category>亚当·斯密</category>
+    <category>劳动价值论</category>
+    <category>真实价格与名义价格</category>
+    <category>房贷</category>
+    <category>通胀</category>
+    <category>读书笔记</category>
+  </item>
+  <item>
+    <title>把《国富论》二三四章读成一套传动系统</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/05-1/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/05-1/</guid>
+    <pubDate>Mon, 05 Oct 2026 00:00:00 GMT</pubDate>
+    <description>《国富论》二三四章读后：交换是天性、市场范围限定分工、货币是演化的产物。用传动系统串起三章因果链，并展开三个自己的观点——交换是天生流量入口、市场半径决定分工半径、铸币是信任外包的第一步。</description>
+    <category>国富论</category>
+    <category>亚当·斯密</category>
+    <category>交换</category>
+    <category>货币</category>
+    <category>读书笔记</category>
+    <category>商业模式</category>
+    <category>区块链</category>
+  </item>
+  <item>
+    <title>「活钱」作战手册：把货殖列传翻译给现代人看</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/02/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/02/</guid>
+    <pubDate>Fri, 02 Oct 2026 00:00:00 GMT</pubDate>
+    <description>把《货殖列传》的「活钱」哲学翻译成现代作战手册：无息币对应现金流管理与 CCC，旱则资舟对应逆周期左侧布局，逐什一之利对应薄利快周转的复购生意。落到个人、开店、企业、投资四个场景，每条附可执行的自检指标。</description>
+    <category>货殖列传</category>
+    <category>现金流</category>
+    <category>库存周转</category>
+    <category>逆向投资</category>
+    <category>现金流管理</category>
+    <category>实战指南</category>
+  </item>
+  <item>
+    <title>三句话，三块仪表盘：用现代数据验证范蠡的周期模型</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/02-2/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/02-2/</guid>
+    <pubDate>Fri, 02 Oct 2026 00:00:00 GMT</pubDate>
+    <description></description>
+    <category>货殖列传</category>
+    <category>范蠡</category>
+    <category>数据验证</category>
+  </item>
+  <item>
+    <title>三句话，一个闭环：范蠡经商智慧的周期模型</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/02-1/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/02-1/</guid>
+    <pubDate>Fri, 02 Oct 2026 00:00:00 GMT</pubDate>
+    <description>把范蠡的经商智慧收拢成一个周期思维模型：钱不能停、货不能烂、人弃我取三句话如何构成一个循环，以及「定趋势→抓执行→稳运营→会退出→等下一轮」的执行闭环，为什么断一环就失效。</description>
+    <category>货殖列传</category>
+    <category>范蠡</category>
+    <category>周期</category>
+    <category>逆向投资</category>
+    <category>思维模型</category>
+  </item>
+  <item>
+    <title>锁外回调、队列锁、分片锁：一句追问引出的死锁预防链</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/01/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/01/</guid>
+    <pubDate>Thu, 01 Oct 2026 00:00:00 GMT</pubDate>
+    <description>回应《不用堆的延迟队列》里那句「锁外回调」的追问：把队列锁、分片锁、ABBA 死锁讲透，再按代价排开五级手段（锁排序／锁外回调／TryLock 回退／不可重入拆变体／atomic 不可变），最后复盘那条「锁外回调→Cleanup 不持锁→…</description>
+    <category>Go</category>
+    <category>并发编程</category>
+    <category>锁</category>
+    <category>死锁</category>
+    <category>源码阅读</category>
+  </item>
+  <item>
+    <title>《史记·货殖列传》精讲：两千年前把市场规律说透的一篇文章</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/01-1/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/01-1/</guid>
+    <pubDate>Thu, 01 Oct 2026 00:00:00 GMT</pubDate>
+    <description>《史记·货殖列传》精讲：逐段对照原文与白话，拆解司马迁的经济哲学——善者因之、天下熙熙、贵上极则反贱、无财作力少有斗智既饶争时，并引申亚当·斯密、奥派经济学、行为金融与康波周期等现代理论互证，看两千年前这篇「经济列传」如何把市场规律说透。</description>
+    <category>史记</category>
+    <category>货殖列传</category>
+    <category>经济思想</category>
+    <category>读书笔记</category>
+    <category>逆向投资</category>
+  </item>
+  <item>
+    <title>队列的内存演进史：从链表到 [][]string 的五个台阶</title>
+    <link>https://cloaks.cn/blog/posts/2026/09/30/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/09/30/</guid>
+    <pubDate>Wed, 30 Sep 2026 00:00:00 GMT</pubDate>
+    <description>从链表、单一 slice、环形缓冲到分段切片，五个台阶讲清队列的内存演进：每一步解决上一步的什么痛点，Go channel、Linux kfifo、Disruptor、Go GC workbuf 各自站在哪级台阶上。读完看懂 delay_…</description>
+    <category>Go</category>
+    <category>数据结构</category>
+    <category>队列</category>
+    <category>内存管理</category>
+    <category>源码阅读</category>
+  </item>
+  <item>
+    <title>一个交集，三种写法：分片缺失交易查询的三版演进</title>
+    <link>https://cloaks.cn/blog/posts/2026/09/29/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/09/29/</guid>
+    <pubDate>Tue, 29 Sep 2026 00:00:00 GMT</pubDate>
+    <description>分片系统里查"所有分片都缺失的交易"，本质是求交集。用同一个单测例子拆解三版实现——删除法、重建法、计数法，结果一致表达各异，说说计数法为什么胜出，顺带算清效率账与真正的瓶颈。</description>
+    <category>Go</category>
+    <category>数据结构</category>
+    <category>集合运算</category>
+    <category>分片</category>
+    <category>代码可读性</category>
+  </item>
+  <item>
+    <title>不用堆的延迟队列：一条决策链，和链上炸出的 panic</title>
+    <link>https://cloaks.cn/blog/posts/2026/09/29-3/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/09/29-3/</guid>
+    <pubDate>Tue, 29 Sep 2026 00:00:00 GMT</pubDate>
+    <description>拆解一个不用堆的 TTL 延迟队列：凭什么 O(1)（2.35µs vs 117ms 实测）、只看队首为什么不会漏（反证）、内存结构让位姊妹篇后深挖 Cleanup 路径实测炸出的 makeslice panic 与测试盲区，并发设计三段…</description>
+    <category>Go</category>
+    <category>并发编程</category>
+    <category>延迟队列</category>
+    <category>数据结构</category>
+    <category>atomic</category>
+    <category>内存管理</category>
+  </item>
+  <item>
+    <title>从全量遍历到 O(1)：跨链交易追踪器的三次手术与两处隐患</title>
+    <link>https://cloaks.cn/blog/posts/2026/09/29-2/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/09/29-2/</guid>
+    <pubDate>Tue, 29 Sep 2026 00:00:00 GMT</pubDate>
+    <description>跨链 SDK 的交易追踪表做三次手术：分片锁、双向索引、延迟队列清理，读写清理全 O(1)；再用 Go 内存模型审计终版代码，挖出两处隐患——清理与绑定的 TOCTOU 竞态、失败路径不回滚的真泄漏。顺带拆 typed nil 与 hoo…</description>
+    <category>Go</category>
+    <category>并发编程</category>
+    <category>分片</category>
+    <category>延迟队列</category>
+    <category>内存模型</category>
+    <category>跨链</category>
+  </item>
+  <item>
+    <title>atomic.Value 存接口为什么会 panic：装箱惯用法拆解</title>
+    <link>https://cloaks.cn/blog/posts/2026/09/29-1/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/09/29-1/</guid>
+    <pubDate>Tue, 29 Sep 2026 00:00:00 GMT</pubDate>
+    <description>atomic.Value 首次 Store 固定具体类型，存接口值时不同实现是不同类型，热更新一切换就 panic。拆解 ChainMaker 分片计算器的 shardCalculatorBox 装箱惯用法：固定外壳，内藏接口。</description>
+    <category>Go</category>
+    <category>并发编程</category>
+    <category>atomic.Value</category>
+    <category>接口设计</category>
+    <category>热更新</category>
+  </item>
+  <item>
+    <title>xv6 学习历程 01 · Ch.1 操作系统接口：进程、fd 与管道</title>
+    <link>https://cloaks.cn/blog/posts/2026/09/18/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/09/18/</guid>
+    <pubDate>Fri, 18 Sep 2026 00:00:00 GMT</pubDate>
+    <description>xv6 学习历程第 1 篇：不进内核，先站在用户态把 Ch.1 的接口读一遍——进程抽象、fork/exec/exit/wait、文件描述符与重定向、管道，再对照 sh.c 看 shell 怎么把原语拼成命令行。</description>
+    <category>xv6</category>
+    <category>操作系统</category>
+    <category>RISC-V</category>
+    <category>读书笔记</category>
+  </item>
+  <item>
+    <title>xv6 学习历程 02 · Ch.2 操作系统组织：宏内核与第一次 ecall</title>
+    <link>https://cloaks.cn/blog/posts/2026/09/18-1/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/09/18-1/</guid>
+    <pubDate>Fri, 18 Sep 2026 00:00:00 GMT</pubDate>
+    <description>xv6 学习历程第 2 篇：进内核看组织——多路复用、隔离、交互三大需求，宏内核与微内核的分野，struct proc 进程状态机，从 entry.S 到 main 再到第一次系统调用 exec 的完整链路。</description>
+    <category>xv6</category>
+    <category>操作系统</category>
+    <category>RISC-V</category>
+    <category>读书笔记</category>
+  </item>
+  <item>
+    <title>xv6 学习历程：路线图与总索引</title>
+    <link>https://cloaks.cn/blog/posts/2026/09/17/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/09/17/</guid>
+    <pubDate>Thu, 17 Sep 2026 00:00:00 GMT</pubDate>
+    <description>xv6 学习历程的总索引：教材信息、九章学习路线图、历程清单与系列约定。正文随阅读进度逐篇发布在博客，读一章写一篇。</description>
+    <category>xv6</category>
+    <category>操作系统</category>
+    <category>RISC-V</category>
+    <category>读书笔记</category>
+  </item>
+</channel>
+</rss>
