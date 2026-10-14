@@ -1,0 +1,62 @@
+---
+title: 第一卷 · 凤阳旧事
+description: 《重塑大明之天下有数》第一卷《凤阳旧事》卷首——时间、地点、卷目标与章节目录。生存、识人、合作与规则的萌芽。
+---
+
+# 第一卷 · 凤阳旧事
+
+> **卷核心**：生存、识人、合作与规则的萌芽。
+>
+> 这一卷不急于改变天下——先把童年写得有生活气息、有冲突、有情感、有真实的成长。
+
+## 基本信息
+
+| 项 | 设定 |
+|---|---|
+| 卷名 | 凤阳旧事 |
+| 时间 | 元后至元四年（1338）起，收束于至正四年（1344）灾年（详见 [创作圣经](../bible/worldbuilding/)） |
+| 地点 | 濠州钟离县乡村 |
+| 主线 | 从柴火、农具、一斗粮的小事，长出思考方式与最早的信任 |
+
+## 卷目标
+
+1. 建立朱重八幼年的生活环境与家庭处境。
+2. 让未来的伙伴自然登场。
+3. 通过小事件表现主角的现代思维，并让想法被现实检验。
+4. 展现贫困社会中人们的实际困难。
+5. 逐步建立人物关系和早期信任。
+6. 为离开乡村、进入寺庙和漂泊生活铺垫。
+
+## 章节目录
+
+<div class="card-grid">
+
+  <a href="chapter-01/" class="card card--link card--pad card--row">
+    <div class="icon-box blue">📜</div>
+    <div class="card__body">
+      <div class="card__title">第一章 · 天下未定，先识其人</div>
+      <div class="card__desc">柴火分配与修理农具——朱重八第一次把清点、分工、记录与成本意识放进日常，也第一次看清公平、规矩和人心不是一回事。</div>
+      <div class="card__meta">
+        <span class="badge badge--success">正文已更新</span>
+        <span class="card__arrow">→</span>
+      </div>
+    </div>
+  </a>
+
+  <a href="chapter-02/" class="card card--link card--pad card--row">
+    <div class="icon-box orange">✍️</div>
+    <div class="card__body">
+      <div class="card__title">第二章 · 一斗粮的账</div>
+      <div class="card__desc">一次借粮纠纷，让「记录和讲道理」第一次失效。借粮者有难处，出借者有风险，旁观者有人情——朱重八用半斗米、折工、中人与保人，找到双方都认的解法。</div>
+      <div class="card__meta">
+        <span class="badge badge--success">正文已更新</span>
+        <span class="card__arrow">→</span>
+      </div>
+    </div>
+  </a>
+
+</div>
+
+## 卷末去向
+
+本卷将收在灾年与家庭危机（对齐至正四年旱蝗大饥疫的史实锚点）——主角离开乡村，进入皇觉寺。此后是第二阶段「寺庙与漂泊」：观察社会，认识结构性问题。
