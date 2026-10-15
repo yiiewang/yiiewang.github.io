@@ -68,6 +68,30 @@ description: 《重塑大明之天下有数》第一卷《凤阳少年》卷首�
     </div>
   </a>
 
+  <a href="chapter-04/" class="card card--link card--pad card--row">
+    <div class="icon-box teal">🍚</div>
+    <div class="card__body">
+      <div class="card__title">第四章 · 一碗谢礼</div>
+      <div class="card__desc">一盆豆糕在井台上变了形。重八想解释，陈老爹问他「她托你了吗」；坡上四张嘴四种说法，徐达去问了二丫——真相到手，反而更说不得。</div>
+      <div class="card__meta">
+        <span class="badge badge--success">正文已更新</span>
+        <span class="card__arrow">→</span>
+      </div>
+    </div>
+  </a>
+
+  <a href="chapter-05/" class="card card--link card--pad card--row">
+    <div class="icon-box amber">🫙</div>
+    <div class="card__body">
+      <div class="card__title">第五章 · 自家的米缸</div>
+      <div class="card__desc">给自家立一本账：娘的心算三日不差，集上买盐被「爱买不买」顶回，秋税压在出项最底下。灶间达成分工——吃穿的事娘管，账上的数重八盯。</div>
+      <div class="card__meta">
+        <span class="badge badge--success">正文已更新</span>
+        <span class="card__arrow">→</span>
+      </div>
+    </div>
+  </a>
+
 </div>
 
 ## 卷末去向
