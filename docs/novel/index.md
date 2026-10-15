@@ -26,23 +26,28 @@ hide:
 
 <!-- ===== Hero ===== -->
 <div class="hero">
-  <div class="hero__inner">
-    <div class="hero__eyebrow">
-      <span class="hero__eyebrow-dot"></span>
-      <span>连载中 · 朱重八的治国演义</span>
+  <div class="hero__inner" style="display:flex;align-items:center;gap:3rem;flex-wrap:wrap;justify-content:center;">
+    <div style="flex-shrink:0;">
+      <img src="../assets/images/novel-cover.png" alt="《重塑大明之天下有数》封面" style="width:260px;max-width:60vw;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.35);">
     </div>
-    <h1>📖 重塑大明之天下有数</h1>
-    <p class="hero__desc">一个现代灵魂穿越成幼年朱重八。没有系统，没有超自然能力——凭现代通识、逻辑思维与组织能力，从元末乡村的一根柴火、一斗粮开始，一步步把个人能力，锻造成一套能够持续运行的制度。</p>
-    <div class="hero__tags">
-      <span class="hero__tag">🕰️ 历史穿越</span>
-      <span class="hero__tag">👑 帝王成长</span>
-      <span class="hero__tag">🏛️ 制度改革</span>
-      <span class="hero__tag">⚔️ 战争谋略</span>
-      <span class="hero__tag">👥 群像成长</span>
-    </div>
-    <div class="hero__actions">
-      <a href="volume-1/" class="btn btn--primary">📖 开始阅读</a>
-      <a href="bible/" class="btn btn--secondary">📚 创作圣经</a>
+    <div style="flex:1;min-width:280px;text-align:left;">
+      <div class="hero__eyebrow">
+        <span class="hero__eyebrow-dot"></span>
+        <span>连载中 · 朱重八的治国演义</span>
+      </div>
+      <h1>📖 重塑大明之天下有数</h1>
+      <p class="hero__desc">一个现代灵魂穿越成幼年朱重八。没有系统，没有超自然能力——凭现代通识、逻辑思维与组织能力，从元末乡村的一根柴火、一斗粮开始，一步步把个人能力，锻造成一套能够持续运行的制度。</p>
+      <div class="hero__tags">
+        <span class="hero__tag">🕰️ 历史穿越</span>
+        <span class="hero__tag">👑 帝王成长</span>
+        <span class="hero__tag">🏛️ 制度改革</span>
+        <span class="hero__tag">⚔️ 战争谋略</span>
+        <span class="hero__tag">👥 群像成长</span>
+      </div>
+      <div class="hero__actions">
+        <a href="volume-1/" class="btn btn--primary">📖 开始阅读</a>
+        <a href="bible/" class="btn btn--secondary">📚 创作圣经</a>
+      </div>
     </div>
   </div>
 </div>
