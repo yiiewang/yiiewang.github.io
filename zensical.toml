@@ -289,10 +289,11 @@ nav = [
       {"剧情大纲" = "novel/bible/plot-outline.md"},
       {"写作规范" = "novel/bible/style-guide.md"},
     ]},
-    {"第一卷·凤阳旧事" = [
+    {"第一卷·凤阳少年" = [
       {"卷首" = "novel/volume-1/index.md"},
       {"第一章 天下未定，先识其人" = "novel/volume-1/chapter-01.md"},
       {"第二章 一斗粮的账" = "novel/volume-1/chapter-02.md"},
+      {"第三章 借米后的日子" = "novel/volume-1/chapter-03.md"},
     ]},
     {"分幕归档" = [
       {"第一章 天下未定，先识其人" = "novel/volume-1/outlines/ch01.md"},

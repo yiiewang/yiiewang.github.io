@@ -1,11 +1,11 @@
 ---
-title: 第一卷 · 凤阳旧事
-description: 《重塑大明之天下有数》第一卷《凤阳旧事》卷首——时间、地点、卷目标与章节目录。生存、识人、合作与规则的萌芽。
+title: 第一卷 · 凤阳少年
+description: 《重塑大明之天下有数》第一卷《凤阳少年》卷首——规模、时间、卷目标与章节目录。先活下来，再看清人心。
 ---
 
-# 第一卷 · 凤阳旧事
+# 第一卷 · 凤阳少年
 
-> **卷核心**：生存、识人、合作与规则的萌芽。
+> **核心主题**：先活下来，再看清人心。
 >
 > 这一卷不急于改变天下——先把童年写得有生活气息、有冲突、有情感、有真实的成长。
 
@@ -13,8 +13,9 @@ description: 《重塑大明之天下有数》第一卷《凤阳旧事》卷首�
 
 | 项 | 设定 |
 |---|---|
-| 卷名 | 凤阳旧事 |
-| 时间 | 元后至元四年（1338）起，收束于至正四年（1344）灾年（详见 [创作圣经](../bible/worldbuilding/)） |
+| 卷名 | 凤阳少年 |
+| 规模 | 以 70 章为目标（60-80 可调），先落实前 12 章因果关系 |
+| 时间 | 元后至元四年（1338）起；收束走向按史实时间线确定（详见 [创作圣经](../bible/worldbuilding/)） |
 | 地点 | 濠州钟离县乡村 |
 | 主线 | 从柴火、农具、一斗粮的小事，长出思考方式与最早的信任 |
 
@@ -48,6 +49,18 @@ description: 《重塑大明之天下有数》第一卷《凤阳旧事》卷首�
     <div class="card__body">
       <div class="card__title">第二章 · 一斗粮的账</div>
       <div class="card__desc">一次借粮纠纷，让「记录和讲道理」第一次失效。借粮者有难处，出借者有风险，旁观者有人情——朱重八用半斗米、折工、中人与保人，找到双方都认的解法。</div>
+      <div class="card__meta">
+        <span class="badge badge--success">正文已更新</span>
+        <span class="card__arrow">→</span>
+      </div>
+    </div>
+  </a>
+
+  <a href="chapter-03/" class="card card--link card--pad card--row">
+    <div class="icon-box violet">🌾</div>
+    <div class="card__body">
+      <div class="card__title">第三章 · 借米后的日子</div>
+      <div class="card__desc">借米事毕，两缕炊烟照旧升起：坡上分一块糠饼，井台听两轮闲话，娘的一笔账，和一盆被流言先行一步的豆糕——解决了一件大事，事情却没有完。</div>
       <div class="card__meta">
         <span class="badge badge--success">正文已更新</span>
         <span class="card__arrow">→</span>

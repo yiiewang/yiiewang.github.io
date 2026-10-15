@@ -94,8 +94,8 @@ hide:
   <a href="volume-1/" class="card card--link card--pad card--row">
     <div class="icon-box orange">📖</div>
     <div class="card__body">
-      <div class="card__title">第一卷 · 凤阳旧事</div>
-      <div class="card__desc">生存、识人、合作与规则的萌芽。从柴火、农具、一斗粮这些小事里，长出一个孩子完整的思考方式。</div>
+      <div class="card__title">第一卷 · 凤阳少年</div>
+      <div class="card__desc">先活下来，再看清人心。借米之后的日子、村中生计、渐渐逼近的时代——从柴火、农具、一斗粮的小事里，长出思考方式与最早的信任。</div>
       <div class="card__meta">
         <span class="badge badge--success">连载中</span>
         <span class="card__arrow">→</span>
