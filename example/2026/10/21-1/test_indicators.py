@@ -22,6 +22,7 @@ from indicators import (
     ma,
     ma_cohesion,
     macd,
+    macd_divergence,
     macd_signals,
     ma_signals,
     volume_ratio,
@@ -295,6 +296,53 @@ class DrawdownTest(unittest.TestCase):
     def test_new_high_resets(self):
         close = pd.Series([100.0, 120.0, 90.0, 130.0])
         self.assertAlmostEqual(drawdown(close).iloc[-1], 0.0)
+
+
+class MacdDivergenceTest(unittest.TestCase):
+    def _rally_then_spike(self):
+        """急涨创高 -> 深回调 -> 短促冲高（末根唯一新高，DIF 未恢复）。"""
+        return pd.Series(
+            [100.0] * 20                                    # 预热横盘
+            + [100.0 + 2.0 * i for i in range(1, 11)]       # 急涨 102..120
+            + [120.0 - 2.0 * i for i in range(1, 13)]       # 深回调 118..96
+            + [100.0, 106.0, 113.0, 121.0]                  # 短促冲高，末根新高
+        )
+
+    def test_bear_divergence_on_new_high_with_weak_dif(self):
+        close = self._rally_then_spike()
+        dif, _, _ = macd(close)
+        # 前置条件：冲高末根价格新高但 DIF 低于第一波峰值
+        self.assertGreater(close.iloc[-1], 120.0)
+        self.assertLess(dif.iloc[-1], dif.iloc[29], "构造前提：DIF 未恢复到第一波峰值")
+        bear, _ = macd_divergence(close, dif, window=20)
+        self.assertTrue(bear.iloc[-1], "价格新高+动能未新高应检出顶背离")
+        self.assertFalse(bear.iloc[:30].any(), "第一波单调上涨中不应有背离")
+
+    def test_bull_divergence_on_new_low_with_strong_dif(self):
+        close = 200.0 - self._rally_then_spike()  # 镜像：急跌/深反弹/短促下破
+        dif, _, _ = macd(close)
+        _, bull = macd_divergence(close, dif, window=20)
+        self.assertTrue(bull.iloc[-1], "价格新低+动能未新低应检出底背离")
+
+    def test_no_divergence_in_accelerating_trend(self):
+        # 加速上涨：价格与 DIF 同步新高，不应有顶背离
+        close = pd.Series([100.0 * (1.05 ** i) for i in range(40)])
+        dif, _, _ = macd(close)
+        bear, _ = macd_divergence(close, dif, window=5)
+        self.assertFalse(bear.any())
+
+    def test_touching_prev_high_is_not_breakout(self):
+        # 触及（==）前高不算突破：横盘触及不产生高点日
+        close = pd.Series([100.0] * 10 + [90.0, 100.0] * 5)
+        dif, _, _ = macd(close)
+        bear, bull = macd_divergence(close, dif, window=3)
+        self.assertFalse(bear.any() or bull.any())
+
+    def test_mismatch_raises(self):
+        close = pd.Series([1.0, 2.0, 3.0])
+        dif = pd.Series([0.1, 0.2, 0.3], index=[0, 1, 3])
+        with self.assertRaises(ValueError):
+            macd_divergence(close, dif, 5)
 
 
 if __name__ == "__main__":

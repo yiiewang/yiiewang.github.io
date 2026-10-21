@@ -15,9 +15,10 @@
 缓存为 data/{symbol}_{period}.csv（按时间升序）：前 6 列为行情
 （date,open,close,high,low,volume），其余列由 indicators.py 计算追加——
 指标（ma5,ma10,ma20,dif,dea,hist,adx,pdi,mdi,cohesion,don_upper,don_lower,
-vol_ratio,bias10,dd）、信号（ma_5x10_signal,ma_5x20_signal,ma_10x20_signal,
-macd_signal），打开 CSV 即可直接看到金叉/死叉发生在哪一行。已存在则跳过，
---force 强制重拉。之后 analyze.py 离线读取本地缓存，不再联网。
+vol_ratio,bias10,dd,dif_pos）、信号（ma_5x10_signal,ma_5x20_signal,
+ma_10x20_signal,macd_signal）、背离事件掩码（bear_div,bull_div），打开 CSV
+即可直接看到金叉/死叉/背离发生在哪一行。已存在则跳过，--force 强制重拉。
+之后 analyze.py 离线读取本地缓存，不再联网。
 
 指标参数由命令行注入：--ma 5,20 与 --macd 12,26,9（默认值），indicators.py
 保持标准默认值不动。换参数重拉会覆盖同周期缓存。
@@ -40,6 +41,7 @@ from indicators import (
     ma,
     ma_cohesion,
     macd,
+    macd_divergence,
     macd_signals,
     ma_signals,
     volume_ratio,
@@ -172,6 +174,12 @@ def enrich(
     df["vol_ratio"] = volume_ratio(df["volume"], 5)
     df["bias10"] = bias(close, 10)
     df["dd"] = drawdown(close)
+
+    # 背离（预警事件掩码）与零轴位置（DIF>0 的市场状态）
+    bear, bull = macd_divergence(close, dif, 20)
+    df["bear_div"] = bear
+    df["bull_div"] = bull
+    df["dif_pos"] = dif > 0
     return df
 
 

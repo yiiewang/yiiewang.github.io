@@ -19,6 +19,7 @@
 - volume_ratio 量比：>1.5 放量（突破有效性确认）
 - bias         乖离率：|BIAS|>15% 预警
 - drawdown     回撤序列：底仓风控（从最高点回撤超 30% 减持）的原料
+- macd_divergence 背离检测：价格新高/新低而 DIF 未同步——趋势衰竭预警
 """
 
 from __future__ import annotations
@@ -44,6 +45,7 @@ __all__ = [
     "volume_ratio",
     "bias",
     "drawdown",
+    "macd_divergence",
 ]
 
 
@@ -283,3 +285,47 @@ def drawdown(close: pd.Series) -> pd.Series:
     底仓风控原料：从最高点回撤超过 30% 触发减持。
     """
     return close / close.cummax() - 1.0
+
+
+def macd_divergence(
+    close: pd.Series,
+    dif: pd.Series,
+    window: int = 20,
+) -> tuple[pd.Series, pd.Series]:
+    """
+    MACD 背离检测，返回 (顶背离掩码, 底背离掩码)。
+
+    - 顶背离（bear_div）：close 严格突破前 window 日新高，但 DIF 低于
+      上一个高点日的 DIF——价格新高、动能未新高，上涨衰竭预警
+    - 底背离（bull_div）：close 严格跌破前 window 日新低，但 DIF 高于
+      上一个低点日的 DIF——价格新低、动能未新低，下跌衰竭预警
+
+    实现细节：
+
+    - 极值日用 **严格大于/小于**（触及前高不算突破，否则连续新高日
+      的比较会退化为"今天 vs 昨天"）；
+    - "上一高点日的 DIF"用 ``where().ffill().shift(1)`` 三连实现：
+      高点日当天的比较对象必须是上一个高点的 DIF，不能包含当天；
+    - 前一极值不存在时（首个高点、预热区）比较结果为 False，天然
+      不产生背离；rolling 预热区（前 window-1 根）同理。
+
+    背离是预警而非操作信号：单独出现后价格仍可能延续原趋势，
+    经典用法是与金叉/死叉组成"背离 + 确认"结构。
+    """
+    if len(close) != len(dif) or not close.index.equals(dif.index):
+        raise ValueError("close 与 dif 必须等长且索引一致")
+    if window < 2:
+        raise ValueError(f"window 必须 >= 2，收到 {window}")
+
+    prev_high = close.rolling(window).max().shift(1)
+    prev_low = close.rolling(window).min().shift(1)
+    high_day = close > prev_high
+    low_day = close < prev_low
+
+    # 每天的"最近一次极值日的 DIF"；极值日当天取 shift(1) 即上一个极值
+    last_high_dif = dif.where(high_day).ffill().shift(1)
+    last_low_dif = dif.where(low_day).ffill().shift(1)
+
+    bear_div = high_day & (dif < last_high_dif)
+    bull_div = low_day & (dif > last_low_dif)
+    return bear_div, bull_div

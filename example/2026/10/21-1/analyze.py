@@ -212,6 +212,13 @@ def snapshot(df: pd.DataFrame) -> None:
             f"  {name}: {fast_label}({fast:.4g}) {arrow} {slow_label}({slow:.4g})"
             f" -> {state} (自 {since})"
         )
+    # 背离预警：最近 10 根内出现过背离则提示（预警而非操作信号）
+    if {"bear_div", "bull_div"}.issubset(df.columns):
+        recent = df.tail(10)
+        if recent["bear_div"].any():
+            print("  预警: 最近10根出现顶背离（价格新高而动能未新高）")
+        if recent["bull_div"].any():
+            print("  预警: 最近10根出现底背离（价格新低而动能未新低）")
 
 
 def signal_stats(df: pd.DataFrame) -> None:
@@ -602,6 +609,8 @@ def filter_report(df: pd.DataFrame, higher_df: pd.DataFrame | None = None) -> No
         ("ADX>=20", df["adx"] >= 20),
         ("ADX>=25", df["adx"] >= 25),
     ]
+    if "dif_pos" in df.columns:
+        filters.append(("DIF零上", df["dif_pos"]))
     if higher_df is not None:
         pair = f"MA{cols[0][2:]}x{cols[-1][2:]}" if len(cols) >= 2 else None
         for label, source in (
@@ -644,6 +653,74 @@ def filter_report(df: pd.DataFrame, higher_df: pd.DataFrame | None = None) -> No
             )
 
 
+def signal_quality_report(
+    df: pd.DataFrame, forward: int = 10, lookback: int = 10
+) -> None:
+    """
+    信号质量分析：给基线 MACD 信号打标签分组，不改变任何规则。
+
+    统一度量：信号后 forward 根收盘收益（金叉看涨、死叉看跌——
+    死叉后续为负说明卖对了）。三组对比：
+
+    - 金叉 × 零轴位置：零上金叉（趋势延续）vs 零下金叉（超跌反弹）
+    - 金叉 × 底背离前兆：前 lookback 根内出现过底背离（背离确认金叉）
+    - 死叉 × 顶背离前兆：前 lookback 根内出现过顶背离（背离确认死叉）
+
+    分析先于策略：分组有显著差异才值得升级为过滤规则。
+    """
+    required = {"macd_signal", "dif_pos", "bull_div", "bear_div"}
+    if not required.issubset(df.columns):
+        print("[信号质量] 缓存缺少背离/零轴列（--recompute 刷新），跳过")
+        return
+
+    closes = df["close"].astype(float).tolist()
+    n = len(df)
+
+    def fwd(i: int) -> float:
+        j = min(i + forward, n - 1)
+        return closes[j] / closes[i] - 1.0
+
+    def show(label: str, groups: dict[str, list[float]], good_when_up: bool) -> None:
+        print(f"  {label}:")
+        for name, rets in groups.items():
+            if not rets:
+                print(f"    {name:<18} |   0 笔")
+                continue
+            correct = sum(1 for r in rets if (r > 0) == good_when_up)
+            avg = sum(rets) / len(rets)
+            print(
+                f"    {name:<18} | {len(rets):>2} 笔"
+                f" | 正确率 {correct / len(rets):>5.1%}"
+                f" | 平均后续 {avg:+.2%}"
+            )
+
+    sig = df["macd_signal"]
+    goldens = [i for i in df.index[sig == "golden"]]
+    deaths = [i for i in df.index[sig == "death"]]
+
+    print(
+        f"[信号质量] MACD 信号打标签分组（信号后 {forward} 根收盘收益，"
+        f"不改变规则）"
+    )
+    zero_groups: dict[str, list[float]] = {"零上金叉(趋势延续)": [], "零下金叉(超跌反弹)": []}
+    div_groups: dict[str, list[float]] = {"底背离确认金叉": [], "无背离金叉": []}
+    for t in goldens:
+        zero_groups[
+            "零上金叉(趋势延续)" if bool(df["dif_pos"].iloc[t]) else "零下金叉(超跌反弹)"
+        ].append(fwd(t))
+        window = df["bull_div"].astype(bool).iloc[max(0, t - lookback): t + 1]
+        div_groups["底背离确认金叉" if window.any() else "无背离金叉"].append(fwd(t))
+
+    death_groups: dict[str, list[float]] = {"顶背离确认死叉": [], "无背离死叉": []}
+    for t in deaths:
+        window = df["bear_div"].astype(bool).iloc[max(0, t - lookback): t + 1]
+        death_groups["顶背离确认死叉" if window.any() else "无背离死叉"].append(fwd(t))
+
+    show("金叉 x 零轴位置", zero_groups, good_when_up=True)
+    show("金叉 x 底背离前兆(前10根)", div_groups, good_when_up=True)
+    show("死叉 x 顶背离前兆(前10根)", death_groups, good_when_up=False)
+
+
 def analyze(symbol: str, period: str, limit: int) -> None:
     """输出单个周期的完整分析报告。"""
     df = load(symbol, period)
@@ -670,6 +747,8 @@ def analyze(symbol: str, period: str, limit: int) -> None:
     multi_combo_report(df)
     print()
     filter_report(df, higher_df)
+    print()
+    signal_quality_report(df)
     print()
 
 
