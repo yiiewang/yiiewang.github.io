@@ -86,10 +86,56 @@ def parse_ints(arg: str, name: str, min_count: int) -> tuple[int, ...]:
     return values
 
 
+def fetch_index_raw(
+    symbol: str, period: str, start: str, end: str
+) -> pd.DataFrame | None:
+    """
+    新浪指数日线接口（东财指数接口反爬 403 时的替代）。
+
+    上证指数代码 000001 与深市股票平安银行冲突，指数必须经 --index
+    显式指定，内部映射为 sh{symbol}。周线由日线按 W-FRI 重采样
+    （open=首日、high/low=极值、close=末日、volume=求和）。
+    """
+    try:
+        raw = ak.stock_zh_index_daily(symbol=f"sh{symbol}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"[error] 指数接口失败: {exc}")
+        return None
+    df = raw.copy()
+    df["date"] = pd.to_datetime(df["date"])
+    df = df[
+        (df["date"] >= pd.to_datetime(start)) & (df["date"] <= pd.to_datetime(end))
+    ]
+    if df.empty:
+        return None
+    if period == "weekly":
+        df = (
+            df.set_index("date")
+            .resample("W-FRI")
+            .agg(
+                {
+                    "open": "first",
+                    "high": "max",
+                    "low": "min",
+                    "close": "last",
+                    "volume": "sum",
+                }
+            )
+            .dropna(subset=["close"])
+            .reset_index()
+        )
+    return df
+
+
 def fetch_raw(
-    symbol: str, period: str, start: str, end: str, adjust: str = "qfq"
+    symbol: str, period: str, start: str, end: str, adjust: str = "qfq",
+    index: bool = False,
 ) -> pd.DataFrame:
     """按周期与品种调用对应的 akshare 接口。"""
+    if index:
+        if period not in ("daily", "weekly"):
+            raise SystemExit("指数接口仅支持日线/周线（分钟线不支持）")
+        return fetch_index_raw(symbol, period, start, end)
     if period in ("daily", "weekly"):
         if is_etf(symbol):
             return ak.fund_etf_hist_em(
@@ -191,6 +237,7 @@ def fetch_and_cache(
     force: bool = False,
     ma_windows: tuple[int, ...] = (5, 10, 20),
     macd_params: tuple[int, int, int] = (12, 26, 9),
+    index: bool = False,
 ) -> Path:
     """联网拉取行情并写入本地 CSV 缓存，返回缓存路径。"""
     target = DATA_DIR / f"{symbol}_{period}.csv"
@@ -199,10 +246,10 @@ def fetch_and_cache(
         return target
 
     print(
-        f"[fetch] {symbol} period={period}"
+        f"[fetch] {symbol}{'[指数]' if index else ''} period={period}"
         f" MA={ma_windows} MACD={macd_params} ..."
     )
-    raw = fetch_raw(symbol, period, start, end)
+    raw = fetch_raw(symbol, period, start, end, index=index)
     if raw is None or raw.empty:
         raise RuntimeError("接口返回空数据，请检查证券代码与网络")
 
@@ -250,6 +297,10 @@ def main() -> None:
         description="拉取 A 股/ETF 行情并缓存为本地 CSV"
     )
     parser.add_argument("--symbol", default="562500", help="证券代码，默认 562500")
+    parser.add_argument(
+        "--index", action="store_true",
+        help="证券代码为指数（如 000001=上证指数，走新浪接口，仅日线/周线）",
+    )
     parser.add_argument(
         "--period", default="daily", choices=VALID_PERIODS, help="K 线周期"
     )
@@ -300,6 +351,7 @@ def main() -> None:
         args.force,
         ma_windows,
         macd_params,
+        index=args.index,
     )
 
 
