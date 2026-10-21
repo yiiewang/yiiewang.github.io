@@ -611,6 +611,12 @@ def filter_report(df: pd.DataFrame, higher_df: pd.DataFrame | None = None) -> No
     ]
     if "dif_pos" in df.columns:
         filters.append(("DIF零上", df["dif_pos"]))
+    if "bull_div" in df.columns:
+        # 前 10 根内出现过底背离才允许开火（标签分析 5/5 源有信息量后升级）
+        recent_div = (
+            df["bull_div"].astype(bool).rolling(10, min_periods=1).max().astype(bool)
+        )
+        filters.append(("底背离前兆(10根)", recent_div))
     if higher_df is not None:
         pair = f"MA{cols[0][2:]}x{cols[-1][2:]}" if len(cols) >= 2 else None
         for label, source in (
@@ -654,71 +660,91 @@ def filter_report(df: pd.DataFrame, higher_df: pd.DataFrame | None = None) -> No
 
 
 def signal_quality_report(
-    df: pd.DataFrame, forward: int = 10, lookback: int = 10
+    df: pd.DataFrame,
+    forwards: tuple[int, ...] = (10, 20, 30),
+    lookback: int = 10,
 ) -> None:
     """
-    信号质量分析：给基线 MACD 信号打标签分组，不改变任何规则。
+    信号质量分析：所有信号源（单指标 + 双确认组合）的转多头/转空头
+    事件打标签分组，不改变任何规则。
 
-    统一度量：信号后 forward 根收盘收益（金叉看涨、死叉看跌——
-    死叉后续为负说明卖对了）。三组对比：
+    事件定义：多头掩码的翻转——转多头 = 入场事件（均线金叉或组合
+    共振入场），转空头 = 离场事件。
 
-    - 金叉 × 零轴位置：零上金叉（趋势延续）vs 零下金叉（超跌反弹）
-    - 金叉 × 底背离前兆：前 lookback 根内出现过底背离（背离确认金叉）
-    - 死叉 × 顶背离前兆：前 lookback 根内出现过顶背离（背离确认死叉）
+    度量：事件后多尺度收盘收益（默认 10/20/30 根——均线信号平均
+    持有约 46 根，单一 10 根尺度只覆盖持有期前段）；入场看涨、离场
+    看跌（离场后续为负说明卖对了），正确率按最长尺度计算。
+    末端事件的观测窗口不足时按可得长度截断（docstring 诚实记录）。
+
+    三组标签（全部信号源共用，背离/零轴为 MACD 体系概念跨源使用）：
+    - 入场 x 零轴位置：事件日 DIF 在零轴上/下
+    - 入场 x 底背离前兆：前 lookback 根内出现过底背离
+    - 离场 x 顶背离前兆：前 lookback 根内出现过顶背离
 
     分析先于策略：分组有显著差异才值得升级为过滤规则。
     """
-    required = {"macd_signal", "dif_pos", "bull_div", "bear_div"}
+    required = {"dif_pos", "bull_div", "bear_div"}
     if not required.issubset(df.columns):
         print("[信号质量] 缓存缺少背离/零轴列（--recompute 刷新），跳过")
+        return
+    bulls = signal_bulls(df)
+    cols = ma_columns(df)
+    if len(cols) >= 2 and "MACD" in bulls:
+        pair = f"MA{cols[0][2:]}x{cols[-1][2:]}"
+        if pair in bulls:
+            bulls[f"{pair}+MACD"] = bulls[pair] & bulls["MACD"]
+    if len(bulls) < 2:
+        print("[信号质量] 信号源不足，跳过")
         return
 
     closes = df["close"].astype(float).tolist()
     n = len(df)
+    dif_pos = df["dif_pos"].astype(bool)
+    bull_div = df["bull_div"].astype(bool)
+    bear_div = df["bear_div"].astype(bool)
+    main_h = forwards[-1]
 
-    def fwd(i: int) -> float:
-        j = min(i + forward, n - 1)
+    def fwd(i: int, horizon: int) -> float:
+        j = min(i + horizon, n - 1)
         return closes[j] / closes[i] - 1.0
 
-    def show(label: str, groups: dict[str, list[float]], good_when_up: bool) -> None:
-        print(f"  {label}:")
-        for name, rets in groups.items():
-            if not rets:
-                print(f"    {name:<18} |   0 笔")
-                continue
-            correct = sum(1 for r in rets if (r > 0) == good_when_up)
-            avg = sum(rets) / len(rets)
-            print(
-                f"    {name:<18} | {len(rets):>2} 笔"
-                f" | 正确率 {correct / len(rets):>5.1%}"
-                f" | 平均后续 {avg:+.2%}"
-            )
+    def has_div(div: pd.Series, t: int) -> bool:
+        return bool(div.iloc[max(0, t - lookback): t + 1].any())
 
-    sig = df["macd_signal"]
-    goldens = [i for i in df.index[sig == "golden"]]
-    deaths = [i for i in df.index[sig == "death"]]
+    def stats(idxs: list[int], good_when_up: bool) -> str:
+        if not idxs:
+            return "      0 次"
+        line = f"{len(idxs):>3} 次 |"
+        for h in forwards:
+            rets = [fwd(t, h) for t in idxs]
+            line += f" {h}根 {sum(rets) / len(rets):+.2%} |"
+        main_rets = [fwd(t, main_h) for t in idxs]
+        correct = sum(1 for r in main_rets if (r > 0) == good_when_up)
+        line += f" {main_h}根正确率 {correct / len(idxs):.1%}"
+        return line
 
+    scales = "/".join(str(h) for h in forwards)
     print(
-        f"[信号质量] MACD 信号打标签分组（信号后 {forward} 根收盘收益，"
-        f"不改变规则）"
+        f"[信号质量] 各信号源转多头/转空头事件 x 背离/零轴"
+        f"（事件后 {scales} 根收盘收益，不改变规则）"
     )
-    zero_groups: dict[str, list[float]] = {"零上金叉(趋势延续)": [], "零下金叉(超跌反弹)": []}
-    div_groups: dict[str, list[float]] = {"底背离确认金叉": [], "无背离金叉": []}
-    for t in goldens:
-        zero_groups[
-            "零上金叉(趋势延续)" if bool(df["dif_pos"].iloc[t]) else "零下金叉(超跌反弹)"
-        ].append(fwd(t))
-        window = df["bull_div"].astype(bool).iloc[max(0, t - lookback): t + 1]
-        div_groups["底背离确认金叉" if window.any() else "无背离金叉"].append(fwd(t))
-
-    death_groups: dict[str, list[float]] = {"顶背离确认死叉": [], "无背离死叉": []}
-    for t in deaths:
-        window = df["bear_div"].astype(bool).iloc[max(0, t - lookback): t + 1]
-        death_groups["顶背离确认死叉" if window.any() else "无背离死叉"].append(fwd(t))
-
-    show("金叉 x 零轴位置", zero_groups, good_when_up=True)
-    show("金叉 x 底背离前兆(前10根)", div_groups, good_when_up=True)
-    show("死叉 x 顶背离前兆(前10根)", death_groups, good_when_up=False)
+    for name, bull in bulls.items():
+        prev = bull.shift(1).fillna(False).astype(bool)
+        entries = list(df.index[bull & ~prev])
+        exits = list(df.index[~bull & prev])
+        print(f"  {name}:")
+        up = [t for t in entries if dif_pos.iloc[t]]
+        down = [t for t in entries if not dif_pos.iloc[t]]
+        print(f"    入场 x 零轴   零上: {stats(up, True)}")
+        print(f"                  零下: {stats(down, True)}")
+        with_div = [t for t in entries if has_div(bull_div, t)]
+        without = [t for t in entries if not has_div(bull_div, t)]
+        print(f"    入场 x 底背离 有前兆: {stats(with_div, True)}")
+        print(f"                  无前兆: {stats(without, True)}")
+        w = [t for t in exits if has_div(bear_div, t)]
+        wo = [t for t in exits if not has_div(bear_div, t)]
+        print(f"    离场 x 顶背离 有前兆: {stats(w, False)}")
+        print(f"                  无前兆: {stats(wo, False)}")
 
 
 def analyze(symbol: str, period: str, limit: int) -> None:
