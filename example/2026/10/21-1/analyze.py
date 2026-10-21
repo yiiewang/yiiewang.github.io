@@ -770,12 +770,16 @@ def ladder_report(df: pd.DataFrame) -> None:
     base = state_backtest(df, hold)
     ladder = ladder_backtest(df, hold, exit_on_signal=True)
     pure_trail = ladder_backtest(df, hold, exit_on_signal=False)
+    with_cooldown = ladder_backtest(
+        df, hold, exit_on_signal=True, cooldown=True
+    )
 
     print(f"[三档止盈] 同信号（{pair}+MACD）不同仓位管理对比:")
     rows = (
         ("单笔管理(金叉进死叉出)", base["trades"], base),
         ("三档+信号清仓(保守)", ladder["count"], ladder),
         ("三档纯移动止损", pure_trail["count"], pure_trail),
+        ("三档+假突破冷却协议", with_cooldown["count"], with_cooldown),
     )
     for name, trades_n, r in rows:
         wr = f"{r['win_rate'] * 100:.1f}%" if r["win_rate"] is not None else "--"

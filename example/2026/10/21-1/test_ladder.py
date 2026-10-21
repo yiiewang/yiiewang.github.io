@@ -180,5 +180,39 @@ class NoEntryWithoutSignalTest(unittest.TestCase):
         self.assertAlmostEqual(result["total_return"], 0.0)
 
 
+class CooldownProtocolTest(unittest.TestCase):
+    """连续假突破协议：止损后冷却期内不再入场，成功后计数归零。"""
+
+    def _df(self, days):
+        # 循环模式：涨两天触发建仓后回跌破 12.00 初始止损，往复
+        rows = [(12.50, 12.40, 12.50, 12.5, 12.4, 12.00)]
+        for _ in range(days):
+            rows += [
+                (12.60, 12.30, 12.70, 12.5, 12.4, 12.00),  # 建仓 S=12.00
+                (12.10, 11.80, 12.00, 12.4, 12.4, 12.00),  # 次日跳空破止损
+            ]
+        return make_df(rows)
+
+    def test_cooldown_reduces_trades(self):
+        df = self._df(6)
+        hold = pd.Series([True] * len(df))
+        without = ladder_backtest(df, hold, exit_on_signal=False)
+        with_cd = ladder_backtest(
+            df, hold, exit_on_signal=False, cooldown=True
+        )
+        # 冷却期内即使 hold 多头也不入场：轮数应少于无协议版
+        self.assertLess(with_cd["count"], without["count"])
+        # 首次止损后冷却 3 天：无协议版在第 4 天(index4)即可再入场，
+        # 协议版最早 index 1+3=4 之后——轮数差至少 1
+        self.assertGreaterEqual(without["count"], with_cd["count"] + 1)
+
+    def test_cooldown_disabled_by_default(self):
+        df = self._df(4)
+        hold = pd.Series([True] * len(df))
+        default = ladder_backtest(df, hold, exit_on_signal=False)
+        explicit = ladder_backtest(df, hold, exit_on_signal=False, cooldown=False)
+        self.assertEqual(default["count"], explicit["count"])
+
+
 if __name__ == "__main__":
     unittest.main()

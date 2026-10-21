@@ -30,14 +30,25 @@ TIER1_TAKE = 0.05  # 第一档触发浮盈
 TIER2_TAKE = 0.10  # 第二档触发浮盈
 
 
+def cooldown_days(consecutive_stops: int) -> int:
+    """连续假突破协议的冷却期（交易日）：1次3天、2次6天、3次2周、4次+1月。"""
+    return {1: 3, 2: 6, 3: 10}.get(consecutive_stops, 20)
+
+
 def ladder_backtest(
     df: pd.DataFrame,
     hold: pd.Series,
     exit_on_signal: bool = True,
+    cooldown: bool = False,
 ) -> dict:
     """
     三档阶梯止盈回测。df 需含 open/close/low/ma5/ma10/ma20 列，
     可选 bear_div 列（第二档预警条件）。
+
+    cooldown=True 启用连续假突破应对协议：止损离场视为假突破，
+    连续次数越多冷却期越长（3/6/10/20 个交易日，期间不再入场），
+    一轮成功交易（factor > 1）后计数归零——防"扫损->追回->再扫"
+    的再入场磨损。
 
     返回：
     - trades: 每轮明细 [{entry, exits(三档出场价), reason, factor}]
@@ -77,6 +88,8 @@ def ladder_backtest(
     entry_day = -1
     pending: list[str] = []
     equity_curve: list[float] = [1.0]
+    consecutive_stops = 0
+    cooldown_until = -1
 
     def round_value(price: float) -> float:
         """本轮相对价值：已减档按出场价锁定，在场档按 price 估值。"""
@@ -89,7 +102,7 @@ def ladder_backtest(
         return total / 3.0
 
     def finalize(reason: str) -> None:
-        nonlocal holding, base, equity, pending
+        nonlocal holding, base, equity, pending, consecutive_stops
         factor = sum(x / entry for x in tier_exit) / 3.0
         equity = base * factor
         trades.append(
@@ -103,6 +116,9 @@ def ladder_backtest(
         holding = False
         pending = []
         base = equity
+        # 成功交易归零连续假突破计数
+        if factor > 1.0:
+            consecutive_stops = 0
 
     def close_remaining(price: float, reason: str) -> None:
         nonlocal tier_open
@@ -119,6 +135,9 @@ def ladder_backtest(
                 close_remaining(opens[i], "signal")
             elif opens[i] <= stop > 0:
                 close_remaining(opens[i], "gap_stop")
+                if cooldown:
+                    consecutive_stops += 1
+                    cooldown_until = i + cooldown_days(consecutive_stops)
             elif pending:
                 if "t1" in pending and tier_open[0]:
                     tier_exit[0] = opens[i]
@@ -129,7 +148,7 @@ def ladder_backtest(
                 pending = []
                 if not any(tier_open):
                     finalize("tiers")
-        elif should_enter[i]:
+        elif should_enter[i] and (not cooldown or i >= cooldown_until):
             entry = opens[i]
             tier_open = [True, True, True]
             tier_exit = [None, None, None]
@@ -141,6 +160,9 @@ def ladder_backtest(
         # ---------- 盘中阶段：触价止损 ----------
         if holding and stop > 0 and opens[i] > stop and lows[i] <= stop:
             close_remaining(stop, "stop")
+            if cooldown:
+                consecutive_stops += 1
+                cooldown_until = i + cooldown_days(consecutive_stops)
 
         # ---------- 收盘阶段：判定与止损上移（次日起生效） ----------
         if holding:
