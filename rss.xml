@@ -6,7 +6,7 @@
   <link>https://cloaks.cn/</link>
   <description>Cloaks｜Yiiewang 的个人站点 —— 博客记录思考过程，知识库沉淀能力体系。涵盖技术、工程实践、思维方法、领域知识、人文素养、工具效率和职业发展七大能力域。欢迎浏览、搜索和留言讨论。</description>
   <language>zh-CN</language>
-  <lastBuildDate>Wed, 21 Oct 2026 11:02:57 GMT</lastBuildDate>
+  <lastBuildDate>Wed, 21 Oct 2026 12:44:07 GMT</lastBuildDate>
   <atom:link href="https://cloaks.cn/rss.xml" rel="self" type="application/rss+xml"/>
   <item>
     <title>确认越多越好吗？多信号金叉死叉框架的实测手记</title>
@@ -19,6 +19,18 @@
     <category>金叉死叉</category>
     <category>趋势跟踪</category>
     <category>技术分析</category>
+  </item>
+  <item>
+    <title>离开单一标的：四层验证收官手记</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/21-3/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/21-3/</guid>
+    <pubDate>Wed, 21 Oct 2026 00:00:00 GMT</pubDate>
+    <description>三部曲的每条结论都产自 562500 一只标的的五年熊窗。收官篇把它们押上四层考场：同窗母指数、两个 21.8 年全周期指数、15 个随机标的。数字大面积翻转，结构顽强存活——最终沉淀成一份实践指南：仓位管理大于信号确认。</description>
+    <category>量化策略</category>
+    <category>回测</category>
+    <category>样本外验证</category>
+    <category>风险管理</category>
+    <category>仓位管理</category>
   </item>
   <item>
     <title>网格死于单边：全天候复合系统实测手记（终章）</title>
@@ -239,19 +251,6 @@
     <category>集合运算</category>
     <category>分片</category>
     <category>代码可读性</category>
-  </item>
-  <item>
-    <title>不用堆的延迟队列：一条决策链，和链上炸出的 panic</title>
-    <link>https://cloaks.cn/blog/posts/2026/09/29-3/</link>
-    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/09/29-3/</guid>
-    <pubDate>Tue, 29 Sep 2026 00:00:00 GMT</pubDate>
-    <description>拆解一个不用堆的 TTL 延迟队列：凭什么 O(1)（2.35µs vs 117ms 实测）、只看队首为什么不会漏（反证）、内存结构让位姊妹篇后深挖 Cleanup 路径实测炸出的 makeslice panic 与测试盲区，并发设计三段…</description>
-    <category>Go</category>
-    <category>并发编程</category>
-    <category>延迟队列</category>
-    <category>数据结构</category>
-    <category>atomic</category>
-    <category>内存管理</category>
   </item>
 </channel>
 </rss>
