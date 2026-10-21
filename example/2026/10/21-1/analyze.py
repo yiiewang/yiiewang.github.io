@@ -26,6 +26,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from grid import simple_grid_backtest, switch_backtest
 from ladder import ladder_backtest
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
@@ -798,6 +799,97 @@ def ladder_report(df: pd.DataFrame) -> None:
     )
 
 
+def regime_mask(df: pd.DataFrame) -> pd.Series | None:
+    """
+    震荡判定掩码（序列版，供切换回测使用）：三条件全过为 True。
+
+    与 regime_report 同一套标准：ADX<25 且近 5 根未上行、均线粘合
+    <3%、收盘价在 Donchian 区间内。返回当日判定掩码（调用方需
+    shift(1) 保证执行无未来函数）。
+    """
+    required = {"adx", "cohesion", "don_upper", "don_lower"}
+    if not required.issubset(df.columns):
+        return None
+    adx = df["adx"]
+    adx_rising = adx > adx.shift(5)
+    cond_adx = (adx < 25.0) & ~adx_rising
+    cond_ma = df["cohesion"] < 0.03
+    close = df["close"]
+    cond_range = (df["don_lower"] <= close) & (close <= df["don_upper"])
+    return cond_adx & cond_ma & cond_range
+
+
+def grid_report(df: pd.DataFrame, higher_df: pd.DataFrame | None = None) -> None:
+    """网格与切换系统对比：纯趋势 / 纯网格 / 切换系统 / 买入持有。
+
+    附加变体：网格准入加方向过滤（高周期 MACD 多头才开网格）——
+    同一个方向过滤对趋势信号是负贡献（滞后吃趋势初段），对网格
+    准入可能是正贡献（拦住下行通道里的网格）。
+    """
+    bulls = signal_bulls(df)
+    cols = ma_columns(df)
+    if len(cols) < 2 or "MACD" not in bulls:
+        print("[网格与切换] 信号源不足，跳过")
+        return
+    pair = f"MA{cols[0][2:]}x{cols[-1][2:]}"
+    hold = bulls[pair] & bulls["MACD"]
+    rmask = regime_mask(df)
+    if rmask is None:
+        print("[网格与切换] 缓存缺少 regime 列（--recompute 刷新），跳过")
+        return
+
+    trend = state_backtest(df, hold)
+    pure_grid = simple_grid_backtest(df)
+    switched = switch_backtest(df, hold, rmask)
+    bh, bh_dd = buy_and_hold(df)
+
+    print(f"[网格与切换] 趋势信号={pair}+MACD | 震荡判定=三条件(ADX/粘合/区间)")
+    print(
+        f"  纯趋势(双确认)     | {trend['trades']:>3} 笔"
+        f" | 收益 {fmt_pct(trend['total_return']):>7}"
+        f" | 回撤 {fmt_pct(trend['max_dd']):>7}"
+    )
+    print(
+        f"  纯网格(无视状态)   | {pure_grid['rounds']:>3} 轮"
+        f" | 收益 {fmt_pct(pure_grid['total_return']):>7}"
+        f" | 回撤 {fmt_pct(pure_grid['max_dd']):>7}"
+        f"  <- 趋势段灾难对照"
+    )
+    print(
+        f"  切换系统           | 趋势{switched['trend_trades']}笔/网格{switched['grid_rounds']}轮"
+        f" | 收益 {fmt_pct(switched['total_return']):>7}"
+        f" | 回撤 {fmt_pct(switched['max_dd']):>7}"
+    )
+    days = switched["mode_days"]
+    total_days = sum(days.values())
+    print(
+        f"  模式分布: 趋势 {days['trend'] / total_days:.0%}"
+        f" | 网格 {days['grid'] / total_days:.0%}"
+        f" | 现金 {days['cash'] / total_days:.0%}"
+    )
+    if higher_df is not None:
+        weekly_perm = higher_permission(df, higher_df, "MACD")
+        if weekly_perm is not None:
+            switched2 = switch_backtest(df, hold, rmask & weekly_perm)
+            d2 = switched2["mode_days"]
+            t2 = sum(d2.values())
+            print(
+                f"  切换+网格方向过滤   | 趋势{switched2['trend_trades']}笔"
+                f"/网格{switched2['grid_rounds']}轮"
+                f" | 收益 {fmt_pct(switched2['total_return']):>7}"
+                f" | 回撤 {fmt_pct(switched2['max_dd']):>7}"
+            )
+            print(
+                f"  模式分布: 趋势 {d2['trend'] / t2:.0%}"
+                f" | 网格 {d2['grid'] / t2:.0%}"
+                f" | 现金 {d2['cash'] / t2:.0%}"
+            )
+    print(
+        f"  买入持有           |   - 笔"
+        f" | 收益 {fmt_pct(bh):>7} | 回撤 {fmt_pct(bh_dd):>7}"
+    )
+
+
 def analyze(symbol: str, period: str, limit: int) -> None:
     """输出单个周期的完整分析报告。"""
     df = load(symbol, period)
@@ -828,6 +920,8 @@ def analyze(symbol: str, period: str, limit: int) -> None:
     signal_quality_report(df)
     print()
     ladder_report(df)
+    print()
+    grid_report(df, higher_df)
     print()
 
 
