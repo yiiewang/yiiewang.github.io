@@ -44,6 +44,9 @@ PERIOD_ORDER = {
     "60": 3, "30": 4, "15": 5, "5": 6, "1": 7,
 }
 
+# 周期许可的高周期映射（低周期信号受高周期状态许可）
+PERIOD_HIGHER = {"daily": "weekly"}
+
 SIGNAL_COLS = {"ma_signal": "MA5x20", "macd_signal": "MACD"}
 
 # 信号列名约定：ma_{a}x{b}_signal（均线对）与 macd_signal
@@ -544,17 +547,40 @@ def multi_combo_report(df: pd.DataFrame) -> None:
         )
 
 
-def filter_report(df: pd.DataFrame) -> None:
+def higher_permission(
+    day_df: pd.DataFrame, higher_df: pd.DataFrame, source: str
+) -> pd.Series | None:
+    """
+    周期许可掩码：高周期信号源的多头状态对齐到低周期每个交易日。
+
+    对齐规则（无未来函数）：交易日 t 的收盘判定可用 date <= t 的
+    最新高周期状态——date == t 的高周期K线恰在 t 收盘成型，配合
+    state_backtest"昨日收盘判定、次日开盘执行"的语义合法。
+    高周期数据起点之前的交易日视为无许可（False）。
+    """
+    hb = signal_bulls(higher_df)
+    if source not in hb:
+        return None
+    state = higher_df[["date"]].copy()
+    state["bull"] = hb[source].to_numpy()
+    merged = pd.merge_asof(
+        day_df[["date"]], state, on="date", direction="backward"
+    )
+    return pd.Series(merged["bull"].fillna(False).to_numpy(), index=day_df.index)
+
+
+def filter_report(df: pd.DataFrame, higher_df: pd.DataFrame | None = None) -> None:
     """
     条件过滤回测：信号源 × 环境条件，量化"过滤值多少超额"。
 
     持仓条件 = 信号多头 AND 过滤器——环境不满足时不开火；注意这是
     状态语义：持仓期间过滤器失效（如 ADX 跌破阈值）也会清仓，比
-    "只过滤入场"更激进。
+    "只过滤入场"更激进。每行超额 = vs 同信号源的原始（无过滤）策略。
 
-    第一个过滤器族：趋势强度（ADX >= 阈值，博客网格第二道门的
-    反向应用——无趋势时不做趋势信号）。每行超额 = vs 同信号源的
-    原始（无过滤）策略，度量过滤的边际增益。
+    过滤器族：
+    - 趋势强度：ADX >= 20 / 25（单周期内，无趋势不做趋势信号）
+    - 周期许可：高周期（如周线）MA / MACD 多头才允许低周期信号开火
+      （高周期状态按 date<=t 对齐，无未来函数；需提供 higher_df）
     """
     if "adx" not in df.columns:
         print("[条件过滤] 缓存缺少 adx 列（--recompute 刷新），跳过")
@@ -575,14 +601,27 @@ def filter_report(df: pd.DataFrame) -> None:
         ("原始(无过滤)", None),
         ("ADX>=20", df["adx"] >= 20),
         ("ADX>=25", df["adx"] >= 25),
-        ("ADX>=30", df["adx"] >= 30),
     ]
+    if higher_df is not None:
+        pair = f"MA{cols[0][2:]}x{cols[-1][2:]}" if len(cols) >= 2 else None
+        for label, source in (
+            (f"周线{pair}多头", pair),
+            ("周线MACD多头", "MACD"),
+        ):
+            if source is None:
+                continue
+            mask = higher_permission(df, higher_df, source)
+            if mask is not None:
+                filters.append((label, mask))
 
     # 按原始收益降序排列信号源
     order = sorted(
         bulls, key=lambda n: -state_backtest(df, bulls[n])["total_return"]
     )
-    print("[条件过滤] 持仓 = 信号多头 AND 过滤器（趋势不足不开火/持仓中失效即清仓）")
+    print(
+        "[条件过滤] 持仓 = 信号多头 AND 过滤器"
+        "（趋势不足/高周期不许可时不开火，持仓中失效即清仓）"
+    )
     print(f"  基准: 买入持有 {fmt_pct(bh)} | 每行超额 = vs 同信号原始策略")
     for sname in order:
         bull = bulls[sname]
@@ -611,6 +650,15 @@ def analyze(symbol: str, period: str, limit: int) -> None:
     name = PERIOD_NAMES.get(period, period)
     span = f"{df['date'].iloc[0].date()} ~ {df['date'].iloc[-1].date()}"
     print(f"===== {symbol} {name} ({span}, {len(df)} 根K线) =====")
+
+    # 周期许可：加载高周期数据（缺失时降级为仅趋势过滤）
+    higher_df = None
+    higher_period = PERIOD_HIGHER.get(period)
+    if higher_period:
+        try:
+            higher_df = load(symbol, higher_period)
+        except FileNotFoundError:
+            pass
     regime_report(df)
     print()
     snapshot(df)
@@ -621,7 +669,7 @@ def analyze(symbol: str, period: str, limit: int) -> None:
     print()
     multi_combo_report(df)
     print()
-    filter_report(df)
+    filter_report(df, higher_df)
     print()
 
 
