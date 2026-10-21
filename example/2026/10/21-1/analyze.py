@@ -20,10 +20,13 @@ from __future__ import annotations
 
 import argparse
 import re
+from collections import Counter
 from itertools import combinations
 from pathlib import Path
 
 import pandas as pd
+
+from ladder import ladder_backtest
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 
@@ -747,6 +750,50 @@ def signal_quality_report(
         print(f"                  无前兆: {stats(wo, False)}")
 
 
+def ladder_report(df: pd.DataFrame) -> None:
+    """
+    三档阶梯止盈 vs 单笔管理：同一入场信号、不同仓位管理的对比。
+
+    信号固定为双确认冠军（首尾均线 x MACD），隔离的唯一变量是
+    仓位管理方式——单笔管理（金叉全进死叉全出）对照三档版：
+    - 保守版（exit_on_signal=True）：死叉信号清仓全部剩余档
+    - 纯移动止损版：第三档完全交给均线梯度，不看死叉
+    """
+    bulls = signal_bulls(df)
+    cols = ma_columns(df)
+    if len(cols) < 2 or "MACD" not in bulls:
+        print("[三档止盈] 信号源不足，跳过")
+        return
+    pair = f"MA{cols[0][2:]}x{cols[-1][2:]}"
+    hold = bulls[pair] & bulls["MACD"]
+
+    base = state_backtest(df, hold)
+    ladder = ladder_backtest(df, hold, exit_on_signal=True)
+    pure_trail = ladder_backtest(df, hold, exit_on_signal=False)
+
+    print(f"[三档止盈] 同信号（{pair}+MACD）不同仓位管理对比:")
+    rows = (
+        ("单笔管理(金叉进死叉出)", base["trades"], base),
+        ("三档+信号清仓(保守)", ladder["count"], ladder),
+        ("三档纯移动止损", pure_trail["count"], pure_trail),
+    )
+    for name, trades_n, r in rows:
+        wr = f"{r['win_rate'] * 100:.1f}%" if r["win_rate"] is not None else "--"
+        print(
+            f"  {name:<20} | {trades_n:>3} 笔 | 胜率 {wr:>6}"
+            f" | 收益 {fmt_pct(r['total_return']):>7}"
+            f" | 回撤 {fmt_pct(r['max_dd']):>7}"
+        )
+
+    reasons = Counter(t["reason"] for t in ladder["trades"])
+    t1_hit = sum(1 for t in ladder["trades"] if t["exits"][0] != t["exits"][2])
+    t2_hit = sum(1 for t in ladder["trades"] if t["exits"][1] != t["exits"][2])
+    print(
+        f"  三档细节: 第一档先行触发 {t1_hit} 轮 | 第二档 {t2_hit} 轮"
+        f" | 最终离场原因 {dict(reasons)}"
+    )
+
+
 def analyze(symbol: str, period: str, limit: int) -> None:
     """输出单个周期的完整分析报告。"""
     df = load(symbol, period)
@@ -775,6 +822,8 @@ def analyze(symbol: str, period: str, limit: int) -> None:
     filter_report(df, higher_df)
     print()
     signal_quality_report(df)
+    print()
+    ladder_report(df)
     print()
 
 
