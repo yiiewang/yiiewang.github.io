@@ -1,0 +1,656 @@
+"""金叉死叉分析：读取 fetch_data.py 缓存的一体化 CSV，输出文本报告。
+
+不联网、不重复计算指标——CSV 里的 ma_signal / macd_signal 列已由
+indicators.py 算好，本脚本只做三类事：
+
+1. 当前状态：最新K线的 MA/MACD 多空排列、处于金叉还是死叉状态
+2. 信号统计：数量、频率、MA 与 MACD 的灵敏度对比、最近信号明细
+3. 简单回测：金叉次日开盘买入、死叉次日开盘卖出，对比买入持有
+
+用法（在本目录下）：
+
+    python3 analyze.py                          # 分析 562500 全部已缓存周期
+    python3 analyze.py --period daily           # 只看日线
+    python3 analyze.py --period 1 --limit 5     # 1 分钟线，最近信号只列 5 条
+
+数据不存在时请先运行 fetch_data.py 拉取。
+"""
+
+from __future__ import annotations
+
+import argparse
+import re
+from itertools import combinations
+from pathlib import Path
+
+import pandas as pd
+
+DATA_DIR = Path(__file__).resolve().parent / "data"
+
+PERIOD_NAMES = {
+    "daily": "日线",
+    "weekly": "周线",
+    "monthly": "月线",
+    "60": "60分钟线",
+    "30": "30分钟线",
+    "15": "15分钟线",
+    "5": "5分钟线",
+    "1": "1分钟线",
+}
+
+# 分析报告的长周期在前
+PERIOD_ORDER = {
+    "monthly": 0, "weekly": 1, "daily": 2,
+    "60": 3, "30": 4, "15": 5, "5": 6, "1": 7,
+}
+
+SIGNAL_COLS = {"ma_signal": "MA5x20", "macd_signal": "MACD"}
+
+# 信号列名约定：ma_{a}x{b}_signal（均线对）与 macd_signal
+MA_SIGNAL_RE = re.compile(r"ma_(\d+)x(\d+)_signal")
+
+
+def ma_columns(df: pd.DataFrame) -> list[str]:
+    """探测均线数值列（ma5/ma10/ma20...），按窗口升序。
+
+    fetch_data.py 的 --ma 参数决定列名（如 --ma 3,10 生成 ma3/ma10），
+    因此这里动态探测而不是写死。
+    """
+    return sorted(
+        (c for c in df.columns if c.startswith("ma") and c[2:].isdigit()),
+        key=lambda c: int(c[2:]),
+    )
+
+
+def signal_names(df: pd.DataFrame) -> dict[str, str]:
+    """信号列 -> 显示名，均线对按窗口从小到大（短/中/长）排列，MACD 最后。
+
+    列名约定（fetch_data.py 生成）：ma_{a}x{b}_signal，如 ma_5x10_signal。
+    兼容旧缓存的单列 ma_signal（按首尾均线命名，排在最前）。
+    """
+    names: dict[str, str] = {}
+    pairs = []
+    for col in df.columns:
+        m = MA_SIGNAL_RE.fullmatch(col)
+        if m:
+            pairs.append((int(m.group(1)), int(m.group(2)), col))
+    for a, b, col in sorted(pairs):
+        names[col] = f"MA{a}x{b}"
+    if "ma_signal" in df.columns and not pairs:
+        cols = ma_columns(df)
+        if len(cols) >= 2:
+            legacy = {"ma_signal": f"MA{cols[0][2:]}x{cols[-1][2:]}"}
+            names = {**legacy, **names}
+    if "macd_signal" in df.columns:
+        names["macd_signal"] = "MACD"
+    return names
+
+
+def load(symbol: str, period: str) -> pd.DataFrame:
+    """读取一体化缓存 CSV。"""
+    path = DATA_DIR / f"{symbol}_{period}.csv"
+    if not path.exists():
+        raise FileNotFoundError(
+            f"缺少 {path}，请先运行: "
+            f"python3 fetch_data.py --symbol {symbol} --period {period}"
+        )
+    df = pd.read_csv(path)
+    df["date"] = pd.to_datetime(df["date"])
+    return df.reset_index(drop=True)
+
+
+def fmt_pct(x: float) -> str:
+    return f"{x * 100:+.1f}%"
+
+
+def regime_report(df: pd.DataFrame) -> None:
+    """
+    市场状态判定：趋势市 / 震荡市 / 过渡状态。
+
+    对照复合系统"第二道门"的三条震荡判定标准（纯指标层面；
+    第一道门"趋势系统空闲"属于持仓状态机，不在本报告范围）：
+      ① ADX < 25 且近 5 根未持续上行（排除强趋势加速）
+      ② 多均线粘合度 < 3%（排除发散行情）
+      ③ 价格在 Donchian 区间内运行（排除突破新高/新低的破位行情）
+    三条件全满足 = 震荡市（可开网格）；0/3 或 ADX >= 35 = 趋势市。
+    """
+    required = {"adx", "pdi", "mdi", "cohesion", "don_upper", "don_lower"}
+    if not required.issubset(df.columns):
+        print("[市场状态判定] 缓存缺少 regime 列，请 --force 重拉数据")
+        return
+
+    last = df.iloc[-1]
+    close = float(last["close"])
+    adx_val = float(last["adx"])
+    pdi_v, mdi_v = float(last["pdi"]), float(last["mdi"])
+    cohesion = float(last["cohesion"])
+    don_up, don_low = float(last["don_upper"]), float(last["don_lower"])
+
+    adx_recent = df["adx"].tail(6)
+    adx_rising = bool(adx_recent.iloc[-1] > adx_recent.iloc[0])
+    cond_adx = (adx_val < 25.0) and (not adx_rising)
+
+    cond_ma = cohesion < 0.03
+
+    in_range = don_low <= close <= don_up
+    if don_up > don_low:
+        pos = (close - don_low) / (don_up - don_low)
+        pos_text = f"区间内位置 {pos:.0%}"
+    else:
+        pos_text = "区间退化（高低同点）"
+
+    print("[市场状态判定] 震荡三条件（全满足=震荡市，可开网格）")
+    checks = (
+        ("① 趋势强度", f"ADX={adx_val:.1f}"
+                       f"（{'<25' if adx_val < 25 else '>=25'}，"
+                       f"近5根{'上行' if adx_rising else '未上行'}）", cond_adx),
+        ("② 均线形态", f"粘合度={cohesion:.1%}"
+                       f"（{'<3% 粘合' if cond_ma else '>=3% 发散'}）", cond_ma),
+        ("③ 价格位置", f"close={close:g}，"
+                       f"区间[{don_low:g}, {don_up:g}]，{pos_text}", in_range),
+    )
+    for label, detail, ok in checks:
+        print(f"  {label}: {detail} -> {'满足' if ok else '不满足'}")
+
+    score = sum(1 for _, _, ok in checks if ok)
+    if score == 3:
+        verdict = "震荡市（第二道门通过，可考虑网格）"
+    elif score == 0 or adx_val >= 35.0:
+        direction = "上行" if pdi_v > mdi_v else "下行"
+        verdict = f"趋势市（{direction}趋势）"
+    else:
+        verdict = "过渡状态（趋势与震荡拉锯，网格与趋势都不宜重仓）"
+    print(f"  判定: {score}/3 -> {verdict}")
+
+    if pdi_v > mdi_v:
+        direction = "上行动能占优"
+    elif mdi_v > pdi_v:
+        direction = "下行动能占优"
+    else:
+        direction = "多空均衡"
+    print(f"  参考: +DI({pdi_v:.1f}) vs -DI({mdi_v:.1f}) -> {direction}")
+
+
+def snapshot(df: pd.DataFrame) -> None:
+    """打印最新K线各信号的多空状态（均线对按短/中/长排列）。"""
+    last = df.iloc[-1]
+    date = last["date"].strftime("%Y-%m-%d")
+    print(f"[当前状态] {date}  close={last['close']:g}")
+    rows = []
+    for col, name in signal_names(df).items():
+        if col == "macd_signal":
+            rows.append((col, name, "DIF", last["dif"], "DEA", last["dea"]))
+            continue
+        m = MA_SIGNAL_RE.fullmatch(col)
+        if m:
+            a, b = m.group(1), m.group(2)
+            rows.append(
+                (col, name, f"MA{a}", last[f"ma{a}"], f"MA{b}", last[f"ma{b}"])
+            )
+        else:  # 旧缓存单列 ma_signal：取首尾两条均线
+            cols = ma_columns(df)
+            if len(cols) >= 2:
+                rows.append(
+                    (col, name, cols[0].upper(), last[cols[0]],
+                     cols[-1].upper(), last[cols[-1]])
+                )
+    for col, name, fast_label, fast_v, slow_label, slow_v in rows:
+        fast, slow = float(fast_v), float(slow_v)
+        bull = fast > slow
+        sig_rows = df[df[col].notna()]
+        since = (
+            sig_rows.iloc[-1]["date"].strftime("%Y-%m-%d")
+            if not sig_rows.empty
+            else "无"
+        )
+        state = "金叉状态(多头)" if bull else "死叉状态(空头)"
+        arrow = ">" if bull else "<"
+        print(
+            f"  {name}: {fast_label}({fast:.4g}) {arrow} {slow_label}({slow:.4g})"
+            f" -> {state} (自 {since})"
+        )
+
+
+def signal_stats(df: pd.DataFrame) -> None:
+    """信号数量、频率与两套指标的灵敏度对比。
+
+    频率口径随数据跨度自适应：>= 1 年按"年均"，不足 1 年按"日均"
+    （分钟线只有几个交易日，按年折算出的数字没有意义）。
+    """
+    days = max((df["date"].iloc[-1] - df["date"].iloc[0]).days, 1)
+    names = signal_names(df)
+    if days >= 365:
+        span_text = f"跨度约 {days / 365.25:.1f} 年"
+        freq_label, freq_div = "年均", days / 365.25
+    else:
+        span_text = f"跨度 {days} 天"
+        freq_label, freq_div = "日均", days
+    print(f"[信号统计] {len(df)} 根K线, {span_text}")
+    counts: dict[str, int] = {}
+    for col, name in names.items():
+        golden = int((df[col] == "golden").sum())
+        death = int((df[col] == "death").sum())
+        total = golden + death
+        counts[col] = total
+        if total:
+            freq = f"{total / freq_div:.1f}"
+            interval = f"{len(df) / total:.1f}"
+        else:
+            freq = interval = "--"
+        print(
+            f"  {name:<8} | 金叉 {golden} | 死叉 {death} | 合计 {total}"
+            f" | {freq_label} {freq} | 平均间隔 {interval} 根K线"
+        )
+    ma_cols = [c for c in names if c.startswith("ma_")]
+    if len(ma_cols) >= 2 and counts.get(ma_cols[0]) and counts.get(ma_cols[-1]):
+        fastest, slowest = ma_cols[0], ma_cols[-1]
+        print(
+            f"  灵敏度: {names[fastest]} 触发频率是 {names[slowest]} 的"
+            f" {counts[fastest] / counts[slowest]:.2f} 倍"
+        )
+
+
+def recent_signals(df: pd.DataFrame, limit: int) -> None:
+    """两套指标的信号合并按时间排序，展示最近 limit 个。"""
+    frames = []
+    for col, name in signal_names(df).items():
+        sub = df[df[col].notna()][["date", "close", col]].copy()
+        if sub.empty:
+            continue
+        sub = sub.rename(columns={col: "kind"})
+        sub["source"] = name
+        frames.append(sub)
+    print(f"[最近信号] 最近 {limit} 个（两套指标合并按时间排序）")
+    if not frames:
+        print("  无任何信号")
+        return
+    merged = (
+        pd.concat(frames, ignore_index=True).sort_values("date").tail(limit)
+    )
+    # 日线/周线的时间部分全为 00:00，只显示日期；分钟线保留时分
+    has_time = ((df["date"].dt.hour != 0) | (df["date"].dt.minute != 0)).any()
+    fmt = "%Y-%m-%d %H:%M" if has_time else "%Y-%m-%d"
+    for _, row in merged.iterrows():
+        kind = "金叉" if row["kind"] == "golden" else "死叉"
+        print(
+            f"  {row['date'].strftime(fmt)}"
+            f"  {kind}  close={row['close']:g}  ({row['source']})"
+        )
+
+
+def backtest(df: pd.DataFrame, signal_col: str) -> dict:
+    """
+    机械策略回测：金叉次日开盘买入、死叉次日开盘卖出。
+
+    规则：
+    - 信号在 T 日收盘后产生，T+1 日开盘价成交（无未来函数）
+    - 数据起点若已处于金叉状态（首个信号是死叉），该死叉被忽略
+    - 期末仍持仓则按最后一根K线收盘价平仓
+    - 不计手续费与滑点
+
+    净值曲线按日收益连乘构建（买入日 close/open、持有日 close/昨收、
+    卖出日 open/昨收），最大回撤 = 净值相对历史峰值的最大跌幅。
+    """
+    sig = df[signal_col].tolist()
+    opens = df["open"].astype(float).tolist()
+    closes = df["close"].astype(float).tolist()
+    trades: list[tuple[float, float]] = []
+    holding: float | None = None
+    equity = 1.0
+    peak = 1.0
+    max_dd = 0.0
+
+    for i in range(1, len(df)):
+        prev = sig[i - 1]
+        if prev == "golden" and holding is None:
+            holding = opens[i]
+            day_ret = closes[i] / opens[i]
+        elif prev == "death" and holding is not None:
+            trades.append((holding, opens[i]))
+            day_ret = opens[i] / closes[i - 1]
+            holding = None
+        elif holding is not None:
+            day_ret = closes[i] / closes[i - 1]
+        else:
+            day_ret = 1.0
+        if day_ret != 1.0:
+            equity *= day_ret
+            if equity > peak:
+                peak = equity
+            dd = equity / peak - 1.0
+            if dd < max_dd:
+                max_dd = dd
+
+    closed_at_end = False
+    if holding is not None:
+        trades.append((holding, closes[-1]))
+        closed_at_end = True
+
+    returns = [sell / buy - 1.0 for buy, sell in trades]
+    total = 1.0
+    for r in returns:
+        total *= 1.0 + r
+    total -= 1.0
+    wins = sum(1 for r in returns if r > 0)
+    return {
+        "trades": len(trades),
+        "win_rate": (wins / len(trades)) if trades else None,
+        "total_return": total,
+        "max_dd": max_dd,
+        "closed_at_end": closed_at_end,
+    }
+
+
+def buy_and_hold(df: pd.DataFrame) -> tuple[float, float]:
+    """买入持有基准：首日开盘买入持有到期末收盘，返回 (收益, 最大回撤)。"""
+    closes = df["close"].astype(float)
+    equity = closes / float(df["open"].iloc[0])
+    peak = equity.cummax()
+    return float(equity.iloc[-1] - 1.0), float((equity / peak - 1.0).min())
+
+
+def state_backtest(df: pd.DataFrame, hold: pd.Series) -> dict:
+    """
+    状态驱动回测：hold 为 True 的日子收盘后应持仓，次日开盘调仓。
+
+    与事件驱动 backtest() 同一成交规则（次日开盘、期末按收盘平仓、
+    不计手续费）。对单指标而言两个引擎应给出一致结果（金叉事件
+    = 多头状态从无到有，持有区间相同），互为交叉验证。两个已知
+    语义边界（非 bug）：
+    - 状态版若数据开头即处于多头（无金叉事件）也会入场；
+    - 均线恰好相等的日子（diff=0）：事件版不算穿越、晚一日离场；
+      状态版严格比较（>）、当日即失去多头资格，提前离场。
+      （562500 日线 5 年中仅出现一次，实测影响 0.8% 收益差）
+
+    净值曲线与最大回撤的计算同 backtest()：日收益连乘
+    （买入日 close/open、持有日 close/昨收、卖出日 open/昨收）。
+    """
+    should = hold.shift(1).fillna(False).tolist()
+    opens = df["open"].astype(float).tolist()
+    closes = df["close"].astype(float).tolist()
+    trades: list[tuple[float, float]] = []
+    holding: float | None = None
+    equity = 1.0
+    peak = 1.0
+    max_dd = 0.0
+
+    for i in range(len(df)):
+        if should[i] and holding is None:
+            holding = opens[i]
+            day_ret = closes[i] / opens[i]
+        elif not should[i] and holding is not None:
+            trades.append((holding, opens[i]))
+            day_ret = opens[i] / closes[i - 1]
+            holding = None
+        elif holding is not None:
+            day_ret = closes[i] / closes[i - 1]
+        else:
+            day_ret = 1.0
+        if day_ret != 1.0:
+            equity *= day_ret
+            if equity > peak:
+                peak = equity
+            dd = equity / peak - 1.0
+            if dd < max_dd:
+                max_dd = dd
+
+    closed_at_end = False
+    if holding is not None:
+        trades.append((holding, closes[-1]))
+        closed_at_end = True
+
+    total = 1.0
+    for buy, sell in trades:
+        total *= sell / buy
+    total -= 1.0
+    wins = sum(1 for buy, sell in trades if sell > buy)
+    return {
+        "trades": len(trades),
+        "win_rate": (wins / len(trades)) if trades else None,
+        "total_return": total,
+        "max_dd": max_dd,
+        "closed_at_end": closed_at_end,
+    }
+
+
+def signal_bulls(df: pd.DataFrame) -> dict[str, pd.Series]:
+    """各信号源的多头状态掩码。
+
+    均线对 MA(a)x(b) 多头 = 当日 MA(a) > MA(b)；MACD 多头 = DIF > DEA。
+    返回 {显示名: 掩码}，顺序与 signal_names 一致（均线按窗口短->长，
+    MACD 最后）。
+    """
+    bulls: dict[str, pd.Series] = {}
+    for col, name in signal_names(df).items():
+        if col == "macd_signal":
+            bulls[name] = df["dif"] > df["dea"]
+            continue
+        m = MA_SIGNAL_RE.fullmatch(col)
+        if m:
+            bulls[name] = df[f"ma{m.group(1)}"] > df[f"ma{m.group(2)}"]
+    return bulls
+
+
+def _has_transitive_redundancy(combo: tuple[str, ...]) -> bool:
+    """
+    检测均线链传递性冗余：组合同时含 MA(a)x(b) 与 MA(b)x(c) 时，
+    MA(a)x(c) 被前两者数学蕴含（a>b 且 b>c 推出 a>c），属于冗余成员。
+    含冗余成员的组合与剔除冗余后的更小组合完全等价，无需重复回测。
+    """
+    pairs = []
+    for name in combo:
+        m = re.fullmatch(r"MA(\d+)x(\d+)", name)
+        if m:
+            pairs.append((int(m.group(1)), int(m.group(2))))
+    pair_set = set(pairs)
+    for a, b in pairs:
+        for c, d in pairs:
+            if b == c and (a, d) in pair_set:
+                return True
+    return False
+
+
+def multi_combo_report(df: pd.DataFrame) -> None:
+    """
+    多信号确认回测：从 N=1（单指标）到 N=4（四重确认）逐级推广。
+
+    组合语义（每种组合是一条独立策略）：
+    - 持仓条件：组合成员在昨日收盘时全部处于多头状态（AND 逻辑）
+    - 调仓执行：今日开盘按上述判定建仓/清仓（无未来函数）
+    - 多头判定：均线对 MA(a)x(b) 多头 = 当日 MA(a) > MA(b)；
+      MACD 多头 = 当日 DIF > DEA
+    - 期末持仓按收盘平仓，不计手续费
+
+    末尾附 AND 的对偶对照（任一确认 OR：任一成员多头即持仓）。
+    均线链传递性冗余的组合跳过不回测，单独列出。
+    """
+    bulls = signal_bulls(df)
+    if len(bulls) < 2:
+        print("[多信号确认] 信号源不足，跳过")
+        return
+
+    # 每个信号源的多头判定公式——说清楚"组合"到底怎么执行
+    judges = "; ".join(
+        "MACD多头=DIF>DEA"
+        if n == "MACD"
+        else f"{n}多头=" + re.sub(r"MA(\d+)x(\d+)", r"MA\1>MA\2", n)
+        for n in bulls
+    )
+    print(
+        f"[多信号确认] {len(bulls)} 个信号源，N=1 到 N={len(bulls)} 逐级推广"
+    )
+    print(
+        "  组合语义: 成员全部多头才持仓(AND)"
+        " | 昨日收盘判定, 次日开盘调仓 | 不计手续费"
+    )
+    print(f"  多头判定: {judges}")
+
+    bh, bh_dd = buy_and_hold(df)
+    print(f"  基准: 买入持有 {fmt_pct(bh)}（回撤 {fmt_pct(bh_dd)}），超额 = 收益 - 持有")
+    skipped: list[str] = []
+    best_name, best_ret, best_dd, best_level = "", -float("inf"), 0.0, ""
+    level_names = {1: "单指标", 2: "双确认", 3: "三确认", 4: "四确认"}
+
+    for size in range(1, len(bulls) + 1):
+        level = level_names.get(size, f"{size}确认")
+        rows = []
+        for combo in combinations(bulls, size):
+            if _has_transitive_redundancy(combo):
+                skipped.append("+".join(combo))
+                continue
+            hold = None
+            for member in combo:
+                hold = bulls[member] if hold is None else hold & bulls[member]
+            rows.append((combo, state_backtest(df, hold)))
+        if not rows:
+            print(f"  N={size} {level}: 全部为传递性冗余组合，无有效策略")
+            continue
+        rows.sort(key=lambda x: x[1]["total_return"], reverse=True)
+        print(f"  N={size} {level}（{len(rows)} 种，按收益排序）:")
+        for combo, r in rows:
+            wr = f"{r['win_rate'] * 100:.1f}%" if r["win_rate"] is not None else "--"
+            combo_name = "+".join(combo)
+            if r["total_return"] > best_ret:
+                best_name, best_ret, best_dd = combo_name, r["total_return"], r["max_dd"]
+                best_level = level
+            print(
+                f"    {combo_name:<28} | {r['trades']:>3} 笔 | 胜率 {wr:>6}"
+                f" | 收益 {fmt_pct(r['total_return']):>7}"
+                f" | 回撤 {fmt_pct(r['max_dd']):>7}"
+                f" | 超额 {fmt_pct(r['total_return'] - bh):>7}"
+            )
+
+    # AND 的对偶对照：任一成员多头即持仓（宽松光谱端）
+    any_hold = None
+    for hold in bulls.values():
+        any_hold = hold if any_hold is None else any_hold | hold
+    r = state_backtest(df, any_hold)
+    wr = f"{r['win_rate'] * 100:.1f}%" if r["win_rate"] is not None else "--"
+    print(
+        f"  对偶对照: 任一确认(OR，{len(bulls)} 个源任一多头即持仓)"
+        f" | {r['trades']:>3} 笔 | 胜率 {wr:>6}"
+        f" | 收益 {fmt_pct(r['total_return']):>7}"
+        f" | 回撤 {fmt_pct(r['max_dd']):>7}"
+        f" | 超额 {fmt_pct(r['total_return'] - bh):>7}"
+    )
+    print(
+        f"  冠军: {best_name}（{best_level}，收益 {fmt_pct(best_ret)}，"
+        f"回撤 {fmt_pct(best_dd)}，超额 {fmt_pct(best_ret - bh)}）"
+    )
+    if skipped:
+        print(
+            f"  冗余跳过 {len(skipped)} 种: {'、'.join(skipped)}"
+            f"（均线链传递性等价于已列组合，不重复回测）"
+        )
+
+
+def filter_report(df: pd.DataFrame) -> None:
+    """
+    条件过滤回测：信号源 × 环境条件，量化"过滤值多少超额"。
+
+    持仓条件 = 信号多头 AND 过滤器——环境不满足时不开火；注意这是
+    状态语义：持仓期间过滤器失效（如 ADX 跌破阈值）也会清仓，比
+    "只过滤入场"更激进。
+
+    第一个过滤器族：趋势强度（ADX >= 阈值，博客网格第二道门的
+    反向应用——无趋势时不做趋势信号）。每行超额 = vs 同信号源的
+    原始（无过滤）策略，度量过滤的边际增益。
+    """
+    if "adx" not in df.columns:
+        print("[条件过滤] 缓存缺少 adx 列（--recompute 刷新），跳过")
+        return
+    bulls = signal_bulls(df)
+    cols = ma_columns(df)
+    # 双确认代表：首尾均线对 × MACD（与多信号段的默认组合一致）
+    if len(cols) >= 2 and "MACD" in bulls:
+        pair = f"MA{cols[0][2:]}x{cols[-1][2:]}"
+        if pair in bulls:
+            bulls[f"{pair}+MACD"] = bulls[pair] & bulls["MACD"]
+    if len(bulls) < 2:
+        print("[条件过滤] 信号源不足，跳过")
+        return
+
+    bh, _ = buy_and_hold(df)
+    filters: list[tuple[str, pd.Series | None]] = [
+        ("原始(无过滤)", None),
+        ("ADX>=20", df["adx"] >= 20),
+        ("ADX>=25", df["adx"] >= 25),
+        ("ADX>=30", df["adx"] >= 30),
+    ]
+
+    # 按原始收益降序排列信号源
+    order = sorted(
+        bulls, key=lambda n: -state_backtest(df, bulls[n])["total_return"]
+    )
+    print("[条件过滤] 持仓 = 信号多头 AND 过滤器（趋势不足不开火/持仓中失效即清仓）")
+    print(f"  基准: 买入持有 {fmt_pct(bh)} | 每行超额 = vs 同信号原始策略")
+    for sname in order:
+        bull = bulls[sname]
+        base: float | None = None
+        print(f"  {sname}:")
+        for fname, fmask in filters:
+            hold = bull if fmask is None else bull & fmask
+            r = state_backtest(df, hold)
+            wr = f"{r['win_rate'] * 100:.1f}%" if r["win_rate"] is not None else "--"
+            if fmask is None:
+                base = r["total_return"]
+                excess = "      --"
+            else:
+                excess = fmt_pct(r["total_return"] - base)
+            print(
+                f"    {fname:<10} | {r['trades']:>3} 笔 | 胜率 {wr:>6}"
+                f" | 收益 {fmt_pct(r['total_return']):>7}"
+                f" | 回撤 {fmt_pct(r['max_dd']):>7}"
+                f" | 超额(vs原始) {excess:>7}"
+            )
+
+
+def analyze(symbol: str, period: str, limit: int) -> None:
+    """输出单个周期的完整分析报告。"""
+    df = load(symbol, period)
+    name = PERIOD_NAMES.get(period, period)
+    span = f"{df['date'].iloc[0].date()} ~ {df['date'].iloc[-1].date()}"
+    print(f"===== {symbol} {name} ({span}, {len(df)} 根K线) =====")
+    regime_report(df)
+    print()
+    snapshot(df)
+    print()
+    signal_stats(df)
+    print()
+    recent_signals(df, limit)
+    print()
+    multi_combo_report(df)
+    print()
+    filter_report(df)
+    print()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="金叉死叉分析报告")
+    parser.add_argument("--symbol", default="562500", help="证券代码")
+    parser.add_argument(
+        "--period",
+        default=None,
+        help="daily/weekly/1/5/15/30/60；缺省则分析该标的全部已缓存周期",
+    )
+    parser.add_argument("--limit", type=int, default=10, help="最近信号显示条数")
+    args = parser.parse_args()
+
+    if args.period:
+        periods = [args.period]
+    else:
+        periods = [
+            p.stem.split("_", 1)[1] for p in DATA_DIR.glob(f"{args.symbol}_*.csv")
+        ]
+        periods.sort(key=lambda p: PERIOD_ORDER.get(p, 99))
+    if not periods:
+        raise SystemExit(
+            f"data/ 下没有 {args.symbol} 的数据，请先运行 fetch_data.py"
+        )
+
+    for period in periods:
+        analyze(args.symbol, period, args.limit)
+
+
+if __name__ == "__main__":
+    main()
