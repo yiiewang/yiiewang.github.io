@@ -251,4 +251,5 @@ def switch_backtest(df, hold, regime) -> dict:
         ),
         "grid_rounds": grid_rounds,
         "mode_days": mode_days,
+        "equity_curve": eq,
     }

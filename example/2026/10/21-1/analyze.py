@@ -387,6 +387,7 @@ def state_backtest(df: pd.DataFrame, hold: pd.Series) -> dict:
     equity = 1.0
     peak = 1.0
     max_dd = 0.0
+    equity_curve: list[float] = [1.0]
 
     for i in range(len(df)):
         if should[i] and holding is None:
@@ -407,6 +408,7 @@ def state_backtest(df: pd.DataFrame, hold: pd.Series) -> dict:
             dd = equity / peak - 1.0
             if dd < max_dd:
                 max_dd = dd
+        equity_curve.append(equity)
 
     closed_at_end = False
     if holding is not None:
@@ -424,6 +426,7 @@ def state_backtest(df: pd.DataFrame, hold: pd.Series) -> dict:
         "total_return": total,
         "max_dd": max_dd,
         "closed_at_end": closed_at_end,
+        "equity_curve": pd.Series(equity_curve),
     }
 
 
@@ -890,6 +893,95 @@ def grid_report(df: pd.DataFrame, higher_df: pd.DataFrame | None = None) -> None
     )
 
 
+def perf_metrics(equity: pd.Series, periods_per_year: int = 252) -> dict:
+    """
+    绩效指标：总收益 / 年化 / 夏普 / 卡尔玛 / 最大回撤。
+
+    夏普按零无风险利率、等间隔日收益近似；卡尔玛 = 年化收益 /
+    |最大回撤|。
+    """
+    total = float(equity.iloc[-1] / equity.iloc[0] - 1.0)
+    n = len(equity) - 1
+    annual = 0.0
+    if n > 0:
+        annual = (1.0 + total) ** (periods_per_year / n) - 1.0
+    ret = equity.pct_change().dropna()
+    sharpe = None
+    if len(ret) > 1 and float(ret.std()) > 0:
+        sharpe = float(ret.mean()) / float(ret.std()) * (periods_per_year**0.5)
+    dd = float((equity / equity.cummax() - 1.0).min())
+    calmar = annual / abs(dd) if dd < 0 else None
+    return {
+        "total": total,
+        "annual": annual,
+        "sharpe": sharpe,
+        "calmar": calmar,
+        "max_dd": dd,
+    }
+
+
+def perf_report(df: pd.DataFrame, higher_df: pd.DataFrame | None, period: str) -> None:
+    """
+    绩效汇总：关键策略的完整指标对比 + 组合层（底仓 20% + 切换 80%）。
+
+    组合层对应博客三层架构的资金分账简化：底仓永远持有（防踏空），
+    共享池跑切换系统。仅支持日线/周线（年化因子不同），分钟线跳过。
+    """
+    ppy = {"daily": 252, "weekly": 52}.get(period)
+    if ppy is None:
+        return
+    bulls = signal_bulls(df)
+    cols = ma_columns(df)
+    if len(cols) < 2 or "MACD" not in bulls:
+        return
+    pair = f"MA{cols[0][2:]}x{cols[-1][2:]}"
+    hold = bulls[pair] & bulls["MACD"]
+    rmask = regime_mask(df)
+    if rmask is None:
+        return
+
+    n = len(df)
+    closes = df["close"].astype(float)
+    hold_curve = pd.Series(
+        [1.0] + (closes / float(df["open"].iloc[0])).tolist()
+    )
+    trend_curve = state_backtest(df, hold)["equity_curve"].iloc[: n + 1]
+    ladder_curve = ladder_backtest(
+        df, hold, exit_on_signal=True, cooldown=True
+    )["equity_curve"].iloc[: n + 1]
+    sw = switch_backtest(df, hold, rmask)
+    sw_curve = sw["equity_curve"].iloc[: n + 1]
+    # 组合层：20% 底仓（永远持有） + 80% 切换系统
+    combo_curve = 0.2 * hold_curve + 0.8 * sw_curve
+
+    rows = [
+        ("买入持有", hold_curve),
+        (f"纯趋势({pair}+MACD)", trend_curve),
+        ("三档+冷却协议", ladder_curve),
+        ("切换系统", sw_curve),
+        ("组合(20%底仓+80%切换)", combo_curve),
+    ]
+    perm_curve = None
+    if higher_df is not None:
+        weekly_perm = higher_permission(df, higher_df, "MACD")
+        if weekly_perm is not None:
+            perm_curve = switch_backtest(df, hold, rmask & weekly_perm)[
+                "equity_curve"
+            ].iloc[: n + 1]
+            rows.insert(4, ("切换+网格方向过滤", perm_curve))
+
+    print("[绩效汇总] 关键策略完整指标（零费率）")
+    print("  策略                     | 总收益 |  年化  | 夏普 | 卡尔玛 | 最大回撤")
+    for name, curve in rows:
+        m = perf_metrics(curve.reset_index(drop=True), ppy)
+        sharpe = f"{m['sharpe']:.2f}" if m["sharpe"] is not None else "  --"
+        calmar = f"{m['calmar']:.2f}" if m["calmar"] is not None else "  --"
+        print(
+            f"  {name:<24} | {fmt_pct(m['total']):>6} | {m['annual']:+6.1%}"
+            f" | {sharpe:>4} | {calmar:>6} | {fmt_pct(m['max_dd']):>7}"
+        )
+
+
 def analyze(symbol: str, period: str, limit: int) -> None:
     """输出单个周期的完整分析报告。"""
     df = load(symbol, period)
@@ -922,6 +1014,8 @@ def analyze(symbol: str, period: str, limit: int) -> None:
     ladder_report(df)
     print()
     grid_report(df, higher_df)
+    print()
+    perf_report(df, higher_df, period)
     print()
 
 
