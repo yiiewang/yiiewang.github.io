@@ -53,8 +53,9 @@ class GridEngine:
         self.cash_out = 0.0               # 已实现卖出入金
         self.realized_pnl = 0.0           # 已实现盈亏（相对买入成本）
         self.invested = 0.0               # 累计买入资金
+        self.fills: list[dict] = []       # 成交记录 [{i,a,p}]
 
-    def on_day(self, open_: float, high: float, low: float) -> None:
+    def on_day(self, i: int, open_: float, high: float, low: float) -> None:
         """推进一日：按触价档位成交，检查自我保护。"""
         if self.closed:
             return
@@ -66,6 +67,7 @@ class GridEngine:
                 shares = self.lot_cash / price
                 self.lots.append((price, shares))
                 self.invested += self.lot_cash
+                self.fills.append({"i": i, "a": "buy", "p": round(price, 4)})
                 self.buy_ptr += 1
                 self.consec_buy += 1
                 self.consec_sell = 0
@@ -81,6 +83,9 @@ class GridEngine:
                 buy_price, shares = self.lots.pop(0)
                 self.cash_out += price * shares
                 self.realized_pnl += (price - buy_price) * shares
+                self.fills.append(
+                    {"i": i, "a": "sell", "p": round(price, 4), "bp": round(buy_price, 4)}
+                )
                 self.sell_ptr += 1
                 self.consec_sell += 1
                 self.consec_buy = 0
@@ -96,11 +101,14 @@ class GridEngine:
         """剩余持仓按收盘价估值。"""
         return sum(shares * close for _, shares in self.lots)
 
-    def force_close(self, close: float) -> float:
+    def force_close(self, close: float, i: int = -1) -> float:
         """保护触发后的清仓：返回实现总值，持仓清空。"""
         value = self.market_value(close)
         for buy_price, shares in self.lots:
             self.realized_pnl += (close - buy_price) * shares
+            self.fills.append(
+                {"i": i, "a": "close", "p": round(close, 4), "bp": round(buy_price, 4)}
+            )
         self.cash_out += value
         self.lots = []
         self.closed = True
@@ -127,9 +135,9 @@ def simple_grid_backtest(df) -> dict:
         if grid is None:
             grid = GridEngine(opens[i], pool / 8.0)
             rounds += 1
-        grid.on_day(opens[i], highs[i], lows[i])
+        grid.on_day(i, opens[i], highs[i], lows[i])
         if grid.closed:
-            grid.force_close(closes[i])
+            grid.force_close(closes[i], i)
             pool = pool - grid.invested + grid.cash_out
             grid = None
             equity = pool
@@ -139,7 +147,7 @@ def simple_grid_backtest(df) -> dict:
             )
         equity_curve.append(equity)
     if grid is not None:
-        grid.force_close(closes[-1])
+        grid.force_close(closes[-1], len(df) - 1)
         pool = pool - grid.invested + grid.cash_out
         equity_curve.append(pool)
 
@@ -177,26 +185,49 @@ def switch_backtest(df, hold, regime) -> dict:
     base = 1.0             # 趋势段起点净值
     trend_entry = 0.0
     trend_holding = False
-    trend_trades: list[float] = []
+    trend_trades: list[dict] = []
     grid = None
     grid_pool = 0.0
     grid_rounds = 0
+    grid_round_list: list[dict] = []
+    grid_start_i = -1
     mode_days = {"trend": 0, "grid": 0, "cash": 0}
+    mode_series: list[str] = []
     equity_curve: list[float] = [1.0]
+
+    def settle_grid(i: int, price: float) -> None:
+        """结束一轮网格：记录轮明细并回收资金。"""
+        nonlocal equity, grid, grid_pool
+        grid.force_close(price, i)
+        ret = (grid.cash_out - grid.invested + grid.market_value(price)) / grid_pool
+        grid_round_list.append(
+            {
+                "si": grid_start_i, "ei": i,
+                "ret": round((ret - 1.0) * 100, 2),
+                "fills": grid.fills,
+            }
+        )
+        equity = grid_pool - grid.invested + grid.cash_out
+        grid = None
 
     for i in range(n):
         # ---- 开盘：趋势层调仓（优先级最高）----
         if prev_hold[i] and not trend_holding:
             if grid is not None:  # 趋势优先，平掉网格
-                grid.force_close(opens[i])
-                equity = grid_pool - grid.invested + grid.cash_out
-                grid = None
+                settle_grid(i, opens[i])
             base = equity
             trend_entry = opens[i]
+            trend_entry_i = i
             trend_holding = True
         elif not prev_hold[i] and trend_holding:
             equity = base * opens[i] / trend_entry
-            trend_trades.append(opens[i] / trend_entry - 1.0)
+            trend_trades.append(
+                {
+                    "bi": trend_entry_i, "si": i,
+                    "ret": round((opens[i] / trend_entry - 1.0) * 100, 2),
+                    "days": i - trend_entry_i,
+                }
+            )
             trend_holding = False
             base = equity
         # ---- 网格启动（昨日判定：趋势空仓 + 震荡验证通过）----
@@ -207,49 +238,58 @@ def switch_backtest(df, hold, regime) -> dict:
             and prev_regime[i]
         ):
             grid_pool = equity
+            grid_start_i = i
             grid = GridEngine(opens[i], grid_pool / 8.0)
             grid_rounds += 1
         # ---- 网格运行 ----
         if grid is not None:
-            grid.on_day(opens[i], highs[i], lows[i])
+            grid.on_day(i, opens[i], highs[i], lows[i])
             if grid.closed:
-                grid.force_close(closes[i])
-                equity = grid_pool - grid.invested + grid.cash_out
-                grid = None
+                settle_grid(i, closes[i])
         # ---- 净值与模式统计 ----
         if trend_holding:
             equity = base * closes[i] / trend_entry
             mode_days["trend"] += 1
+            mode_series.append("trend")
         elif grid is not None:
             equity = (
                 grid_pool - grid.invested + grid.cash_out + grid.market_value(closes[i])
             )
             mode_days["grid"] += 1
+            mode_series.append("grid")
         else:
             mode_days["cash"] += 1
+            mode_series.append("cash")
         equity_curve.append(equity)
 
     # 期末平仓
     if trend_holding:
         equity = base * closes[-1] / trend_entry
-        trend_trades.append(closes[-1] / trend_entry - 1.0)
+        trend_trades.append(
+            {
+                "bi": trend_entry_i, "si": n - 1,
+                "ret": round((closes[-1] / trend_entry - 1.0) * 100, 2),
+                "days": n - 1 - trend_entry_i,
+            }
+        )
         equity_curve.append(equity)
     if grid is not None:
-        grid.force_close(closes[-1])
-        equity = grid_pool - grid.invested + grid.cash_out
+        settle_grid(n - 1, closes[-1])
         equity_curve.append(equity)
 
     eq = pd.Series(equity_curve)
+    rets = [t["ret"] / 100 for t in trend_trades]
     return {
         "total_return": equity - 1.0,
         "max_dd": float((eq / eq.cummax() - 1.0).min()),
         "trend_trades": len(trend_trades),
         "trend_win_rate": (
-            sum(1 for r in trend_trades if r > 0) / len(trend_trades)
-            if trend_trades
-            else None
+            sum(1 for r in rets if r > 0) / len(rets) if rets else None
         ),
         "grid_rounds": grid_rounds,
         "mode_days": mode_days,
         "equity_curve": eq,
+        "mode_series": mode_series,
+        "trend_trade_list": trend_trades,
+        "grid_round_list": grid_round_list,
     }

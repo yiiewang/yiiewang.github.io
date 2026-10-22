@@ -84,6 +84,8 @@ def ladder_backtest(
     stop = 0.0
     tier_open = [False, False, False]
     tier_exit: list[float | None] = [None, None, None]
+    tier_exit_i: list[int | None] = [None, None, None]  # 各档出场的行号
+    entry_i = -1                                    # 本轮建仓行号
     holding = False
     entry_day = -1
     pending: list[str] = []
@@ -111,6 +113,8 @@ def ladder_backtest(
                 "exits": tuple(tier_exit),
                 "reason": reason,
                 "factor": factor,
+                "entry_i": entry_i,
+                "exit_is": tuple(tier_exit_i),
             }
         )
         holding = False
@@ -120,11 +124,12 @@ def ladder_backtest(
         if factor > 1.0:
             consecutive_stops = 0
 
-    def close_remaining(price: float, reason: str) -> None:
+    def close_remaining(price: float, reason: str, i: int) -> None:
         nonlocal tier_open
         for t in range(3):
             if tier_open[t]:
                 tier_exit[t] = price
+                tier_exit_i[t] = i
                 tier_open[t] = False
         finalize(reason)
 
@@ -132,26 +137,30 @@ def ladder_backtest(
         # ---------- 开盘阶段：执行昨日收盘判定的动作 ----------
         if holding:
             if should_exit[i]:
-                close_remaining(opens[i], "signal")
+                close_remaining(opens[i], "signal", i)
             elif opens[i] <= stop > 0:
-                close_remaining(opens[i], "gap_stop")
+                close_remaining(opens[i], "gap_stop", i)
                 if cooldown:
                     consecutive_stops += 1
                     cooldown_until = i + cooldown_days(consecutive_stops)
             elif pending:
                 if "t1" in pending and tier_open[0]:
                     tier_exit[0] = opens[i]
+                    tier_exit_i[0] = i
                     tier_open[0] = False
                 if "t2" in pending and tier_open[1]:
                     tier_exit[1] = opens[i]
+                    tier_exit_i[1] = i
                     tier_open[1] = False
                 pending = []
                 if not any(tier_open):
                     finalize("tiers")
         elif should_enter[i] and (not cooldown or i >= cooldown_until):
             entry = opens[i]
+            entry_i = i
             tier_open = [True, True, True]
             tier_exit = [None, None, None]
+            tier_exit_i = [None, None, None]
             holding = True
             entry_day = i
             stop = 0.0
@@ -159,7 +168,7 @@ def ladder_backtest(
 
         # ---------- 盘中阶段：触价止损 ----------
         if holding and stop > 0 and opens[i] > stop and lows[i] <= stop:
-            close_remaining(stop, "stop")
+            close_remaining(stop, "stop", i)
             if cooldown:
                 consecutive_stops += 1
                 cooldown_until = i + cooldown_days(consecutive_stops)
@@ -194,7 +203,7 @@ def ladder_backtest(
 
     # 期末持仓按收盘平仓
     if holding:
-        close_remaining(closes[-1], "eod")
+        close_remaining(closes[-1], "eod", n - 1)
         equity_curve.append(equity)
 
     eq = pd.Series(equity_curve)
