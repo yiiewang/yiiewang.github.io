@@ -232,6 +232,7 @@ function applyStrategy(name) {
   ]});
   summary.innerHTML = '<b>' + name + '</b>　' + (s.desc || '');
   quality.innerHTML = s.quality || '';
+  quality.style.display = s.quality ? 'block' : 'none';
   detail.style.display = 'none';
 
   if (s.kind === 'ladder') {
