@@ -35,6 +35,8 @@
 ├── test_grid.py        # 网格引擎单测
 ├── panel.py            # 随机横截面面板：抽样 ETF/个股跑同套 5 年回测
 │                       #   （新浪通道；含份额折算跳空核查修复流程）
+├── chart.py            # 交互式 HTML K 线图：下拉选策略只显示该策略的
+│                       #   买卖信号点（▲/▼ 标注执行价，ECharts 离线渲染）
 ├── GUIDE.md            # 实践指南：四层验证结论的操作手册（regime/信号/
 │                       #   三档仓位管理/过滤器守则/风控红线/速查卡）
 ├── requirements.txt    # 依赖：akshare、pandas
