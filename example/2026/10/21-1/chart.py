@@ -5,7 +5,7 @@
     .venv/bin/python chart.py --symbol 562500 --period daily
     .venv/bin/python chart.py --symbol 000001 --period daily   # 上证指数
 
-输出 report/chart_{symbol}_{period}.html（配合 ../assets/echarts.min.js
+输出 reports/chart_{symbol}_{period}.html（配合 ../assets/echarts.min.js
 离线打开）。
 
 交互能力：
@@ -310,7 +310,7 @@ def make_chart(symbol: str, period: str) -> Path:
             None if pd.isna(v) else round(float(v), 4) for v in df[col]
         ]
 
-    out_dir = HERE / "report"
+    out_dir = HERE / "reports"
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / f"chart_{symbol}_{period}.html"
     html = HTML_TEMPLATE.replace("__DATA__", json.dumps(payload, ensure_ascii=False))
