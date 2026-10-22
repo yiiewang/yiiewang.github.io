@@ -103,7 +103,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </div>
 <div id="eqChart"></div>
 <p class="tip">▲ 买入 = 转多的次日开盘执行价；▼ 卖出 = 转空的次日开盘（与回测同语义）。点击列表定位 K 线区间并显示同期跨策略对比；切换系统选中时主图背景为模式条带（红=趋势/绿=网格/灰=现金）；底部净值图与主图联动。</p>
-<script src="../assets/echarts.min.js"></script>
+<script>__ECHARTS__</script>
 <script>
 const RAW = __DATA__;
 
@@ -560,8 +560,14 @@ def make_chart(symbol: str, period: str) -> Path:
     out_dir = HERE / "reports"
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / f"chart_{symbol}_{period}.html"
-    html = HTML_TEMPLATE.replace("__DATA__", json.dumps(payload, ensure_ascii=False))
-    html = html.replace("{title}", f"{symbol} 策略回测报告")
+    # echarts 内嵌进 HTML：单文件零外部引用，file:// 双击、IDE 预览、
+    # http 服务任何打开方式都稳健（相对引用在部分预览环境下会 404）
+    echarts_js = (HERE / "assets" / "echarts.min.js").read_text(encoding="utf-8")
+    html = (
+        HTML_TEMPLATE.replace("__ECHARTS__", echarts_js)
+        .replace("__DATA__", json.dumps(payload, ensure_ascii=False))
+        .replace("{title}", f"{symbol} 策略回测报告")
+    )
     out.write_text(html, encoding="utf-8")
     print(
         f"[chart] {out.relative_to(HERE)}（{len(df)} 根K线，"
