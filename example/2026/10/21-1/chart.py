@@ -65,12 +65,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   select { font-size: 14px; padding: 3px 6px; max-width: 340px; }
   #summary { color: #333; font-size: 13px; }
   #summary b { color: #c23531; }
-  .main { display: grid; grid-template-columns: 1fr 360px; gap: 10px; }
+  .main { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 10px; }
   #mainChart { width: 100%; height: 500px; background: #fff; border: 1px solid #eee; }
-  .side { display: flex; flex-direction: column; gap: 6px; }
+  .side { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   #dayInfo { min-height: 18px; color: #666; font-size: 12.5px; }
   #quality { background: #eef6ff; border: 1px solid #c5dcf5; padding: 6px 10px; font-size: 12px; color: #345; }
-  #detail { background: #fff8e6; border: 1px solid #f0e0b0; padding: 6px 10px; font-size: 12.5px; display: none; }
+  #detail { background: #fff8e6; border: 1px solid #f0e0b0; padding: 6px 10px; font-size: 12.5px;
+            display: none; max-height: 225px; overflow-y: auto; word-break: break-all; }
   #trades { background: #fff; border: 1px solid #eee; height: 330px; overflow-y: auto; }
   .t-head, .t-row { display: grid; grid-template-columns: 30px 1fr 96px 58px 40px; gap: 4px; padding: 3px 8px; font-size: 12px; }
   .t-head { position: sticky; top: 0; background: #f0f0f0; font-weight: 600; z-index: 2; }
@@ -202,7 +203,7 @@ function focusRange(bi, si, info) {
     start: Math.max(0, (bi - pad) * 100 / N), end: Math.min(100, (si + pad) * 100 / N) });
   const cmp = Object.entries(RAW.strategies)
     .map(([n, st]) => { const r = (st.equity[si] / st.equity[bi] - 1) * 100;
-      return '<span class="' + cls(r) + '" style="margin-right:6px">' + n + ' ' + pct(r) + '</span>'; })
+      return '<span class="cmp-item ' + cls(r) + '">' + n + ' ' + pct(r) + '</span>'; })
     .join('');
   const hr = (RAW.holdEquity[si] / RAW.holdEquity[bi] - 1) * 100;
   detail.style.display = 'block';
