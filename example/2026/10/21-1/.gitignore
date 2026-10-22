@@ -4,4 +4,4 @@
 # fetch_data.py 生成的行情缓存
 data/
 assets/
-chart_*.html
+report/

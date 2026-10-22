@@ -5,7 +5,8 @@
     .venv/bin/python chart.py --symbol 562500 --period daily
     .venv/bin/python chart.py --symbol 000001 --period daily   # 上证指数
 
-输出 chart_{symbol}_{period}.html（配合 assets/echarts.min.js 离线打开）。
+输出 report/chart_{symbol}_{period}.html（配合 ../assets/echarts.min.js
+离线打开）。
 
 交互能力：
 - 下拉切换策略，K 线只显示该策略的买卖信号点（▲/▼ 标注执行价）
@@ -72,7 +73,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </div>
 <div id="eqChart"></div>
 <p class="tip">▲ 买入 = 策略转多的次日开盘执行价；▼ 卖出 = 转空的次日开盘（与回测同语义）。点击右侧任意一笔交易：K 线聚焦该区间 + 显示同期各策略收益对比。底部净值图与主图缩放联动。</p>
-<script src="assets/echarts.min.js"></script>
+<script src="../assets/echarts.min.js"></script>
 <script>
 const RAW = __DATA__;
 
@@ -309,14 +310,16 @@ def make_chart(symbol: str, period: str) -> Path:
             None if pd.isna(v) else round(float(v), 4) for v in df[col]
         ]
 
-    out = HERE / f"chart_{symbol}_{period}.html"
+    out_dir = HERE / "report"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / f"chart_{symbol}_{period}.html"
     html = HTML_TEMPLATE.replace("__DATA__", json.dumps(payload, ensure_ascii=False))
     html = html.replace("{title}", f"{symbol} 策略回测报告")
     out.write_text(html, encoding="utf-8")
     n_trades = sum(v["trades"] for v in payload["strategies"].values())
     print(
-        f"[chart] {out.name}（{len(df)} 根K线，{len(strategies)} 个策略，"
-        f"共 {n_trades} 笔交易明细）"
+        f"[chart] {out.relative_to(HERE)}（{len(df)} 根K线，"
+        f"{len(strategies)} 个策略，共 {n_trades} 笔交易明细）"
     )
     return out
 
