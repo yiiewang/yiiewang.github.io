@@ -316,6 +316,12 @@ nav = [
       {"第十六章 风过以后" = "novel/volume-1/chapter-16.md"},
       {"第十七章 薅秧" = "novel/volume-1/chapter-17.md"},
       {"第十八章 地" = "novel/volume-1/chapter-18.md"},
+      {"第十九章 青黄" = "novel/volume-1/chapter-19.md"},
+      {"第二十章 少了的粮" = "novel/volume-1/chapter-20.md"},
+      {"第二十一章 记账" = "novel/volume-1/chapter-21.md"},
+      {"第二十二章 爹娘的账" = "novel/volume-1/chapter-22.md"},
+      {"第二十三章 开镰" = "novel/volume-1/chapter-23.md"},
+      {"第二十四章 算不清的收成" = "novel/volume-1/chapter-24.md"},
     ]},
     {"分幕归档" = [
       {"第一章 天下未定，先识其人" = "novel/volume-1/outlines/ch01.md"},
