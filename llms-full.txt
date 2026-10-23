@@ -309,7 +309,7 @@
 ### 实验室
 
 - [概览](https://cloaks.cn/lab/index/)
-- [Workbench 项目](https://cloaks.cn/lab/project/index/)：从零到一做一个个人开发工作台，把文件浏览、Todo 看板、用户管理揉进一个 Go + SQLite 的二进制里。聊聊这半年踩过的坑和想明白的事。
+- [Workbench 项目](https://cloaks.cn/lab/project/index/)：从零到一做一个个人开发工作台，把文件浏览、上传与管理、Todo 看板、用户与组织管理揉进一个 Go + SQLite 的二进制里。聊聊这半年多踩过的坑和想明白的事。
 - [示例代码](https://cloaks.cn/lab/examples/index/)：博客全部可运行示例代码的目录：example/ 路径与文章同构（YYYY/MM/DD-序号），每个示例标注对应文章、源码位置与运行命令，go build / vet / race 全绿。
 - [电子书](https://cloaks.cn/lab/ebooks/index/)：实验室电子书架：技术书籍与文档的 PDF 原件入库，站点直接伺服，在线阅读、下载均可，链接永不过期。首本：xv6 教学操作系统书（RISC-V 版 rev3）。
 - [zsh 一键安装](https://cloaks.cn/lab/tools/zsh-setup/)：一行 curl 装好 zsh + oh-my-zsh + 自动建议/语法高亮/fzf：脚本怎么做到非交互、幂等、可降级，附三个使用场景与 ZSH 变量劫持踩坑实录。
