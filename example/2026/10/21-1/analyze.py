@@ -895,13 +895,15 @@ def ladder_report(df: pd.DataFrame) -> None:
     )
 
 
-def regime_mask(df: pd.DataFrame) -> pd.Series | None:
+def regime_components(df: pd.DataFrame) -> pd.DataFrame | None:
     """
-    震荡判定掩码（序列版，供切换回测使用）：三条件全过为 True。
+    震荡三条件的逐条件布尔与计分（序列版，0~3）。
 
-    与 regime_report 同一套标准：ADX<25 且近 5 根未上行、均线粘合
-    <3%、收盘价在 Donchian 区间内。返回当日判定掩码（调用方需
-    shift(1) 保证执行无未来函数）。
+    与 regime_report 同一套标准：
+      ① ADX < 25 且近 5 根未上行  ② 均线粘合度 < 3%
+      ③ 收盘价在 Donchian 区间内
+    返回列：adx / ma / range（逐条件布尔）与 score（满足条数）。
+    缺列返回 None（旧缓存无 regime 列时降级）。
     """
     required = {"adx", "cohesion", "don_upper", "don_lower"}
     if not required.issubset(df.columns):
@@ -912,7 +914,23 @@ def regime_mask(df: pd.DataFrame) -> pd.Series | None:
     cond_ma = df["cohesion"] < 0.03
     close = df["close"]
     cond_range = (df["don_lower"] <= close) & (close <= df["don_upper"])
-    return cond_adx & cond_ma & cond_range
+    comp = pd.DataFrame({"adx": cond_adx, "ma": cond_ma, "range": cond_range})
+    comp["score"] = comp[["adx", "ma", "range"]].sum(axis=1)
+    return comp
+
+
+def regime_mask(df: pd.DataFrame) -> pd.Series | None:
+    """
+    震荡判定掩码（序列版，供切换回测使用）：三条件全过为 True。
+
+    与 regime_report 同一套标准：ADX<25 且近 5 根未上行、均线粘合
+    <3%、收盘价在 Donchian 区间内。返回当日判定掩码（调用方需
+    shift(1) 保证执行无未来函数）。
+    """
+    comp = regime_components(df)
+    if comp is None:
+        return None
+    return comp["score"] == 3
 
 
 def grid_report(df: pd.DataFrame, higher_df: pd.DataFrame | None = None) -> None:

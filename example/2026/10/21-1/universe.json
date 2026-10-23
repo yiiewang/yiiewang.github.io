@@ -1,0 +1,29 @@
+{
+  "_doc": "标的池配置。group: equity=权益(计入 breadth) | lowvol=低波债基(单列, 不计入权益 breadth) | bench=基准指数(仅作对照, 不计入 breadth)",
+  "updated": "2026-10-23",
+  "period": "daily",
+  "min_n": 10,
+  "_min_n_doc": "breadth 回算时当日最少有效样本数，低于此值的交易日输出为空（避免上市进度不同导致曲线漂移）",
+  "_todo": "562500 名称待核对：data/meta.json 记为「芯片ETF」，panel 抽样记录为「500增强ETF」",
+  "symbols": [
+    {"code": "sh510210", "name": "上证指数ETF富国", "type": "ETF", "group": "equity"},
+    {"code": "sh515220", "name": "煤炭ETF国泰", "type": "ETF", "group": "equity"},
+    {"code": "sh515910", "name": "质量ETF中金", "type": "ETF", "group": "equity"},
+    {"code": "sh515950", "name": "医药50ETF富国", "type": "ETF", "group": "equity"},
+    {"code": "sz159858", "name": "创新药ETF南方", "type": "ETF", "group": "equity"},
+    {"code": "sz159933", "name": "金融地产ETF国投瑞银", "type": "ETF", "group": "equity"},
+    {"code": "sz159937", "name": "黄金ETF博时", "type": "ETF", "group": "equity"},
+    {"code": "562500", "name": "500增强ETF", "type": "ETF", "group": "equity"},
+    {"code": "002050", "name": "三花智控", "type": "股票", "group": "equity"},
+    {"code": "sz000059", "name": "华锦股份", "type": "股票", "group": "equity"},
+    {"code": "sz002162", "name": "悦心健康", "type": "股票", "group": "equity"},
+    {"code": "sz002623", "name": "亚玛顿", "type": "股票", "group": "equity"},
+    {"code": "sz300279", "name": "和晶科技", "type": "股票", "group": "equity"},
+    {"code": "sh603128", "name": "华贸物流", "type": "股票", "group": "equity"},
+    {"code": "sz159972", "name": "5年地方债ETF鹏华", "type": "ETF", "group": "lowvol"},
+    {"code": "sh511360", "name": "短融ETF海富通", "type": "ETF", "group": "lowvol"},
+    {"code": "sh511380", "name": "可转债ETF博时", "type": "ETF", "group": "lowvol"},
+    {"code": "000001", "name": "上证指数", "type": "指数", "group": "bench"},
+    {"code": "000905", "name": "中证500", "type": "指数", "group": "bench"}
+  ]
+}
