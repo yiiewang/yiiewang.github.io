@@ -11,7 +11,7 @@ tags:
   - 工程化
   - 开源
 comments: true
-description: 从零到一做一个个人开发工作台，把文件浏览、Todo 看板、用户管理揉进一个 Go + SQLite 的二进制里。聊聊这半年踩过的坑和想明白的事。
+description: 从零到一做一个个人开发工作台，把文件浏览、上传与管理、Todo 看板、用户与组织管理揉进一个 Go + SQLite 的二进制里。聊聊这半年多踩过的坑和想明白的事。
 hide:
   - navigation
   - toc
@@ -23,12 +23,14 @@ hide:
     <div class="announce-track">
       <span class="announce-item">✦ Workbench · 个人开发工作台</span>
       <span class="announce-item">🐹 Go + SQLite · 单二进制交付</span>
-      <span class="announce-item">🛠️ 文件 · Todo · 用户 · 分享 · 统计</span>
-      <span class="announce-item">🔄 持续迭代中 · 数据完全自持</span>
+      <span class="announce-item">📁 上传 · 管理 · 分享 · 文件全链路</span>
+      <span class="announce-item">📝 折叠 · 目录 · 宽屏表格 · 预览增强</span>
+      <span class="announce-item">📱 移动端适配 · 数据完全自持</span>
       <span class="announce-item">✦ Workbench · 个人开发工作台</span>
       <span class="announce-item">🐹 Go + SQLite · 单二进制交付</span>
-      <span class="announce-item">🛠️ 文件 · Todo · 用户 · 分享 · 统计</span>
-      <span class="announce-item">🔄 持续迭代中 · 数据完全自持</span>
+      <span class="announce-item">📁 上传 · 管理 · 分享 · 文件全链路</span>
+      <span class="announce-item">📝 折叠 · 目录 · 宽屏表格 · 预览增强</span>
+      <span class="announce-item">📱 移动端适配 · 数据完全自持</span>
     </div>
   </div>
 </div>
@@ -46,6 +48,7 @@ hide:
         <span class="hero__tag">🛠️ 个人开发工作台</span>
         <span class="hero__tag">🐹 Go + SQLite</span>
         <span class="hero__tag">⚡ 单二进制</span>
+        <span class="hero__tag">📱 移动端可用</span>
       </div>
       <div class="hero__quote">把个人数据全攥在自己手里，想加什么功能就加什么功能。不是又一个"演示项目"，而是打开浏览器就能干活的东西。</div>
       <div class="hero__actions">
@@ -56,7 +59,9 @@ hide:
   </div>
 </div>
 
-半年前我给自己定了个小目标：做一个能真正天天用的个人开发工作台。现在它叫 **Workbench**，跑在 Go + SQLite 上，前端是 Vite + Vue3 + TypeScript。文件浏览、Todo 看板、用户与组织管理、分享下载，全在一个二进制里。
+我给自己定的目标一直没变：做一个能真正天天用的个人开发工作台。它叫 **Workbench**，跑在 Go + SQLite 上，前端是 Vite + Vue3 + TypeScript。文件浏览、上传与管理、Todo 看板、用户与组织管理、分享下载，全在一个二进制里。
+
+一路迭代到 **v1.1.3**：文件从"只能看"补成"能上传、能建目录、能改名移动"，软链接有了独立身份，手机浏览器也能正常用了，Markdown 预览则长出了折叠、目录和宽屏表格。这些都不是规划出来的，是每天用着用着发现"这里少一块"，然后补上的。
 
 ## 为什么不用现成的
 
@@ -83,10 +88,10 @@ hide:
   <div class="card card--link">
     <div class="card__head">
       <div class="icon-box blue">📁</div>
-      <div class="card__title">文件浏览器</div>
+      <div class="card__title">文件浏览与管理</div>
     </div>
     <div class="card__body">
-      <div class="card__desc">目录树、Tab 编辑、Markdown / JSON / 代码预览，跨文件链接跳转。</div>
+      <div class="card__desc">目录树、Tab 预览、多文件上传，新建 / 重命名 / 移动 / 删除（带环检测），软链接单独标识且只操作链接本身，所有操作锁在用户沙箱内并记审计日志。</div>
     </div>
   </div>
 
@@ -130,6 +135,26 @@ hide:
     </div>
   </div>
 
+  <div class="card card--link">
+    <div class="card__head">
+      <div class="icon-box blue">📝</div>
+      <div class="card__title">Markdown 与 HTML 预览</div>
+    </div>
+    <div class="card__body">
+      <div class="card__desc">宽屏铺满、标题折叠（连子标题一起折）、右下角悬浮目录、宽表格左右滚动 + 表头首列常驻；Mermaid 按需加载，HTML 走沙箱 iframe 且页内锚点可跳转。</div>
+    </div>
+  </div>
+
+  <div class="card card--link">
+    <div class="card__head">
+      <div class="icon-box orange">📱</div>
+      <div class="card__title">移动端适配</div>
+    </div>
+    <div class="card__body">
+      <div class="card__desc">≤768px 侧栏变抽屉：遮罩点击关闭、打开文件自动收起、抽屉头关闭按钮，桌面端的宽度偏好不受影响。</div>
+    </div>
+  </div>
+
 </div>
 
 ## 技术栈
@@ -141,9 +166,14 @@ hide:
   <span class="chip"><span class="chip__icon">🟢</span>Vue3</span>
   <span class="chip"><span class="chip__icon">🔷</span>TypeScript</span>
   <span class="chip"><span class="chip__icon">🧩</span>Element Plus</span>
+  <span class="chip"><span class="chip__icon">📝</span>marked</span>
+  <span class="chip"><span class="chip__icon">🧼</span>DOMPurify</span>
+  <span class="chip"><span class="chip__icon">🎨</span>highlight.js</span>
+  <span class="chip"><span class="chip__icon">📈</span>Mermaid</span>
   <span class="chip"><span class="chip__icon">📦</span>golang-migrate</span>
+  <span class="chip"><span class="chip__icon">🌍</span>xgo 跨平台</span>
   <span class="chip"><span class="chip__icon">🔐</span>HMAC-SHA256</span>
-  <span class="chip"><span class="chip__icon">📝</span>slog</span>
+  <span class="chip"><span class="chip__icon">📋</span>slog</span>
 </div>
 
 ## 从"能用"到"好用"：几个关键决策
@@ -164,20 +194,39 @@ hide:
 
 路径穿越、符号链接逃逸、CORS 沙箱、Token 鉴权……这些不是"锦上添花"，是 **默认就该做对** 的事。个人工具暴露在公网上，一个洞就是整个数据目录。
 
+### 预览：一条链路，两处复用
+
+Markdown 预览原本有两套实现：文件预览走 CDN 加载 marked + DOMPurify，Todo 编辑器预览走 npm 的 marked 且**完全不做净化**。同一个功能两套代码，既是重复也是隐患（后者等于把 `v-html` 直接暴露给任意输入）。
+
+后来收敛成一个 `MarkdownPreview` 组件：`marked → DOMPurify → v-html`，文件预览和 Todo 预览都用它，只靠一个 `compact` prop 区分尺寸。收敛之后，宽屏、表格增强、折叠、目录这些改动只写一遍，两处同时生效。
+
+**教训：同一件事有两份实现时，落后的那份迟早会变成安全漏洞。**
+
+### 沙箱：HTML 预览为什么用 srcdoc
+
+HTML 文件是任意内容，必须隔离在 iframe 里，所以 `sandbox` 不能给 `allow-same-origin`——否则页面能读到父页面的 `localStorage`，登录 token 就漏了。
+
+但这样 `#hash` 锚点全都点不动：用 `blob:` URL 作 `src`，Chrome 直接拒绝（`Not allowed to load local resource`）；换成 `srcdoc`，`href="#id"` 又会被解析成导航到 `about:srcdoc#id`，触发整页重载，表现就是"点了没反应"。
+
+最后的做法是 **srcdoc + 注入一小段脚本**：拦截页内锚点点击，改成 `scrollIntoView`。脚本跑在独立源里，碰不到父页面。**安全边界没退让，功能也没丢——多数时候这两件事并不冲突，只是要找对方案。**
+
 ## 踩过的坑
 
 - **SQLite 迁移**：`ALTER TABLE ADD COLUMN` 不能带外键，旧库升级时索引依赖新列会直接崩。最后上了 golang-migrate 版本化迁移，每个 schema 变更加一个脚本。
 - **前端状态**：KeepAlive + onMounted 的组合下，任何依赖 onMounted 的"模式切换重置"逻辑都会因组件复用而不执行，必须在路由 watch 里显式收敛。
 - **构建链路**：`//go:embed` 要求 `frontend/dist` 存在，fresh clone 必须先 `make all` 才能编译，否则直接报错。
+- **`!important` 会盖掉内联样式**：移动端抽屉的媒体查询写了 `width: 280px !important`，把折叠态的内联 `width: 0` 一起盖掉，抽屉再也收不起来。显隐这类状态最好交给 `transform` 这类不会与布局宽度打架的属性。
+- **全局注册函数被自己覆盖**：有个组件把包装函数又写回 `window.openShareModal`，而包装函数内部正是调用 `window.openShareModal`——访问过那个页面后再点分享就是无限递归。`window` 上的全局入口只能有一个注册方。
+- **迭代残留比代码债更难发现**：`noUnusedLocals` 一直是 `false`，于是没人调用的导出、永远不会被触发的 emit 链路、写了但没逻辑对应的 CSS 类，就这么一轮轮攒下来。后来开启这个开关，一次清出六处未使用符号。**能给编译器管的检查，别交给自觉。**
 
 ## 写在最后
 
 写这个工作台，最大的收获不是代码，是 **想清楚了一个问题：工具应该长在人的工作流里，而不是让人去适应工具**。
 
-它现在还在持续迭代。如果你也想要一个"数据在自己手里、想改就改"的个人工具，欢迎来 [GitHub](https://github.com/yiiewang/workbench) 看看，或者直接体验[在线实例](http://159.75.112.77/)。
+它现在还在持续迭代，当前版本 **v1.1.3**（[Release 与变更记录](https://github.com/yiiewang/workbench/releases/tag/v1.1.3)）。如果你也想要一个"数据在自己手里、想改就改"的个人工具，欢迎来 [GitHub](https://github.com/yiiewang/workbench) 看看，或者直接体验[在线实例](http://159.75.112.77/)。
 
 板块里还有[示例代码](../examples/)和[效率工具](../tools/zsh-setup/)——[返回实验室概览](../)。
 
 ---
 
-*最后更新：2026-09-17*
+*最后更新：2026-10-23（v1.1.3）*

@@ -19,6 +19,7 @@ indicators.py 算好，本脚本只做三类事：
 from __future__ import annotations
 
 import argparse
+import json
 import re
 from collections import Counter
 from itertools import combinations
@@ -30,6 +31,30 @@ from grid import simple_grid_backtest, switch_backtest
 from ladder import ladder_backtest
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
+
+META_PATH = DATA_DIR / "meta.json"
+
+
+def symbol_name(symbol: str) -> str | None:
+    """读取证券名称（离线，读 data/meta.json；缺失返回 None 降级只显示代码）。
+
+    名称由 fetch_data.py 拉数时自动缓存，或用 --name 手动补全。
+    """
+    if not META_PATH.exists():
+        return None
+    try:
+        meta = json.loads(META_PATH.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return None
+    # 先查普通键（股票/ETF），缺失再兜底查指数键（idx: 前缀）
+    return meta.get(symbol) or meta.get(f"idx:{symbol}")
+
+
+def symbol_label(symbol: str) -> str:
+    """带名称的证券显示名（"562500 芯片ETF"），名称缺失时退化为纯代码。"""
+    name = symbol_name(symbol)
+    return f"{symbol} {name}" if name else symbol
+
 
 PERIOD_NAMES = {
     "daily": "日线",
@@ -50,8 +75,6 @@ PERIOD_ORDER = {
 
 # 周期许可的高周期映射（低周期信号受高周期状态许可）
 PERIOD_HIGHER = {"daily": "weekly"}
-
-SIGNAL_COLS = {"ma_signal": "MA5x20", "macd_signal": "MACD"}
 
 # 信号列名约定：ma_{a}x{b}_signal（均线对）与 macd_signal
 MA_SIGNAL_RE = re.compile(r"ma_(\d+)x(\d+)_signal")
@@ -292,69 +315,6 @@ def recent_signals(df: pd.DataFrame, limit: int) -> None:
         )
 
 
-def backtest(df: pd.DataFrame, signal_col: str) -> dict:
-    """
-    机械策略回测：金叉次日开盘买入、死叉次日开盘卖出。
-
-    规则：
-    - 信号在 T 日收盘后产生，T+1 日开盘价成交（无未来函数）
-    - 数据起点若已处于金叉状态（首个信号是死叉），该死叉被忽略
-    - 期末仍持仓则按最后一根K线收盘价平仓
-    - 不计手续费与滑点
-
-    净值曲线按日收益连乘构建（买入日 close/open、持有日 close/昨收、
-    卖出日 open/昨收），最大回撤 = 净值相对历史峰值的最大跌幅。
-    """
-    sig = df[signal_col].tolist()
-    opens = df["open"].astype(float).tolist()
-    closes = df["close"].astype(float).tolist()
-    trades: list[tuple[float, float]] = []
-    holding: float | None = None
-    equity = 1.0
-    peak = 1.0
-    max_dd = 0.0
-
-    for i in range(1, len(df)):
-        prev = sig[i - 1]
-        if prev == "golden" and holding is None:
-            holding = opens[i]
-            day_ret = closes[i] / opens[i]
-        elif prev == "death" and holding is not None:
-            trades.append((holding, opens[i]))
-            day_ret = opens[i] / closes[i - 1]
-            holding = None
-        elif holding is not None:
-            day_ret = closes[i] / closes[i - 1]
-        else:
-            day_ret = 1.0
-        if day_ret != 1.0:
-            equity *= day_ret
-            if equity > peak:
-                peak = equity
-            dd = equity / peak - 1.0
-            if dd < max_dd:
-                max_dd = dd
-
-    closed_at_end = False
-    if holding is not None:
-        trades.append((holding, closes[-1]))
-        closed_at_end = True
-
-    returns = [sell / buy - 1.0 for buy, sell in trades]
-    total = 1.0
-    for r in returns:
-        total *= 1.0 + r
-    total -= 1.0
-    wins = sum(1 for r in returns if r > 0)
-    return {
-        "trades": len(trades),
-        "win_rate": (wins / len(trades)) if trades else None,
-        "total_return": total,
-        "max_dd": max_dd,
-        "closed_at_end": closed_at_end,
-    }
-
-
 def buy_and_hold(df: pd.DataFrame) -> tuple[float, float]:
     """买入持有基准：首日开盘买入持有到期末收盘，返回 (收益, 最大回撤)。"""
     closes = df["close"].astype(float)
@@ -465,6 +425,139 @@ def _has_transitive_redundancy(combo: tuple[str, ...]) -> bool:
             if b == c and (a, d) in pair_set:
                 return True
     return False
+
+
+def build_filters(
+    df: pd.DataFrame, higher_df: pd.DataFrame | None, pair: str,
+) -> list[tuple[str, pd.Series]]:
+    """构建 6 种环境过滤器（ADX/DIF/底背离/周线许可），返回 [(名称, 掩码)]。
+
+    各报告段、密度策略、图表 payload 共用此函数，保证口径一致。
+    """
+    filters: list[tuple[str, pd.Series]] = []
+    if "adx" in df.columns:
+        filters.append(("ADX>=20", df["adx"] >= 20))
+        filters.append(("ADX>=25", df["adx"] >= 25))
+    if "dif_pos" in df.columns:
+        filters.append(("DIF零上", df["dif_pos"]))
+    if "bull_div" in df.columns:
+        filters.append((
+            "底背离前兆",
+            df["bull_div"].astype(bool).rolling(10, min_periods=1).max().astype(bool),
+        ))
+    if higher_df is not None:
+        for src, lab in ((pair, f"周线{pair}"), ("MACD", "周线MACD")):
+            mask = higher_permission(df, higher_df, src)
+            if mask is not None:
+                filters.append((f"{lab}多头", mask))
+    return filters
+
+
+def build_all_masks(
+    df: pd.DataFrame, bulls: dict[str, pd.Series],
+    combo: pd.Series, higher_df: pd.DataFrame | None,
+) -> list[tuple[str, pd.Series]]:
+    """构建全部掩码型策略的 (名称, 持仓掩码) 列表。
+
+    包含：单指标 + 双确认 + 三确认（跳过传递性冗余）+ OR 对偶 + 过滤版。
+    signal_density_report、density_hold、compute_density 共用此函数。
+    """
+    names = list(bulls)
+    masks: list[tuple[str, pd.Series]] = []
+    # 单指标
+    for name, hold in bulls.items():
+        masks.append((name, hold))
+    # 双确认 / 三确认
+    for size in (2, 3):
+        for c in combinations(names, size):
+            if size == 3 and _has_transitive_redundancy(c):
+                continue
+            n = "+".join(c)
+            h = bulls[c[0]]
+            for m in c[1:]:
+                h = h & bulls[m]
+            masks.append((n, h))
+    # OR 对偶
+    or_hold = None
+    for h in bulls.values():
+        or_hold = h if or_hold is None else or_hold | h
+    masks.append(("任一确认(OR)", or_hold))
+    # 过滤版
+    pair = None
+    cols = ma_columns(df)
+    if cols and "MACD" in bulls:
+        pair = f"MA{cols[0][2:]}x{cols[-1][2:]}"
+    if pair and combo is not None:
+        for label, fmask in build_filters(df, higher_df, pair):
+            masks.append((f"{pair}+MACD+{label}", combo & fmask))
+    return masks
+
+
+def collect_density_triggers(
+    df: pd.DataFrame, bulls: dict[str, pd.Series], combo: pd.Series,
+    rmask: pd.Series | None, higher_df: pd.DataFrame | None,
+    n_days: int,
+) -> list[tuple[str, str, pd.Timestamp]]:
+    """收集最近 N 天内全部策略的信号触发事件。
+
+    返回 [(策略名, 方向, 日期)]，方向为 "买入"/"卖出"/"预警"。
+    signal_density_report 和 chart.compute_density 共用此函数。
+    """
+    dates = df["date"]
+    last_date = dates.iloc[-1]
+    cutoff = last_date - pd.Timedelta(days=n_days)
+    recent = dates >= cutoff
+
+    triggers: list[tuple[str, str, pd.Timestamp]] = []
+
+    def add_mask(name: str, hold: pd.Series) -> None:
+        prev = hold.shift(1, fill_value=hold.iloc[0])
+        for d in dates[(~prev.astype(bool)) & hold & recent]:
+            triggers.append((name, "买入", d))
+        for d in dates[prev.astype(bool) & (~hold) & recent]:
+            triggers.append((name, "卖出", d))
+
+    # 掩码型策略（单指标 + 双确认 + 三确认 + OR + 过滤版）
+    for name, hold in build_all_masks(df, bulls, combo, higher_df):
+        add_mask(name, hold)
+
+    # 三档阶梯止盈
+    r = ladder_backtest(df, combo, exit_on_signal=True, cooldown=True)
+    for t in r["trades"]:
+        entry_d = dates.iloc[t["entry_i"]]
+        if entry_d >= cutoff:
+            triggers.append(("三档+冷却协议", "买入", entry_d))
+        last_exit_i = max(i for i in t["exit_is"] if i is not None)
+        exit_d = dates.iloc[last_exit_i]
+        if exit_d >= cutoff:
+            triggers.append(("三档+冷却协议", "卖出", exit_d))
+
+    # 切换系统
+    if rmask is not None:
+        r = switch_backtest(df, combo, rmask)
+        for t in r["trend_trade_list"]:
+            if dates.iloc[t["bi"]] >= cutoff:
+                triggers.append(("切换系统", "买入", dates.iloc[t["bi"]]))
+            if dates.iloc[t["si"]] >= cutoff:
+                triggers.append(("切换系统", "卖出", dates.iloc[t["si"]]))
+        if higher_df is not None:
+            wperm = higher_permission(df, higher_df, "MACD")
+            if wperm is not None:
+                r2 = switch_backtest(df, combo, rmask & wperm)
+                for t in r2["trend_trade_list"]:
+                    if dates.iloc[t["bi"]] >= cutoff:
+                        triggers.append(("切换+网格方向过滤", "买入", dates.iloc[t["bi"]]))
+                    if dates.iloc[t["si"]] >= cutoff:
+                        triggers.append(("切换+网格方向过滤", "卖出", dates.iloc[t["si"]]))
+
+    # 背离预警
+    if {"bull_div", "bear_div"}.issubset(df.columns):
+        for d in dates[recent & df["bull_div"].fillna(False).astype(bool)]:
+            triggers.append(("底背离(预警)", "预警", d))
+        for d in dates[recent & df["bear_div"].fillna(False).astype(bool)]:
+            triggers.append(("顶背离(预警)", "预警", d))
+
+    return triggers
 
 
 def multi_combo_report(df: pd.DataFrame) -> None:
@@ -982,12 +1075,114 @@ def perf_report(df: pd.DataFrame, higher_df: pd.DataFrame | None, period: str) -
         )
 
 
-def analyze(symbol: str, period: str, limit: int) -> None:
+def signal_density_report(
+    df: pd.DataFrame, higher_df: pd.DataFrame | None, n_days: int,
+) -> None:
+    """信号密度分析：最近 N 天内多少策略触发了买入/卖出信号。
+
+    多策略密集同向触发（≥5 个）= 市场变盘前兆。扫描全部策略
+    （单指标/双确认/三确认/对偶/过滤版/三档/切换）+ 背离预警，
+    统计最近 N 天内每个策略的触发事件，输出密集度评级与明细。
+    """
+    bulls = signal_bulls(df)
+    cols = ma_columns(df)
+    if len(cols) < 2 or "MACD" not in bulls:
+        print("[信号密度] 信号源不足，跳过")
+        return
+
+    pair = f"MA{cols[0][2:]}x{cols[-1][2:]}"
+    combo = bulls[pair] & bulls["MACD"]
+    rmask = regime_mask(df)
+
+    triggers = collect_density_triggers(df, bulls, combo, rmask, higher_df, n_days)
+
+    # 汇总
+    buys = [t for t in triggers if t[1] == "买入"]
+    sells = [t for t in triggers if t[1] == "卖出"]
+    warns = [t for t in triggers if t[1] == "预警"]
+    total = len(buys) + len(sells)
+    rating = ("高度密集" if total >= 5 else "中等密集" if total >= 3
+              else "零星" if total >= 1 else "无信号")
+
+    cutoff = df["date"].iloc[-1] - pd.Timedelta(days=n_days)
+    last_date = df["date"].iloc[-1]
+    print(f"[信号密度] 最近 {n_days} 天（{cutoff.date()} ~ {last_date.date()}）")
+    print(f"  买入 {len(buys)} / 卖出 {len(sells)} / 预警 {len(warns)}"
+          f"  →  密集度: {rating}")
+    if triggers:
+        triggers.sort(key=lambda t: t[2], reverse=True)
+        print("  明细（按日期倒序）:")
+        for name, direction, date in triggers:
+            print(f"    {date.strftime('%Y-%m-%d')}  {direction}  {name}")
+
+    # 信号密度策略回测
+    d_hold = density_hold(df, higher_df, n_days=5, threshold=3)
+    if d_hold.any():
+        r = state_backtest(df, d_hold)
+        m = perf_metrics(r["equity_curve"])
+        print(f"  [密度策略] 回看5天/阈值3  {r['trades']} 笔  胜率 "
+              f"{r['win_rate']:.0%}  收益 {r['total_return']:+.1%}"
+              f"  回撤 {r['max_dd']:.1%}  年化 {m['annual']:+.1%}"
+              f"  夏普 {m['sharpe']:.2f}  卡尔玛 {m['calmar']:.2f}")
+    else:
+        print("  [密度策略] 回看5天/阈值3  无触发")
+
+
+def density_hold(
+    df: pd.DataFrame, higher_df: pd.DataFrame | None,
+    n_days: int = 5, threshold: int = 3,
+) -> pd.Series:
+    """信号密度策略持仓掩码。
+
+    逻辑：每个交易日回看最近 n_days 根 K 线（含当日），统计全部掩码型
+    策略的买入触发（多头 False→True）与卖出触发（True→False）数量。
+    买入触发 >= threshold → 应持仓；卖出触发 >= threshold → 应空仓。
+    其余日子维持当前状态不变（类似状态机：信号密集时翻转，否则保持）。
+
+    返回当日判定掩码（调用方需 shift(1) 保证无未来函数）。
+    三档/切换等非掩码型策略不纳入（它们的触发与掩码型高度耦合，
+    纳入会重复计数）。
+    """
+    bulls = signal_bulls(df)
+    cols = ma_columns(df)
+    if len(cols) < 2 or "MACD" not in bulls:
+        return pd.Series(False, index=df.index)
+
+    pair = f"MA{cols[0][2:]}x{cols[-1][2:]}"
+    combo = bulls[pair] & bulls["MACD"]
+
+    # 复用 build_all_masks 获取全部掩码型策略的持仓掩码
+    all_masks = [hold for _, hold in build_all_masks(df, bulls, combo, higher_df)]
+
+    n = len(df)
+    buy_counts = pd.Series(0, index=df.index, dtype=int)
+    sell_counts = pd.Series(0, index=df.index, dtype=int)
+    for mask in all_masks:
+        mask = mask.astype(bool)
+        prev = mask.shift(1, fill_value=mask.iloc[0])
+        buy_counts += ((~prev) & mask).astype(int)
+        sell_counts += (prev & (~mask)).astype(int)
+
+    buy_roll = buy_counts.rolling(n_days, min_periods=1).sum()
+    sell_roll = sell_counts.rolling(n_days, min_periods=1).sum()
+
+    hold = pd.Series(False, index=df.index)
+    for i in range(n):
+        if buy_roll.iloc[i] >= threshold:
+            hold.iloc[i] = True
+        elif sell_roll.iloc[i] >= threshold:
+            hold.iloc[i] = False
+        elif i > 0:
+            hold.iloc[i] = hold.iloc[i - 1]
+    return hold
+
+
+def analyze(symbol: str, period: str, limit: int, density: int = 5) -> None:
     """输出单个周期的完整分析报告。"""
     df = load(symbol, period)
     name = PERIOD_NAMES.get(period, period)
     span = f"{df['date'].iloc[0].date()} ~ {df['date'].iloc[-1].date()}"
-    print(f"===== {symbol} {name} ({span}, {len(df)} 根K线) =====")
+    print(f"===== {symbol_label(symbol)} {name} ({span}, {len(df)} 根K线) =====")
 
     # 周期许可：加载高周期数据（缺失时降级为仅趋势过滤）
     higher_df = None
@@ -1004,6 +1199,8 @@ def analyze(symbol: str, period: str, limit: int) -> None:
     signal_stats(df)
     print()
     recent_signals(df, limit)
+    print()
+    signal_density_report(df, higher_df, density)
     print()
     multi_combo_report(df)
     print()
@@ -1028,6 +1225,7 @@ def main() -> None:
         help="daily/weekly/1/5/15/30/60；缺省则分析该标的全部已缓存周期",
     )
     parser.add_argument("--limit", type=int, default=10, help="最近信号显示条数")
+    parser.add_argument("--density", type=int, default=5, help="信号密度分析天数（默认 5）")
     args = parser.parse_args()
 
     if args.period:
@@ -1043,7 +1241,7 @@ def main() -> None:
         )
 
     for period in periods:
-        analyze(args.symbol, period, args.limit)
+        analyze(args.symbol, period, args.limit, args.density)
 
 
 if __name__ == "__main__":

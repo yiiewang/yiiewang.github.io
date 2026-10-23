@@ -61,8 +61,8 @@ hide:
     <div class="icon-box violet">🛠️</div>
     <div class="card__body">
       <div class="card__title">Workbench 项目</div>
-      <div class="card__desc">Go + SQLite 单二进制个人开发工作台：文件浏览、Todo 看板、组织管理、分享下载，数据完全自持。</div>
-      <span class="badge badge--success">持续迭代</span>
+      <div class="card__desc">Go + SQLite 单二进制个人开发工作台：文件浏览与上传管理、Todo 看板、组织与角色、分享下载、Markdown 折叠目录、移动端适配，数据完全自持。</div>
+      <span class="badge badge--success">v1.1.3 · 持续迭代</span>
     </div>
   </a>
 

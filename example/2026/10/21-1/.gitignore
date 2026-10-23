@@ -5,3 +5,7 @@
 data/
 assets/
 reports/
+
+# 工具运行时产物：playwright-cli 的日志与页面快照
+.playwright-cli/
+
