@@ -11,6 +11,7 @@ Zensical 0.0.x 尚未实现 blog 插件，因此用 macros 插件补齐文章列
                              未收录的新分类自动附加到末尾（默认图标/锚点）。
 - blog_list(category="X")   指定分类的文章卡片，按时间倒序；category 为空
                              时渲染全部文章（卡片附带分类行）。
+- annual_list(year)         某年度的全年目录：按月分组（年内按时间正序）。
 """
 
 from __future__ import annotations
@@ -152,6 +153,7 @@ def _parse_post(path: Path, blog_root: Path) -> dict | None:
     return {
         "title": str(title),
         "date": date,
+        "rel": stem,
         "url": url,
         "categories": [str(c) for c in (meta.get("categories") or [])],
         "tags": [str(t) for t in (meta.get("tags") or [])],
@@ -193,6 +195,15 @@ def _render_card(post: dict, show_categories: bool = True) -> list[str]:
     return lines
 
 
+def _page_src_url(rel: str) -> str:
+    """年度集锦页源码在 blog/annual/ 下，文章在 blog/posts/ 下。
+
+    返回**源码相对路径**（.md 形式），与页面里手写的博客互链同一套约定，
+    由 Zensical 转成站点 URL（→ /blog/posts/YYYY/MM/DD/）。
+    """
+    return f"../{rel}.md"
+
+
 # ---------------------------------------------------------------------------
 # Macros
 # ---------------------------------------------------------------------------
@@ -222,6 +233,30 @@ def define_env(env) -> None:  # noqa: ANN001, ANN201
         out: list[str] = []
         for post in posts:
             out.extend(_render_card(post, show_categories=category is None))
+            out.append("")
+        return "\n".join(out)
+
+    @env.macro
+    def annual_list(year: str | int = "") -> str:
+        """渲染某年度的全年目录：按月分组，年内按时间正序。"""
+        posts = [p for p in _load() if p["date"][:4] == str(year)]
+        if not posts:
+            return ""
+        by_month: dict[str, list[dict]] = {}
+        for p in posts:
+            by_month.setdefault(p["date"][:7], []).append(p)
+
+        out: list[str] = []
+        for month in sorted(by_month):
+            group = sorted(by_month[month], key=lambda p: (p["date"], p["rel"]))
+            out.append(f"### {int(month[5:7])} 月 · {len(group)} 篇")
+            out.append("")
+            for p in group:
+                url = _page_src_url(p["rel"])
+                out.append(
+                    f"- [{p['title']}]({url})"
+                    f" · {p['date'][5:]} · {' / '.join(p['categories'])}"
+                )
             out.append("")
         return "\n".join(out)
 
