@@ -6,55 +6,72 @@
   <link>https://cloaks.cn/</link>
   <description>Cloaks｜Yiiewang 的个人站点 —— 博客记录思考过程，知识库沉淀能力体系。涵盖技术、工程实践、思维方法、领域知识、人文素养、工具效率和职业发展七大能力域。欢迎浏览、搜索和留言讨论。</description>
   <language>zh-CN</language>
-  <lastBuildDate>Fri, 23 Oct 2026 11:41:24 GMT</lastBuildDate>
+  <lastBuildDate>Sat, 24 Oct 2026 15:27:13 GMT</lastBuildDate>
   <atom:link href="https://cloaks.cn/rss.xml" rel="self" type="application/rss+xml"/>
   <item>
-    <title>确认越多越好吗？多信号金叉死叉框架的实测手记</title>
+    <title>均线的物理课：EMA 的重心、速度与加速度</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/24/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/24/</guid>
+    <pubDate>Sat, 24 Oct 2026 00:00:00 GMT</pubDate>
+    <description>EMA 谁都会调，但 α=2/(N+1) 为什么这么定？把递推式展开成权重表，用高中数学推出它的重心与半衰期，再实测证明 MACD 的 DIF 就是速度、柱就是加速度：DIF=7v，柱=56a。</description>
+    <category>量化策略</category>
+    <category>技术指标</category>
+    <category>EMA</category>
+    <category>MACD</category>
+    <category>数学推导</category>
+  </item>
+  <item>
+    <title>复合交易系统操作手册：一份能照着执行的清单</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/24-2/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/24-2/</guid>
+    <pubDate>Sat, 24 Oct 2026 00:00:00 GMT</pubDate>
+    <description>复合交易系统的可执行手册：第零步资产准入、每日收盘后的判定流程、双确认信号、三档阶梯止盈与冷却协议、过滤器负面清单、网格启用条件、风控红线与速查卡。每条规则都标注证据出处，含置换检验改判后的最新边界——照着做就能跑。</description>
+    <category>量化策略</category>
+    <category>仓位管理</category>
+    <category>止盈止损</category>
+    <category>网格交易</category>
+    <category>风险管理</category>
+    <category>操作手册</category>
+  </item>
+  <item>
+    <title>信号有没有用？14 个标的、7450 个事件的对照实验</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/24-1/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/24-1/</guid>
+    <pubDate>Sat, 24 Oct 2026 00:00:00 GMT</pubDate>
+    <description>回撤更浅一直被当成这套系统的存在理由。14 个标的的置换检验给出一个不客气的答案：随机挑时机离场的中位回撤 -40.7%，比信号的 -43.7% 还浅，p_dd 均值 0.448；7450 个信号的差值检验全部 |t| &lt; 1.5。回撤压…</description>
+    <category>量化策略</category>
+    <category>回测</category>
+    <category>统计检验</category>
+    <category>对照实验</category>
+    <category>市场宽度</category>
+  </item>
+  <item>
+    <title>确认越多越好吗？——信号层的实测手记</title>
     <link>https://cloaks.cn/blog/posts/2026/10/21/</link>
     <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/21/</guid>
     <pubDate>Wed, 21 Oct 2026 00:00:00 GMT</pubDate>
-    <description>多指标共振才可靠、大周期定方向——技术分析两大教条到底值多少收益？在 500增强ETF 五年日线数据上枚举 15 种均线×MACD 确认组合并叠加两类环境过滤器，实测发现双确认即巅峰，周期许可全线负贡献。</description>
+    <description>「多指标共振才入场」「大周期定方向」——技术分析的两句公理到底值多少收益？在 500增强ETF 五年日线上枚举 15 种确认组合、叠加趋势过滤与周期许可，再用四层考场逐条复核。结果是：双确认即巅峰，周期许可全线负贡献，而所有冠军数字在跨样…</description>
     <category>量化策略</category>
     <category>回测</category>
     <category>金叉死叉</category>
     <category>趋势跟踪</category>
     <category>技术分析</category>
-  </item>
-  <item>
-    <title>离开单一标的：四层验证收官手记</title>
-    <link>https://cloaks.cn/blog/posts/2026/10/21-3/</link>
-    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/21-3/</guid>
-    <pubDate>Wed, 21 Oct 2026 00:00:00 GMT</pubDate>
-    <description>三部曲的结论全部产自 562500 一只标的的五年熊窗。收官押上四层考场：同窗母指数、21.8 年全周期双指数、15 随机标的——数字大面积翻转，结构顽强存活，最终沉淀为行情×策略映射与三档+冷却的完整操作规则：仓位管理大于信号确认。</description>
-    <category>量化策略</category>
-    <category>回测</category>
+    <category>MACD</category>
     <category>样本外验证</category>
-    <category>风险管理</category>
-    <category>仓位管理</category>
   </item>
   <item>
-    <title>网格死于单边：全天候复合系统实测手记（终章）</title>
-    <link>https://cloaks.cn/blog/posts/2026/10/21-2/</link>
-    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/21-2/</guid>
-    <pubDate>Wed, 21 Oct 2026 00:00:00 GMT</pubDate>
-    <description>全天候复合系统的终章检验：斐波那契网格引擎实测 -8.4% 印证'网格死于单边'，切换系统跑输纯趋势 16.5 个百分点；同一个周线过滤器对趋势 -112pp、对网格 +6pp——过滤器的价值取决于拦的是什么。风险调整视角下三档+冷却以夏…</description>
-    <category>量化策略</category>
-    <category>回测</category>
-    <category>网格交易</category>
-    <category>风险管理</category>
-    <category>夏普比率</category>
-  </item>
-  <item>
-    <title>背离的正确位置：三档止盈与仓位管理的实测手记</title>
+    <title>三档止盈、网格与切换——仓位层的实测手记</title>
     <link>https://cloaks.cn/blog/posts/2026/10/21-1/</link>
     <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/21-1/</guid>
     <pubDate>Wed, 21 Oct 2026 00:00:00 GMT</pubDate>
-    <description>顶背离该不该触发清仓？三档止盈真的多赚 71% 吗？接续实测一，用同一套可复现框架验证复合交易系统的背离用法与三档阶梯止盈：背离三部曲两组被证伪一组成立，三档止盈跑输单笔管理 37 个百分点但回撤最浅——锚点复现证明不是 bug，是行情性…</description>
+    <description>信号层的增益在跨样本上归零，那收益从哪来？接续上篇，用同一套框架测三档止盈、冷却协议、网格与全天候切换：三档止盈跑输单笔管理 37 个百分点，冷却协议修回 33.5，纯网格印证「网格死于单边」，切换系统跑输纯趋势。风险调整视角下三档+冷却…</description>
     <category>量化策略</category>
     <category>回测</category>
-    <category>MACD</category>
     <category>仓位管理</category>
     <category>止盈止损</category>
+    <category>网格交易</category>
+    <category>夏普比率</category>
+    <category>样本外验证</category>
   </item>
   <item>
     <title>拆库记：LevelDB 分片演进，每一步都是为了解决什么问题</title>
@@ -239,18 +256,6 @@
     <category>队列</category>
     <category>内存管理</category>
     <category>源码阅读</category>
-  </item>
-  <item>
-    <title>一个交集，三种写法：分片缺失交易查询的三版演进</title>
-    <link>https://cloaks.cn/blog/posts/2026/09/29/</link>
-    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/09/29/</guid>
-    <pubDate>Tue, 29 Sep 2026 00:00:00 GMT</pubDate>
-    <description>分片系统里查"所有分片都缺失的交易"，本质是求交集。用同一个单测例子拆解三版实现——删除法、重建法、计数法，结果一致表达各异，说说计数法为什么胜出，顺带算清效率账与真正的瓶颈。</description>
-    <category>Go</category>
-    <category>数据结构</category>
-    <category>集合运算</category>
-    <category>分片</category>
-    <category>代码可读性</category>
   </item>
 </channel>
 </rss>
