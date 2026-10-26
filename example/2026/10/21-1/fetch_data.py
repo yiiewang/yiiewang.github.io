@@ -29,11 +29,13 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import re
 import time
 from pathlib import Path
 
 import akshare as ak
 import pandas as pd
+import requests
 
 from indicators import (
     adx,
@@ -94,9 +96,18 @@ def retry_call(fn, attempts: int = 3, base_delay: float = 2.0):
             time.sleep(delay)
 
 
+def bare_code(symbol: str) -> str:
+    """剥离 sh/sz 市场前缀，返回纯数字代码。
+
+    universe.json 与 panel.py 抽样缓存使用带前缀写法（sz159972 / sh511360），
+    而各行情接口要求纯数字代码——前缀若不剥离会导致 ETF 被误判成股票。
+    """
+    return symbol[2:] if symbol[:2].lower() in ("sh", "sz") else symbol
+
+
 def is_etf(symbol: str) -> bool:
-    """按代码前缀区分场内 ETF 与 A 股股票。"""
-    return symbol.startswith(ETF_PREFIXES)
+    """按代码前缀区分场内 ETF 与 A 股股票（兼容带 sh/sz 前缀的写法）。"""
+    return bare_code(symbol).startswith(ETF_PREFIXES)
 
 
 # 常见指数名称（指数代码与股票代码存在冲突，如 000001 既是上证指数
@@ -230,9 +241,10 @@ def fetch_etf_sina_raw(
       （open=首日、high/low=极值、close=末日、volume=求和）
     - 沪市 ETF 映射 sh{code}，深市映射 sz{code}
     """
-    prefix = "sz" if symbol.startswith(("15", "16")) else "sh"
+    code = bare_code(symbol)
+    prefix = "sz" if code.startswith(("15", "16")) else "sh"
     try:
-        raw = retry_call(lambda: ak.fund_etf_hist_sina(symbol=f"{prefix}{symbol}"))
+        raw = retry_call(lambda: ak.fund_etf_hist_sina(symbol=f"{prefix}{code}"))
     except Exception as exc:  # noqa: BLE001
         print(f"[error] 新浪 ETF 接口失败: {exc}")
         return None
@@ -259,10 +271,11 @@ def fetch_stock_sina_raw(
     （open=首日、high/low=极值、close=末日、volume=求和）。
     沪市映射 sh{code}，深市映射 sz{code}。
     """
-    prefix = "sz" if symbol.startswith(("0", "3")) else "sh"
+    code = bare_code(symbol)
+    prefix = "sz" if code.startswith(("0", "3")) else "sh"
     try:
         raw = retry_call(lambda: ak.stock_zh_a_daily(
-            symbol=f"{prefix}{symbol}",
+            symbol=f"{prefix}{code}",
             start_date=start.replace("-", ""),
             end_date=end.replace("-", ""),
             adjust=adjust,
@@ -297,7 +310,7 @@ def fetch_raw(
             try:
                 # 限流返回空体（akshare 内 JSON 解析抛错）多为瞬时，先退避重试
                 return retry_call(lambda: ak.fund_etf_hist_em(
-                    symbol=symbol,
+                    symbol=bare_code(symbol),
                     period=period,
                     start_date=start,
                     end_date=end,
@@ -311,7 +324,7 @@ def fetch_raw(
                 return fetch_etf_sina_raw(symbol, period, start, end)
         try:
             return retry_call(lambda: ak.stock_zh_a_hist(
-                symbol=symbol,
+                symbol=bare_code(symbol),
                 period=period,
                 start_date=start,
                 end_date=end,
@@ -325,9 +338,9 @@ def fetch_raw(
     # 分钟线：东财接口不接受起止日期，返回其保留的全部历史
     if is_etf(symbol):
         return retry_call(lambda: ak.fund_etf_hist_min_em(
-            symbol=symbol, period=period, adjust=adjust))
+            symbol=bare_code(symbol), period=period, adjust=adjust))
     return retry_call(lambda: ak.stock_zh_a_hist_min_em(
-        symbol=symbol, period=period, adjust=adjust))
+        symbol=bare_code(symbol), period=period, adjust=adjust))
 
 
 def normalize(df: pd.DataFrame) -> pd.DataFrame:
@@ -401,6 +414,70 @@ def enrich(
     return df
 
 
+def sina_quote_code(symbol: str, index: bool = False) -> str | None:
+    """生成新浪行情接口代码（带 sh/sz 前缀）。
+
+    指数需与股票区分：000001 既是上证指数又是平安银行，故由 index 决定
+    （上证系列 000xxx -> sh，深证系列 399xxx -> sz）。
+    """
+    if symbol[:2].lower() in ("sh", "sz"):
+        return symbol                      # 已带前缀，直接用
+    code = bare_code(symbol)
+    if index:
+        prefix = "sh" if code.startswith("000") else "sz"
+    elif is_etf(symbol):
+        prefix = "sz" if code.startswith(("15", "16", "18")) else "sh"
+    else:
+        prefix = "sz" if code.startswith(("0", "3")) else "sh"
+    return f"{prefix}{code}"
+
+
+def fetch_today_sina(symbol: str, index: bool = False) -> pd.DataFrame | None:
+    """新浪实时行情接口：取**当日** OHLCV，用于补历史接口的滞后。
+
+    历史日线接口（东财/新浪）最新只到上一交易日，拿不到当天。这里直连
+    hq.sinajs.cn（不经过 akshare），需带 Referer 防盗链，响应为 GBK。
+    返回单行 DataFrame（date/open/close/high/low/volume）；停牌、代码不存在
+    或非交易日返回 None（由调用方静默跳过）。
+    """
+    q = sina_quote_code(symbol, index=index)
+    if q is None:
+        return None
+    try:
+        resp = requests.get(
+            f"https://hq.sinajs.cn/list={q}",
+            headers={"Referer": "https://finance.sina.com.cn"},
+            timeout=10,
+        )
+        resp.encoding = "gbk"
+        body = resp.text
+    except Exception as exc:  # noqa: BLE001
+        print(f"[warn] 新浪当日行情接口失败: {exc}")
+        return None
+
+    # var hq_str_sh562500="名称,今开,昨收,现价,最高,最低,买一,卖一,成交量,成交额,…,日期,时间,…";
+    m = re.search(r'"([^"]*)"', body)
+    if not m:
+        return None
+    f = m.group(1).split(",")
+    if len(f) < 32 or not f[1] or not f[3]:
+        return None                        # 今开/现价为空 = 停牌或代码不存在
+    try:
+        row = {
+            "date": pd.to_datetime(f[30]),
+            "open": float(f[1]),
+            "close": float(f[3]),
+            "high": float(f[4]),
+            "low": float(f[5]),
+            "volume": float(f[8]),
+        }
+    except (ValueError, IndexError):
+        return None
+    if row["close"] <= 0 or row["open"] <= 0:
+        return None
+    return pd.DataFrame([row])
+
+
 def fetch_and_cache(
     symbol: str,
     period: str,
@@ -430,7 +507,20 @@ def fetch_and_cache(
             "请稍后重试或检查代码"
         )
 
-    df = enrich(normalize(raw), ma_windows, macd_params)
+    df = normalize(raw)
+    # 历史日线接口最新只到上一交易日，默认补当日 K 线。
+    # 同一天重复运行时覆盖末行，保证盘中刷新后指标是最新的。
+    if period == "daily":
+        today = fetch_today_sina(symbol, index=index)
+        if today is not None:
+            tdate = today["date"].iloc[0]
+            if not df.empty and df["date"].iloc[-1] == tdate:
+                df = pd.concat([df.iloc[:-1], today], ignore_index=True)
+            elif df.empty or df["date"].iloc[-1] < tdate:
+                df = pd.concat([df, today], ignore_index=True)
+            print(f"[today] 补齐 {tdate.date()} 收={today['close'].iloc[0]:g}"
+                  f"（实时行情，未收盘时为盘中值）")
+    df = enrich(df, ma_windows, macd_params)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     df.to_csv(target, index=False)
     # 顺带缓存证券名称供报告展示（接口失败则静默降级为只显示代码）
