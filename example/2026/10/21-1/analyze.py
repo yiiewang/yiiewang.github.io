@@ -51,7 +51,7 @@ def symbol_name(symbol: str) -> str | None:
 
 
 def symbol_label(symbol: str) -> str:
-    """带名称的证券显示名（"562500 芯片ETF"），名称缺失时退化为纯代码。"""
+    """带名称的证券显示名（"562500 机器人ETF"），名称缺失时退化为纯代码。"""
     name = symbol_name(symbol)
     return f"{symbol} {name}" if name else symbol
 
@@ -183,10 +183,11 @@ def regime_report(df: pd.DataFrame) -> None:
         print(f"  {label}: {detail} -> {'满足' if ok else '不满足'}")
 
     score = sum(1 for _, _, ok in checks if ok)
-    if score == 3:
+    label = regime_label(df)
+    if label == "震荡":
         verdict = "震荡市（第二道门通过，可考虑网格）"
-    elif score == 0 or adx_val >= 35.0:
-        direction = "上行" if pdi_v > mdi_v else "下行"
+    elif label.startswith("趋势"):
+        direction = "上行" if label == "趋势↑" else "下行"
         verdict = f"趋势市（{direction}趋势）"
     else:
         verdict = "过渡状态（趋势与震荡拉锯，网格与趋势都不宜重仓）"
@@ -201,51 +202,207 @@ def regime_report(df: pd.DataFrame) -> None:
     print(f"  参考: +DI({pdi_v:.1f}) vs -DI({mdi_v:.1f}) -> {direction}")
 
 
-def snapshot(df: pd.DataFrame) -> None:
-    """打印最新K线各信号的多空状态（均线对按短/中/长排列）。"""
+def _pad(text: str, width: int) -> str:
+    """按终端显示宽度右补齐（中文按 2 列计），避免中英混排时列错位。"""
+    shown = sum(2 if ord(c) > 127 else 1 for c in text)
+    return text + " " * max(width - shown, 1)
+
+
+def state_run(state: pd.Series) -> int:
+    """当前状态已持续多少根 K 线（从最后一段同状态起算）。"""
+    s = state.dropna()
+    if s.empty:
+        return 0
+    cur = s.iloc[-1]
+    ne = (s != cur).values.nonzero()[0]
+    start = int(ne[-1]) + 1 if len(ne) else 0
+    return len(s) - start
+
+
+def _last_event(df: pd.DataFrame, col: str) -> tuple[str, int] | None:
+    """最近一次事件（该列为真）的 (日期, 距今根数)；无事件返回 None。"""
+    if col not in df.columns:
+        return None
+    hit = df.index[df[col].fillna(False).astype(bool)]
+    if len(hit) == 0:
+        return None
+    i = hit[-1]
+    return df.iloc[i]["date"].strftime("%Y-%m-%d"), len(df) - 1 - i
+
+
+def _filter_detail(df: pd.DataFrame, label: str, higher_df: pd.DataFrame | None,
+                   pair: str | None) -> str:
+    """过滤器当前状态的数值说明。"""
     last = df.iloc[-1]
-    date = last["date"].strftime("%Y-%m-%d")
-    print(f"[当前状态] {date}  close={last['close']:g}")
-    rows = []
+    if label.startswith("ADX"):
+        return f"ADX={float(last['adx']):.1f}" if "adx" in df.columns else ""
+    if label == "DIF零上":
+        if "dif" in df.columns:
+            d = float(last["dif"])
+            return f"DIF={d:+.4f}（{'零上' if d > 0 else '零下'}）"
+        return ""
+    if label == "底背离前兆":
+        ev = _last_event(df, "bull_div")
+        if ev is None or ev[1] >= 10:
+            return "近10根无底背离"
+        return f"底背离 @ {ev[0]}（{ev[1]} 根前）"
+    # 周线许可类
+    if higher_df is None or higher_df.empty:
+        return "（无周线数据）"
+    src = "MACD" if "MACD" in label else (pair or "")
+    wb = signal_bulls(higher_df).get(src)
+    if wb is None:
+        return "（周线缺该信号）"
+    wlast = higher_df.iloc[-1]
+    return (f"周线 {wlast['date'].strftime('%Y-%m-%d')} "
+            f"{'多头' if bool(wb.iloc[-1]) else '空头'}")
+
+
+def collect_current_state(df: pd.DataFrame,
+                          higher_df: pd.DataFrame | None = None) -> dict:
+    """收集最新一根 K 线的完整状态，供报告打印与图表渲染共用。
+
+    分组：signals(信号源) / combos(组合信号) / filters(过滤器准入) /
+    env(环境与仓位) / divs(背离事件)。组合信号与过滤器分别复用
+    signal_bulls 与 build_filters——口径与回测一致，此处不做第二套判定。
+    higher_df 为周线数据（周线许可类过滤器用），缺失时对应行降级显示。
+    """
+    last = df.iloc[-1]
+    bulls = signal_bulls(df)
+    cols = ma_columns(df)
+    pair = f"MA{cols[0][2:]}x{cols[-1][2:]}" if cols else None
+
+    # 信号源
+    signals: list[dict] = []
     for col, name in signal_names(df).items():
-        if col == "macd_signal":
-            rows.append((col, name, "DIF", last["dif"], "DEA", last["dea"]))
-            continue
         m = MA_SIGNAL_RE.fullmatch(col)
-        if m:
+        if col == "macd_signal":
+            fast_v, slow_v, fl, sl = last["dif"], last["dea"], "DIF", "DEA"
+        elif m:
             a, b = m.group(1), m.group(2)
-            rows.append(
-                (col, name, f"MA{a}", last[f"ma{a}"], f"MA{b}", last[f"ma{b}"])
-            )
+            fast_v, slow_v, fl, sl = last[f"ma{a}"], last[f"ma{b}"], f"MA{a}", f"MA{b}"
         else:  # 旧缓存单列 ma_signal：取首尾两条均线
-            cols = ma_columns(df)
-            if len(cols) >= 2:
-                rows.append(
-                    (col, name, cols[0].upper(), last[cols[0]],
-                     cols[-1].upper(), last[cols[-1]])
-                )
-    for col, name, fast_label, fast_v, slow_label, slow_v in rows:
+            if len(cols) < 2:
+                continue
+            fast_v, slow_v = last[cols[0]], last[cols[-1]]
+            fl, sl = cols[0].upper(), cols[-1].upper()
         fast, slow = float(fast_v), float(slow_v)
-        bull = fast > slow
-        sig_rows = df[df[col].notna()]
-        since = (
-            sig_rows.iloc[-1]["date"].strftime("%Y-%m-%d")
-            if not sig_rows.empty
-            else "无"
-        )
-        state = "金叉状态(多头)" if bull else "死叉状态(空头)"
-        arrow = ">" if bull else "<"
-        print(
-            f"  {name}: {fast_label}({fast:.4g}) {arrow} {slow_label}({slow:.4g})"
-            f" -> {state} (自 {since})"
-        )
-    # 背离预警：最近 10 根内出现过背离则提示（预警而非操作信号）
-    if {"bear_div", "bull_div"}.issubset(df.columns):
-        recent = df.tail(10)
-        if recent["bear_div"].any():
-            print("  预警: 最近10根出现顶背离（价格新高而动能未新高）")
-        if recent["bull_div"].any():
-            print("  预警: 最近10根出现底背离（价格新低而动能未新低）")
+        ev = _last_event(df, col)
+        signals.append({
+            "name": name, "fast_label": fl, "slow_label": sl,
+            "fast": fast, "slow": slow, "bull": fast > slow,
+            "since": ev[0] if ev else None,
+            "run": state_run(bulls[name]) if name in bulls else 0,
+        })
+
+    # 组合信号（策略实际入场条件）
+    combos: list[tuple[str, pd.Series, list[pd.Series]]] = []
+    if pair and pair in bulls and "MACD" in bulls:
+        combos.append((f"双确认 {pair}+MACD", bulls[pair] & bulls["MACD"],
+                       [bulls[pair], bulls["MACD"]]))
+    tri = [n for n in bulls if n != "MACD"]
+    if len(tri) >= 2 and "MACD" in bulls:
+        combos.append((f"三确认 {tri[0]}+{tri[1]}+MACD",
+                       bulls[tri[0]] & bulls[tri[1]] & bulls["MACD"],
+                       [bulls[tri[0]], bulls[tri[1]], bulls["MACD"]]))
+    if bulls:
+        or_hold = None
+        for h in bulls.values():
+            or_hold = h if or_hold is None else or_hold | h
+        combos.append(("任一确认(OR)", or_hold, list(bulls.values())))
+    combo_rows = [{
+        "label": label,
+        "bull": bool(hold.iloc[-1]),
+        "members_bull": sum(1 for m in members if bool(m.iloc[-1])),
+        "members": len(members),
+        "run": state_run(hold),
+    } for label, hold, members in combos]
+
+    # 过滤器准入
+    filters = [{
+        "label": label,
+        "ok": bool(fmask.iloc[-1]),
+        "detail": _filter_detail(df, label, higher_df, pair),
+    } for label, fmask in (build_filters(df, higher_df, pair) if pair else [])]
+
+    # 环境与仓位
+    comp = regime_components(df)
+    score = int(comp["score"].iloc[-1]) if comp is not None else -1
+    env: list[dict] = [{
+        "label": "regime",
+        "value": f"{regime_label(df)}（{score}/3）",
+        "extra": (f"+DI({float(last['pdi']):.1f}) vs -DI({float(last['mdi']):.1f})"
+                  if {"pdi", "mdi"}.issubset(df.columns) else ""),
+    }]
+    if len(cols) >= 2:                    # MA10 = 生命线（三档止损上移、回补条件）
+        life = cols[1]
+        lv, cv = float(last[life]), float(last["close"])
+        env.append({
+            "label": f"生命线{life.upper()}",
+            "value": f"close({cv:g}) {'>' if cv > lv else '<'} {life.upper()}({lv:.4g})",
+            "extra": "站稳" if cv > lv else "跌破",
+        })
+    if "dd" in df.columns:
+        env.append({"label": "回撤",
+                    "value": f"{float(last['dd']) * 100:.1f}%", "extra": ""})
+    if {"don_upper", "don_lower"}.issubset(df.columns):
+        up, lo = float(last["don_upper"]), float(last["don_lower"])
+        pos = (float(last["close"]) - lo) / (up - lo) if up > lo else float("nan")
+        env.append({"label": "区间位置",
+                    "value": f"{pos:.0%}" if pd.notna(pos) else "区间退化",
+                    "extra": f"区间[{lo:g}, {up:g}]"})
+
+    # 背离（事件，预警而非开关）
+    divs = []
+    for col, lab in (("bear_div", "顶背离"), ("bull_div", "底背离")):
+        ev = _last_event(df, col)
+        divs.append({"label": lab,
+                     "text": f"{ev[0]}（{ev[1]} 根前）" if ev else "无",
+                     "has": ev is not None})
+
+    return {
+        "date": last["date"].strftime("%Y-%m-%d"),
+        "close": float(last["close"]),
+        "signals": signals, "combos": combo_rows,
+        "filters": filters, "env": env, "divs": divs,
+    }
+
+
+def snapshot(df: pd.DataFrame, higher_df: pd.DataFrame | None = None) -> None:
+    """打印最新K线的完整状态（collect_current_state 的文本渲染）。"""
+    st = collect_current_state(df, higher_df)
+    print(f"[当前状态] {st['date']}  close={st['close']:g}")
+
+    print("  ── 信号源（T日收盘判定 / T+1开盘执行）")
+    for s in st["signals"]:
+        tail = (f"自 {s['since']}（已 {s['run']} 根）" if s["since"]
+                else f"（已 {s['run']} 根）")
+        print(f"  {s['name']:<8}: {s['fast_label']}({s['fast']:.4g}) "
+              f"{'>' if s['bull'] else '<'} {s['slow_label']}({s['slow']:.4g})"
+              f" -> {'金叉状态(多头)' if s['bull'] else '死叉状态(空头)'} {tail}")
+
+    if st["combos"]:
+        print("  ── 组合信号（策略入场条件）")
+        for c in st["combos"]:
+            print(f"  {_pad(c['label'], 26)}: {'多头' if c['bull'] else '空头'}"
+                  f"  ({c['members_bull']}/{c['members']} 成员多头，已 {c['run']} 根)")
+
+    print("  ── 过滤器准入（复用 build_filters，口径与回测一致）")
+    if st["filters"]:
+        for f in st["filters"]:
+            print(f"    {_pad(f['label'], 16)}: {'通过' if f['ok'] else '不通过'}"
+                  f"   {f['detail']}")
+    else:
+        print("    （缓存缺列或缺均线列，无可显示的过滤器）")
+
+    print("  ── 环境与仓位")
+    for e in st["env"]:
+        print(f"    {_pad(e['label'], 12)}: {e['value']}"
+              + (f"  {e['extra']}" if e["extra"] else ""))
+
+    print("  ── 背离（事件，预警非开关）")
+    for d in st["divs"]:
+        print(f"    {_pad(d['label'], 12)}: {d['text']}")
 
 
 def signal_stats(df: pd.DataFrame) -> None:
@@ -921,6 +1078,37 @@ def regime_components(df: pd.DataFrame) -> pd.DataFrame | None:
     return comp
 
 
+def regime_labels(df: pd.DataFrame) -> pd.Series | None:
+    """逐日 regime 标签序列：震荡 / 趋势↑ / 趋势↓ / 过渡。缺列返回 None。
+
+    分类规则只在此处定义一次（3/3=震荡；0/3 或 ADX>=35=趋势，方向由 DI 定；
+    其余=过渡）。regime_label（最新一根）、事件研究、截面扫描均复用它，
+    避免同一判定出现多份实现。
+    """
+    comp = regime_components(df)
+    if comp is None or df.empty:
+        return None
+    adx = df["adx"]
+    trend = (comp["score"] == 0) | (adx >= 35.0)
+    label = pd.Series("过渡", index=df.index)
+    label[comp["score"] == 3] = "震荡"
+    if {"pdi", "mdi"}.issubset(df.columns):
+        up = df["pdi"] > df["mdi"]
+        label[trend & up] = "趋势↑"
+        label[trend & ~up] = "趋势↓"
+    else:
+        label[trend] = "趋势"
+    return label
+
+
+def regime_label(df: pd.DataFrame) -> str:
+    """最新一根的 regime 紧凑标签（regime_labels 的末值）。"""
+    labels = regime_labels(df)
+    if labels is None or labels.empty:
+        return "n/a"
+    return str(labels.iloc[-1])
+
+
 def regime_mask(df: pd.DataFrame) -> pd.Series | None:
     """
     震荡判定掩码（序列版，供切换回测使用）：三条件全过为 True。
@@ -1214,7 +1402,7 @@ def analyze(symbol: str, period: str, limit: int, density: int = 5) -> None:
             pass
     regime_report(df)
     print()
-    snapshot(df)
+    snapshot(df, higher_df)
     print()
     signal_stats(df)
     print()

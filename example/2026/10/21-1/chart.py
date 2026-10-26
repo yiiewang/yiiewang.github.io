@@ -44,6 +44,7 @@ from analyze import (
     build_all_masks,
     build_filters,
     buy_and_hold,
+    collect_current_state,
     collect_density_triggers,
     density_hold,
     higher_permission,
@@ -65,6 +66,100 @@ def _f2(v: float | None) -> str:
     """perf 指标的安全格式化（零波动策略的 sharpe/calmar 可能为 None）。"""
     return f"{v:.2f}" if v is not None else "--"
 
+
+def state_payload(st: dict) -> dict:
+    """把 collect_current_state 的结果转成前端渲染用的 {k, v, tone} 行。
+
+    只做展示格式转换——判定逻辑全部留在 analyze.collect_current_state，
+    保证网页状态面板与终端「当前状态」段同源同口径。
+    """
+
+    def g(x: float) -> str:
+        return f"{x:.4g}"
+
+    signals = [{
+        "k": s["name"],
+        "v": (f"{s['fast_label']}({g(s['fast'])}) {'>' if s['bull'] else '<'} "
+              f"{s['slow_label']}({g(s['slow'])}) "
+              f"{'多头' if s['bull'] else '空头'} 已{s['run']}根"),
+        "tone": "bull" if s["bull"] else "bear",
+    } for s in st["signals"]]
+
+    combos = [{
+        "k": c["label"],
+        "v": f"{'多头' if c['bull'] else '空头'} {c['members_bull']}/{c['members']} 已{c['run']}根",
+        "tone": "bull" if c["bull"] else "bear",
+    } for c in st["combos"]]
+
+    filters = [{
+        "k": f["label"],
+        "v": f"{'通过' if f['ok'] else '不通过'} {f['detail']}".strip(),
+        "tone": "bull" if f["ok"] else "",
+    } for f in st["filters"]]
+
+    env = []
+    for e in st["env"]:
+        extra = e.get("extra", "")
+        env.append({
+            "k": e["label"],
+            "v": e["value"] + (f" {extra}" if extra else ""),
+            "tone": "bear" if extra == "跌破" else "",
+        })
+
+    divs = [{
+        "k": d["label"],
+        "v": d["text"],
+        "tone": "warn" if d["has"] else "",
+    } for d in st["divs"]]
+
+    # 顶部状态条摘要：只挑一眼要看的关键项，细节留在右侧面板
+    chips: list[dict] = []
+
+    def env_of(label: str) -> dict | None:
+        return next((e for e in st["env"] if e["label"] == label), None)
+
+    reg = env_of("regime")
+    if reg:
+        tone = "bull" if "趋势↑" in reg["value"] else "bear" if "趋势↓" in reg["value"] else ""
+        chips.append({"k": "regime", "v": reg["value"], "tone": tone})
+    if st["combos"]:
+        c = st["combos"][0]
+        chips.append({
+            "k": "双确认",
+            "v": f"{'多头' if c['bull'] else '空头'} {c['run']}根",
+            "tone": "bull" if c["bull"] else "bear",
+        })
+    if st["filters"]:
+        ok = sum(1 for f in st["filters"] if f["ok"])
+        chips.append({
+            "k": "过滤器", "v": f"{ok}/{len(st['filters'])} 通过",
+            "tone": "bull" if ok == len(st["filters"]) else "",
+        })
+    life = next((e for e in st["env"] if e["label"].startswith("生命线")), None)
+    if life and life.get("extra"):
+        chips.append({
+            "k": "生命线", "v": life["extra"],
+            "tone": "bull" if life["extra"] == "站稳" else "bear",
+        })
+    dd = env_of("回撤")
+    if dd:
+        chips.append({"k": "回撤", "v": dd["value"], "tone": "bear"})
+    for d in st["divs"]:
+        if d["has"]:
+            txt = d["text"]
+            chips.append({
+                "k": d["label"],
+                "v": txt.split("（")[-1].rstrip("）") if "（" in txt else txt,
+                "tone": "warn",
+            })
+
+    return {
+        "date": st["date"], "close": st["close"],
+        "signals": signals, "combos": combos,
+        "filters": filters, "env": env, "divs": divs,
+        "chips": chips,
+    }
+
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -73,49 +168,74 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; padding: 12px; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #fafafa; }
-  .cards { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
-  .card { background: #fff; border: 1px solid #e5e5e5; padding: 6px 12px; font-size: 12.5px; color: #444; border-radius: 3px; }
-  .card b { color: #c23531; }
-  #symTitle { font-size: 17px; font-weight: 700; color: #222; margin-bottom: 8px; }
+  /* ① 顶栏：标题 + 策略选择 + 策略指标，压成一行 */
+  .topbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            background: #fff; border: 1px solid #e5e5e5; border-radius: 3px;
+            padding: 6px 12px; margin-bottom: 6px; }
+  .topbar .spacer { flex: 1 1 auto; }
+  .topbar select { font-size: 13px; padding: 2px 6px; max-width: 300px; }
+  #symTitle { font-size: 16px; font-weight: 700; color: #222; white-space: nowrap; }
   #symTitle .code { color: #c23531; }
-  #symTitle .meta { font-size: 12.5px; font-weight: 400; color: #888; margin-left: 10px; }
-  #densityBar { margin-bottom: 8px; font-size: 13px; padding: 5px 12px; border-radius: 3px; }
+  #symTitle .meta { font-size: 12px; font-weight: 400; color: #888; margin-left: 8px; }
+  #summary { color: #555; font-size: 12.5px; white-space: nowrap; }
+  #summary b { color: #c23531; }
+  .cards { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .card { background: #fff; border: 1px solid #e5e5e5; padding: 6px 12px;
+          font-size: 12.5px; color: #444; border-radius: 3px; }
+  .card b { color: #c23531; }
+  #densityBar { margin-bottom: 8px; font-size: 12.5px; padding: 5px 12px; border-radius: 3px; }
   #densityBar.density-high { background: #fff0f0; border: 1px solid #f5c6c6; color: #c23531; font-weight: 600; }
   #densityBar.density-mid { background: #fff8e6; border: 1px solid #f0e0b0; color: #8a6d3b; }
   #densityBar.density-low { background: #f5f5f5; border: 1px solid #e5e5e5; color: #888; }
-  #densityBar .dt { display: inline-block; margin-right: 10px; font-size: 12px; color: #666; }
+  #densityBar .dt { display: inline-block; margin-right: 8px; font-size: 11.5px; color: #666; }
   #densityBar .dir-b { color: #e6a23c; }
   #densityBar .dir-s { color: #6c5ce7; }
   #densityBar .dir-w { color: #aaa; }
-  .bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
-  select { font-size: 14px; padding: 3px 6px; max-width: 340px; }
-  #summary { color: #333; font-size: 13px; }
-  #summary b { color: #c23531; }
-  .main { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 10px; }
-  #mainChart { width: 100%; height: 500px; background: #fff; border: 1px solid #eee; }
-  #indChart { width: 100%; height: 250px; background: #fff; border: 1px solid #eee; }
-  .subplot-bar { display: flex; gap: 14px; align-items: center; margin: 10px 0 6px;
+  /* ③ 分区容器：每个信息块带标题条，建立层次 */
+  .sec { background: #fff; border: 1px solid #e5e5e5; border-radius: 3px; margin-bottom: 8px; }
+  .sec:last-child { margin-bottom: 0; }
+  .sec-h { font-size: 11.5px; color: #777; font-weight: 600; padding: 4px 10px;
+           border-bottom: 1px solid #f0f0f0; background: #fcfcfc; letter-spacing: .3px; }
+  .sec-b { padding: 6px 10px; }
+  .main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 10px; align-items: start; }
+  .charts { min-width: 0; }
+  /* 侧栏状态面板：纵向紧凑排列 */
+  #stateBox { display: flex; flex-direction: column; gap: 5px; }
+  .state-group { background: #fcfcfc; border: 1px solid #f0f0f0; border-radius: 3px; padding: 4px 8px; }
+  .state-group h4 { margin: 0 0 1px; font-size: 11px; color: #aaa; font-weight: 600; }
+  .state-row { display: flex; justify-content: space-between; gap: 10px;
+               font-size: 11.5px; line-height: 1.65; }
+  .state-row .k { color: #777; white-space: nowrap; }
+  .state-row .v { color: #333; text-align: right; white-space: nowrap; }
+  .state-row .v.bull { color: #c23531; }
+  .state-row .v.bear { color: #2e8b57; }
+  .state-row .v.warn { color: #e6a23c; }
+  #mainChart { width: 100%; height: 500px; background: #fff; }
+  #indChart { width: 100%; height: 250px; background: #fff; }
+  .subplot-bar { display: flex; gap: 14px; align-items: center;
+                 padding: 5px 10px; border-top: 1px solid #f2f2f2;
                  font-size: 12px; color: #666; }
   .subplot-bar label { cursor: pointer; user-select: none; }
-  .side { display: flex; flex-direction: column; gap: 6px; min-width: 0;
-          height: 0; min-height: 100%; }
-  #dayInfo { height: 20px; line-height: 20px; color: #666; font-size: 12.5px;
-             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #quality { background: #eef6ff; border: 1px solid #c5dcf5; padding: 6px 10px; font-size: 12px; color: #345; }
-  #detail { background: #fff8e6; border: 1px solid #f0e0b0; padding: 6px 10px; font-size: 12.5px;
-            height: 112px; overflow-y: auto; word-break: break-all; }
+  .side { display: flex; flex-direction: column; gap: 8px; min-width: 0;
+          position: sticky; top: 8px; max-height: calc(100vh - 16px);
+          overflow-y: auto; padding-right: 2px; }
+  #dayInfo { margin-top: 8px; height: 20px; line-height: 20px;
+             color: #666; font-size: 12.5px; white-space: nowrap;
+             overflow: hidden; text-overflow: ellipsis; }
+  #quality { font-size: 12px; color: #345; }
+  #detail { font-size: 12.5px; max-height: 132px; overflow-y: auto; word-break: break-all; }
   .cmp-item { display: inline-block; white-space: nowrap; margin-right: 8px; }
-  #trades { background: #fff; border: 1px solid #eee; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
-  .t-head, .t-row { display: grid; grid-template-columns: 30px minmax(0, 1fr) 96px 58px 52px; gap: 4px; padding: 3px 8px; font-size: 12px; }
-  .t-head > span, .t-row > span { min-width: 0; word-break: break-all; }
+  #trades { max-height: 340px; overflow-y: auto; overflow-x: hidden; }
+  .t-head, .t-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) 110px 52px 42px; gap: 3px; padding: 3px 6px; font-size: 12px; }
+  .t-head > span, .t-row > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .t-head { position: sticky; top: 0; background: #f0f0f0; font-weight: 600; z-index: 2; }
   .t-row { border-top: 1px solid #f5f5f5; cursor: pointer; }
   .t-row:hover { background: #fdf3e0; }
   .t-row.active { background: #ffe9b8; }
   .tag { font-size: 10px; padding: 0 3px; border-radius: 2px; color: #fff; margin-right: 3px; }
   .tag.t { background: #c23531; } .tag.g { background: #2e8b57; }
-  #eqChart { width: 100%; height: 240px; background: #fff; border: 1px solid #eee; margin-top: 6px; }
-  #rank { margin-top: 10px; background: #fff; border: 1px solid #e5e5e5; max-height: 420px; overflow-y: auto; }
+  #eqChart { width: 100%; height: 240px; background: #fff; }
+  #rank { max-height: 420px; overflow-y: auto; }
   #rank table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
   #rank th { position: sticky; top: 0; background: #f0f0f0; font-weight: 600; cursor: pointer;
              padding: 4px 8px; white-space: nowrap; text-align: right; z-index: 2; }
@@ -130,32 +250,58 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </style>
 </head>
 <body>
-<div id="symTitle"></div>
-<div class="cards" id="cards"></div>
-<div id="densityBar"></div>
-<div class="bar">
+<div class="topbar">
+  <div id="symTitle"></div>
+  <span class="spacer"></span>
   <label>策略：<select id="strategy"></select></label>
   <span id="summary"></span>
 </div>
+<div class="cards" id="cards"></div>
+<div id="densityBar"></div>
 <div class="main">
-  <div>
-    <div id="mainChart"></div>
-    <div id="dayInfo" style="margin-top:4px">点击K线任意一天可查看该日持仓与浮盈</div>
-    <div class="subplot-bar">浮窗：
-      <label><input type="checkbox" id="tipMain" checked>主图</label>
-      <label><input type="checkbox" id="tipInd" checked>指标</label>
-      <label><input type="checkbox" id="tipEq">净值</label>
+  <div class="charts">
+    <div class="sec">
+      <div class="sec-h">K线与策略信号</div>
+      <div id="mainChart"></div>
+      <div class="subplot-bar">浮窗：
+        <label><input type="checkbox" id="tipMain" checked>主图</label>
+        <label><input type="checkbox" id="tipInd" checked>指标</label>
+        <label><input type="checkbox" id="tipEq">净值</label>
+      </div>
     </div>
-    <div id="indChart"></div>
-    <div id="eqChart"></div>
+    <div class="sec" id="secInd">
+      <div class="sec-h">MACD 与 ADX</div>
+      <div id="indChart"></div>
+    </div>
+    <div class="sec">
+      <div class="sec-h">净值曲线</div>
+      <div id="eqChart"></div>
+    </div>
   </div>
   <div class="side">
-    <div id="detail"></div>
-    <div id="quality"></div>
-    <div id="trades"></div>
+    <div class="sec">
+      <div class="sec-h">当前状态</div>
+      <div class="sec-b"><div id="stateBox"></div></div>
+    </div>
+    <div class="sec" id="secQuality">
+      <div class="sec-h">信号质量</div>
+      <div class="sec-b"><div id="quality"></div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-h">持仓与同期对比</div>
+      <div class="sec-b"><div id="detail"></div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-h">交易列表</div>
+      <div id="trades"></div>
+    </div>
   </div>
 </div>
-<div id="rank"></div>
+<div id="dayInfo">点击K线任意一天可查看该日持仓与浮盈</div>
+<div class="sec">
+  <div class="sec-h">策略排名（点表头排序，点行切换策略）</div>
+  <div id="rank"></div>
+</div>
 <p class="tip">▲ 买入 = 转多的次日开盘执行价；▼ 卖出 = 转空的次日开盘（与回测同语义）。点击列表定位 K 线区间并显示同期跨策略对比；切换系统选中时主图背景为模式条带（红=趋势/绿=网格/灰=现金）；底部净值图与主图联动。</p>
 <script>__ECHARTS__</script>
 <script>
@@ -166,7 +312,8 @@ const eqChart = echarts.init(document.getElementById('eqChart'));
 const indBox = document.getElementById('indChart');
 const indChart = RAW.ind && (RAW.ind.dif || RAW.ind.adx) ? echarts.init(indBox) : null;
 if (!indChart) {
-  indBox.style.display = 'none';
+  const si = document.getElementById('secInd');
+  if (si) si.style.display = 'none';
   document.getElementById('tipInd').parentElement.style.display = 'none';
 }
 echarts.connect([mainChart, eqChart, indChart].filter(Boolean));
@@ -183,6 +330,24 @@ document.getElementById('symTitle').innerHTML =
 // 顶部状态卡
 document.getElementById('cards').innerHTML =
   RAW.cards.map(c => '<div class="card">' + c + '</div>').join('');
+
+// 当前状态面板：与 analyze.py 的「当前状态」段同源（collect_current_state）
+(function() {
+  const st = RAW.state;
+  if (!st) return;
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const row = r => '<div class="state-row"><span class="k">' + esc(r.k) + '</span>'
+    + '<span class="v' + (r.tone ? ' ' + r.tone : '') + '">' + esc(r.v) + '</span></div>';
+  const group = (title, list) => list && list.length
+    ? '<div class="state-group"><h4>' + title + '</h4>' + list.map(row).join('') + '</div>'
+    : '';
+  document.getElementById('stateBox').innerHTML =
+      group('信号源', st.signals)
+    + group('组合信号（入场条件）', st.combos)
+    + group('过滤器准入', st.filters)
+    + group('环境与仓位', st.env)
+    + group('背离（预警非开关）', st.divs);
+})();
 
 // 信号密度状态条
 (function() {
@@ -206,7 +371,11 @@ mainChart.setOption({
   legend: { top: 4, data: ['K线', 'MA5', 'MA10', 'MA20'] },
   grid: { left: 60, right: 16, top: 34, bottom: 52 },
   xAxis: cat,
-  yAxis: { scale: true, splitArea: { show: true } },
+  yAxis: [
+    { scale: true, splitArea: { show: true } },
+    // 隐藏辅助轴（0~1）：把信号密度标记钉在 x 轴附近，不随价格波动
+    { min: 0, max: 1, show: false },
+  ],
   dataZoom: [
     { type: 'inside', start: zoomStart, end: 100 },
     { type: 'slider', start: zoomStart, end: 100, height: 18, bottom: 10 },
@@ -227,11 +396,11 @@ mainChart.setOption({
       itemStyle: { color: '#ff8c00', borderColor: '#333', borderWidth: 1 } },
     { id: 'fsell', type: 'scatter', data: [], symbol: 'triangle', symbolRotate: 180, symbolSize: 20, z: 6,
       itemStyle: { color: '#4834d4', borderColor: '#333', borderWidth: 1 } },
-    { id: 'density', name: '信号密度', type: 'scatter', data: [],
-      symbol: 'pin', symbolSize: 28, z: 7,
-      itemStyle: { color: 'rgba(230,162,60,.7)', borderColor: '#c23531', borderWidth: 1 },
-      label: { show: true, formatter: p => p.data.value || '', position: 'top',
-               color: '#c23531', fontWeight: 'bold', fontSize: 10 } },
+    // 密度标记：不显示数字，用颜色深浅表达触发次数（越红越密集），明细靠 hover
+    { id: 'density', name: '信号密度', type: 'scatter', data: [], yAxisIndex: 1,
+      symbol: 'pin', symbolSize: 16, z: 7,
+      itemStyle: { borderColor: '#c23531', borderWidth: 1 },
+      tooltip: { formatter: p => p.data.name + '　' + (p.data.count || 0) + ' 次触发' } },
   ],
 });
 
@@ -243,9 +412,18 @@ mainChart.setOption({
   const byDate = {};
   d.triggers.forEach(t => { byDate[t.date] = (byDate[t.date] || 0) + 1; });
   const cats = RAW.categories;
+  // y 取辅助轴的固定低位：标记钉在 x 轴附近，不随当日价格波动
+  // 颜色分档表达密集度：1 次浅橙 / 2~3 次橙红 / 4 次以上深红
+  const tone = c => c >= 4 ? 'rgba(193,35,49,.85)'
+                 : c >= 2 ? 'rgba(230,90,60,.8)'
+                 : 'rgba(240,175,85,.75)';
   const data = Object.entries(byDate).map(([date, count]) => {
     const idx = cats.indexOf(date);
-    return idx >= 0 ? { value: [idx, count], name: date } : null;
+    if (idx < 0) return null;
+    return {
+      value: [idx, 0.06], name: date, count,
+      itemStyle: { color: tone(count), borderColor: count >= 2 ? '#c23531' : '#e6a23c', borderWidth: 1 },
+    };
   }).filter(Boolean);
   if (data.length) mainChart.setOption({ series: [{ id: 'density', data }] });
 })();
@@ -403,13 +581,14 @@ function applyStrategy(name) {
   ]});
   summary.innerHTML = '<b>' + name + '</b>　' + (s.desc || '');
   quality.innerHTML = s.quality || '';
-  quality.style.display = s.quality ? 'block' : 'none';
+  const sq = document.getElementById('secQuality');
+  if (sq) sq.style.display = s.quality ? '' : 'none';
   detail.innerHTML = '<span style="color:#999">点击下方列表中的交易行：定位 K 线区间，并显示同期跨策略收益对比</span>';
 
   if (s.kind === 'ladder') {
     head(['#', '买入→离场', '三档出场', '轮收益', '原因']);
     s.rounds.forEach((t, i) => row(
-      [i + 1, md(t.bd) + '→' + md(t.sd), t.tiers, '<b class="' + cls(t.ret) + '">' + pct(t.ret) + '</b>', t.reason],
+      [i + 1, md(t.bd) + '→' + md(t.sd), (t.tiers || '').replace(/ \/ /g, '/'), '<b class="' + cls(t.ret) + '">' + pct(t.ret) + '</b>', t.reason],
       t.bi, t.maxSi, '<b>本轮回合 ' + pct(t.ret) + '</b>（' + t.bd + ' ' + t.bp + ' → ' + t.sd + '）　三档: ' + t.tiers + '　离场原因: ' + t.reason));
   } else if (s.kind === 'switch') {
     head(['#', '类型 区间', '明细', '收益', '天数']);
@@ -816,6 +995,17 @@ def make_chart(symbol: str, period: str) -> Path:
         sig_lines.append(f"{name}{'多' if bulls[name].iloc[-1] else '空'}")
     cards.append("<b>当前信号</b> " + " ".join(sig_lines))
 
+    # 状态摘要并入顶部状态卡（与「市场状态」同 UI、同一行）；
+    # regime 不重复加——市场状态卡已表达同一结论
+    st = state_payload(collect_current_state(df, higher_df))
+    _tone = {"bull": "#c23531", "bear": "#2e8b57", "warn": "#a06d20"}
+    for c in st["chips"]:
+        if c["k"] == "regime":
+            continue
+        cards.append(
+            f'<b>{c["k"]}</b> <span style="color:{_tone.get(c["tone"], "#555")}">{c["v"]}</span>'
+        )
+
     closes = df["close"].astype(float).tolist()
     hold_m = perf_metrics(pd.Series(closes, dtype=float) / closes[0])
     cats = [d.strftime("%Y-%m-%d") for d in df["date"]]
@@ -863,6 +1053,7 @@ def make_chart(symbol: str, period: str) -> Path:
         "strategies": strategies,
         "ind": ind,
         "density": compute_density(df, bulls, combo, rmask, higher_df),
+        "state": st,
     }
     for col in ("ma5", "ma10", "ma20"):
         payload[col] = [None if pd.isna(v) else round(float(v), 4) for v in df[col]]
