@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>__TITLE__</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 12px; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #fafafa; }
+  /* ① 顶栏：标题 + 策略选择 + 策略指标，压成一行 */
+  .topbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            background: #fff; border: 1px solid #e5e5e5; border-radius: 3px;
+            padding: 6px 12px; margin-bottom: 6px; }
+  .topbar .spacer { flex: 1 1 auto; }
+  .topbar select { font-size: 13px; padding: 2px 6px; max-width: 300px; }
+  #symTitle { font-size: 16px; font-weight: 700; color: #222; white-space: nowrap; }
+  #symTitle .code { color: #c23531; }
+  #symTitle .meta { font-size: 12px; font-weight: 400; color: #888; margin-left: 8px; }
+  #summary { color: #555; font-size: 12.5px; white-space: nowrap; }
+  #summary b { color: #c23531; }
+  .cards { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .card { background: #fff; border: 1px solid #e5e5e5; padding: 6px 12px;
+          font-size: 12.5px; color: #444; border-radius: 3px; }
+  .card b { color: #c23531; }
+  #densityBar { margin-bottom: 8px; font-size: 12.5px; padding: 5px 12px; border-radius: 3px; }
+  #densityBar.density-high { background: #fff0f0; border: 1px solid #f5c6c6; color: #c23531; font-weight: 600; }
+  #densityBar.density-mid { background: #fff8e6; border: 1px solid #f0e0b0; color: #8a6d3b; }
+  #densityBar.density-low { background: #f5f5f5; border: 1px solid #e5e5e5; color: #888; }
+  #densityBar .dt { display: inline-block; margin-right: 8px; font-size: 11.5px; color: #666; }
+  #densityBar .dir-b { color: #e6a23c; }
+  #densityBar .dir-s { color: #6c5ce7; }
+  #densityBar .dir-w { color: #aaa; }
+  /* ③ 分区容器：每个信息块带标题条，建立层次 */
+  .sec { background: #fff; border: 1px solid #e5e5e5; border-radius: 3px; margin-bottom: 8px; }
+  .sec:last-child { margin-bottom: 0; }
+  .sec-h { font-size: 11.5px; color: #777; font-weight: 600; padding: 4px 10px;
+           border-bottom: 1px solid #f0f0f0; background: #fcfcfc; letter-spacing: .3px; }
+  .sec-b { padding: 6px 10px; }
+  .main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 10px; align-items: start; }
+  .charts { min-width: 0; }
+  /* 侧栏状态面板：纵向紧凑排列 */
+  #stateBox { display: flex; flex-direction: column; gap: 5px; }
+  .state-group { background: #fcfcfc; border: 1px solid #f0f0f0; border-radius: 3px; padding: 4px 8px; }
+  .state-group h4 { margin: 0 0 1px; font-size: 11px; color: #aaa; font-weight: 600; }
+  .state-row { display: flex; justify-content: space-between; gap: 10px;
+               font-size: 11.5px; line-height: 1.65; }
+  .state-row .k { color: #777; white-space: nowrap; }
+  .state-row .v { color: #333; text-align: right; white-space: nowrap; }
+  .state-row .v.bull { color: #c23531; }
+  .state-row .v.bear { color: #2e8b57; }
+  .state-row .v.warn { color: #e6a23c; }
+  #mainChart { width: 100%; height: 500px; background: #fff; }
+  #indChart { width: 100%; height: 250px; background: #fff; }
+  .subplot-bar { display: flex; gap: 14px; align-items: center;
+                 padding: 5px 10px; border-top: 1px solid #f2f2f2;
+                 font-size: 12px; color: #666; }
+  .subplot-bar label { cursor: pointer; user-select: none; }
+  .side { display: flex; flex-direction: column; gap: 8px; min-width: 0;
+          position: sticky; top: 8px; max-height: calc(100vh - 16px);
+          overflow-y: auto; padding-right: 2px; }
+  #dayInfo { margin-top: 8px; height: 20px; line-height: 20px;
+             color: #666; font-size: 12.5px; white-space: nowrap;
+             overflow: hidden; text-overflow: ellipsis; }
+  #quality { font-size: 12px; color: #345; }
+  #detail { font-size: 12.5px; max-height: 132px; overflow-y: auto; word-break: break-all; }
+  .cmp-item { display: inline-block; white-space: nowrap; margin-right: 8px; }
+  #trades { max-height: 340px; overflow-y: auto; overflow-x: hidden; }
+  .t-head, .t-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) 110px 52px 42px; gap: 3px; padding: 3px 6px; font-size: 12px; }
+  .t-head > span, .t-row > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t-head { position: sticky; top: 0; background: #f0f0f0; font-weight: 600; z-index: 2; }
+  .t-row { border-top: 1px solid #f5f5f5; cursor: pointer; }
+  .t-row:hover { background: #fdf3e0; }
+  .t-row.active { background: #ffe9b8; }
+  .tag { font-size: 10px; padding: 0 3px; border-radius: 2px; color: #fff; margin-right: 3px; }
+  .tag.t { background: #c23531; } .tag.g { background: #2e8b57; }
+  #eqChart { width: 100%; height: 240px; background: #fff; }
+  #rank { max-height: 420px; overflow-y: auto; }
+  #rank table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  #rank th { position: sticky; top: 0; background: #f0f0f0; font-weight: 600; cursor: pointer;
+             padding: 4px 8px; white-space: nowrap; text-align: right; z-index: 2; }
+  #rank td { padding: 3px 8px; border-top: 1px solid #f5f5f5; white-space: nowrap; text-align: right; }
+  #rank th:nth-child(1), #rank th:nth-child(2),
+  #rank td:nth-child(1), #rank td:nth-child(2) { text-align: left; }
+  #rank tbody tr { cursor: pointer; }
+  #rank tbody tr:hover { background: #fdf3e0; }
+  #rank tbody tr.active { background: #ffe9b8; }
+  .tip { color: #888; font-size: 12px; margin-top: 5px; }
+  .pos { color: #c23531; } .neg { color: #2e8b57; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div id="symTitle"></div>
+  <span class="spacer"></span>
+  <label>策略：<select id="strategy"></select></label>
+  <span id="summary"></span>
+</div>
+<div class="cards" id="cards"></div>
+<div id="densityBar"></div>
+<div class="main">
+  <div class="charts">
+    <div class="sec">
+      <div class="sec-h">K线与策略信号</div>
+      <div id="mainChart"></div>
+      <div class="subplot-bar">浮窗：
+        <label><input type="checkbox" id="tipMain" checked>主图</label>
+        <label><input type="checkbox" id="tipInd" checked>指标</label>
+        <label><input type="checkbox" id="tipEq">净值</label>
+      </div>
+    </div>
+    <div class="sec" id="secInd">
+      <div class="sec-h">MACD 与 ADX</div>
+      <div id="indChart"></div>
+    </div>
+    <div class="sec">
+      <div class="sec-h">净值曲线</div>
+      <div id="eqChart"></div>
+    </div>
+  </div>
+  <div class="side">
+    <div class="sec">
+      <div class="sec-h">当前状态</div>
+      <div class="sec-b"><div id="stateBox"></div></div>
+    </div>
+    <div class="sec" id="secQuality">
+      <div class="sec-h">信号质量</div>
+      <div class="sec-b"><div id="quality"></div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-h">持仓与同期对比</div>
+      <div class="sec-b"><div id="detail"></div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-h">交易列表</div>
+      <div id="trades"></div>
+    </div>
+  </div>
+</div>
+<div id="dayInfo">点击K线任意一天可查看该日持仓与浮盈</div>
+<div class="sec">
+  <div class="sec-h">策略排名（点表头排序，点行切换策略）</div>
+  <div id="rank"></div>
+</div>
+<p class="tip">▲ 买入 = 转多的次日开盘执行价；▼ 卖出 = 转空的次日开盘（与回测同语义）。点击列表定位 K 线区间并显示同期跨策略对比；切换系统选中时主图背景为模式条带（红=趋势/绿=网格/灰=现金）；底部净值图与主图联动。</p>
+<script>__ECHARTS__</script>
+<script>
+const RAW = __DATA__;
+
+const mainChart = echarts.init(document.getElementById('mainChart'));
+const eqChart = echarts.init(document.getElementById('eqChart'));
+const indBox = document.getElementById('indChart');
+const indChart = RAW.ind && (RAW.ind.dif || RAW.ind.adx) ? echarts.init(indBox) : null;
+if (!indChart) {
+  const si = document.getElementById('secInd');
+  if (si) si.style.display = 'none';
+  document.getElementById('tipInd').parentElement.style.display = 'none';
+}
+echarts.connect([mainChart, eqChart, indChart].filter(Boolean));
+const N = RAW.categories.length;
+const zoomStart = Math.max(0, 100 * (1 - 250 / N));
+const cat = { type: 'category', data: RAW.categories, axisLabel: { formatter: v => v.slice(2) } };
+
+// 证券标题栏：代码 + 名称 + 周期 + 数据区间
+document.getElementById('symTitle').innerHTML =
+  '<span class="code">' + RAW.symbolLabel + '</span> 策略回测报告'
+  + '<span class="meta">' + (RAW.periodName || RAW.period) + '　' + (RAW.span || '')
+  + '　' + RAW.categories.length + ' 根K线</span>';
+
+// 顶部状态卡
+document.getElementById('cards').innerHTML =
+  RAW.cards.map(c => '<div class="card">' + c + '</div>').join('');
+
+// 当前状态面板：与 analyze.py 的「当前状态」段同源（collect_current_state）
+(function() {
+  const st = RAW.state;
+  if (!st) return;
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const row = r => '<div class="state-row"><span class="k">' + esc(r.k) + '</span>'
+    + '<span class="v' + (r.tone ? ' ' + r.tone : '') + '">' + esc(r.v) + '</span></div>';
+  const group = (title, list) => list && list.length
+    ? '<div class="state-group"><h4>' + title + '</h4>' + list.map(row).join('') + '</div>'
+    : '';
+  document.getElementById('stateBox').innerHTML =
+      group('信号源', st.signals)
+    + group('组合信号（入场条件）', st.combos)
+    + group('过滤器准入', st.filters)
+    + group('环境与仓位', st.env)
+    + group('背离（预警非开关）', st.divs);
+})();
+
+// 信号密度状态条
+(function() {
+  const d = RAW.density;
+  const bar = document.getElementById('densityBar');
+  const cls = d.buys + d.sells >= 5 ? 'density-high' : d.buys + d.sells >= 3 ? 'density-mid' : 'density-low';
+  let html = `信号密度（最近${d.nDays}天）：买入 <b>${d.buys}</b> / 卖出 <b>${d.sells}</b> / 预警 ${d.warns} → <b>${d.rating}</b>`;
+  if (d.triggers.length) {
+    const dirs = {'买入': 'dir-b', '卖出': 'dir-s', '预警': 'dir-w'};
+    html += '<br>' + d.triggers.slice(0, 12).map(t =>
+      `<span class="dt">${t.date} <span class="${dirs[t.dir]}">${t.dir}</span> ${t.name}</span>`).join('');
+    if (d.triggers.length > 12) html += `<span class="dt">…共 ${d.triggers.length} 条</span>`;
+  }
+  bar.className = cls;
+  bar.innerHTML = html;
+})();
+
+mainChart.setOption({
+  animation: false,
+  tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+  legend: { top: 4, data: ['K线', 'MA5', 'MA10', 'MA20'] },
+  grid: { left: 60, right: 16, top: 34, bottom: 52 },
+  xAxis: cat,
+  yAxis: [
+    { scale: true, splitArea: { show: true } },
+    // 隐藏辅助轴（0~1）：把信号密度标记钉在 x 轴附近，不随价格波动
+    { min: 0, max: 1, show: false },
+  ],
+  dataZoom: [
+    { type: 'inside', start: zoomStart, end: 100 },
+    { type: 'slider', start: zoomStart, end: 100, height: 18, bottom: 10 },
+  ],
+  series: [
+    { name: 'K线', type: 'candlestick', data: RAW.kline, markArea: { silent: true, data: [] },
+      itemStyle: { color: '#ef232a', color0: '#14b143', borderColor: '#ef232a', borderColor0: '#14b143' } },
+    { name: 'MA5', type: 'line', data: RAW.ma5, showSymbol: false, lineStyle: { width: 1, opacity: .8 } },
+    { name: 'MA10', type: 'line', data: RAW.ma10, showSymbol: false, lineStyle: { width: 1, opacity: .8 } },
+    { name: 'MA20', type: 'line', data: RAW.ma20, showSymbol: false, lineStyle: { width: 1.2, opacity: .9 } },
+    { id: 'buy', name: '买入', type: 'scatter', data: [], symbol: 'triangle', symbolSize: 12, z: 5,
+      itemStyle: { color: '#e6a23c', borderColor: '#fff', borderWidth: .5 },
+      label: { show: true, formatter: 'B', position: 'bottom', color: '#e6a23c', fontWeight: 'bold', fontSize: 12 } },
+    { id: 'sell', name: '卖出', type: 'scatter', data: [], symbol: 'triangle', symbolRotate: 180, symbolSize: 12, z: 5,
+      itemStyle: { color: '#6c5ce7', borderColor: '#fff', borderWidth: .5 },
+      label: { show: true, formatter: 'S', position: 'top', color: '#6c5ce7', fontWeight: 'bold', fontSize: 12 } },
+    { id: 'fbuy', type: 'scatter', data: [], symbol: 'triangle', symbolSize: 20, z: 6,
+      itemStyle: { color: '#ff8c00', borderColor: '#333', borderWidth: 1 } },
+    { id: 'fsell', type: 'scatter', data: [], symbol: 'triangle', symbolRotate: 180, symbolSize: 20, z: 6,
+      itemStyle: { color: '#4834d4', borderColor: '#333', borderWidth: 1 } },
+    // 密度标记：不显示数字，用颜色深浅表达触发次数（越红越密集），明细靠 hover
+    { id: 'density', name: '信号密度', type: 'scatter', data: [], yAxisIndex: 1,
+      symbol: 'pin', symbolSize: 16, z: 7,
+      itemStyle: { borderColor: '#c23531', borderWidth: 1 },
+      tooltip: { formatter: p => p.data.name + '　' + (p.data.count || 0) + ' 次触发' } },
+  ],
+});
+
+// 信号密度标记：最近 N 天有触发的日期在主图打标记
+(function() {
+  const d = RAW.density;
+  if (!d.triggers.length) return;
+  // 按日期聚合：同一天多个触发合并，标记数量
+  const byDate = {};
+  d.triggers.forEach(t => { byDate[t.date] = (byDate[t.date] || 0) + 1; });
+  const cats = RAW.categories;
+  // y 取辅助轴的固定低位：标记钉在 x 轴附近，不随当日价格波动
+  // 颜色分档表达密集度：1 次浅橙 / 2~3 次橙红 / 4 次以上深红
+  const tone = c => c >= 4 ? 'rgba(193,35,49,.85)'
+                 : c >= 2 ? 'rgba(230,90,60,.8)'
+                 : 'rgba(240,175,85,.75)';
+  const data = Object.entries(byDate).map(([date, count]) => {
+    const idx = cats.indexOf(date);
+    if (idx < 0) return null;
+    return {
+      value: [idx, 0.02], name: date, count,
+      itemStyle: { color: tone(count), borderColor: count >= 2 ? '#c23531' : '#e6a23c', borderWidth: 1 },
+    };
+  }).filter(Boolean);
+  if (data.length) mainChart.setOption({ series: [{ id: 'density', data }] });
+})();
+
+const eqNames = Object.keys(RAW.strategies).concat(['买入持有']);
+// 净值曲线图例：25 条线全开会糊成一团，默认只显示「买入持有」+ 当前策略，
+// 其余由用户点图例自行开启；切换策略只追加，不重置已勾选的项
+const eqSel = {};
+eqNames.forEach(n => { eqSel[n] = false; });
+eqSel['买入持有'] = true;
+eqChart.setOption({
+  animation: false,
+  tooltip: { trigger: 'axis', showContent: false },
+  legend: { top: 2, type: 'scroll', show: true, selected: eqSel },
+  grid: { left: 60, right: 16, top: 30, bottom: 24 },
+  xAxis: cat,
+  yAxis: { type: 'log', scale: true, axisLabel: { formatter: v => v.toFixed(2) } },
+  dataZoom: [{ type: 'inside', start: zoomStart, end: 100, zoomOnMouseWheel: 'shift' }],
+  series: eqNames.map(n => ({
+    name: n, type: 'line', showSymbol: false,
+    lineStyle: { width: n.includes('双确认') || n === '买入持有' ? 1.8 : 1, opacity: .85 },
+    data: n === '买入持有' ? RAW.holdEquity : RAW.strategies[n].equity,
+  })),
+});
+
+// 指标子图：MACD（DIF/DEA/柱 + 背离点）与 ADX/DI（20/25 阈值线）
+if (indChart) {
+  const IND = RAW.ind;
+  const grids = [], xAxes = [], yAxes = [], series = [], lg = [];
+  let g = -1;
+  if (IND.dif) {
+    g++;
+    grids.push({ left: 60, right: 16, top: 26, height: 95 });
+    xAxes.push({ type: 'category', gridIndex: g, data: RAW.categories,
+                 axisLabel: { show: false }, axisTick: { show: false } });
+    yAxes.push({ gridIndex: g, scale: true });
+    lg.push('DIF', 'DEA', 'MACD柱');
+    series.push(
+      { name: 'DIF', type: 'line', xAxisIndex: g, yAxisIndex: g, data: IND.dif, showSymbol: false,
+        itemStyle: { color: '#5470c6' }, lineStyle: { width: 1.3 },
+        markLine: { silent: true, symbol: 'none', label: { show: false },
+                    lineStyle: { type: 'dashed', color: '#bbb' }, data: [{ yAxis: 0 }] } },
+      { name: 'DEA', type: 'line', xAxisIndex: g, yAxisIndex: g, data: IND.dea, showSymbol: false,
+        itemStyle: { color: '#e6a23c' }, lineStyle: { width: 1.1 } },
+      { name: 'MACD柱', type: 'bar', xAxisIndex: g, yAxisIndex: g, data: IND.hist, barWidth: '60%',
+        itemStyle: { color: p => p.value == null || p.value >= 0 ? '#ef232a' : '#14b143' } });
+    if (IND.bull) {
+      lg.push('底背离');
+      series.push({ name: '底背离', type: 'scatter', xAxisIndex: g, yAxisIndex: g, data: IND.bull,
+        symbolSize: 6, z: 6, itemStyle: { color: '#14b143', borderColor: '#fff', borderWidth: 1 } });
+    }
+    if (IND.bear) {
+      lg.push('顶背离');
+      series.push({ name: '顶背离', type: 'scatter', xAxisIndex: g, yAxisIndex: g, data: IND.bear,
+        symbolSize: 6, z: 6, itemStyle: { color: '#ef232a', borderColor: '#fff', borderWidth: 1 } });
+    }
+  }
+  if (IND.adx) {
+    g++;
+    grids.push({ left: 60, right: 16, top: 134, height: 95 });
+    xAxes.push({ type: 'category', gridIndex: g, data: RAW.categories,
+                 axisLabel: { formatter: v => v.slice(2) } });
+    yAxes.push({ gridIndex: g });
+    lg.push('ADX', '+DI', '-DI');
+    series.push(
+      { name: 'ADX', type: 'line', xAxisIndex: g, yAxisIndex: g, data: IND.adx, showSymbol: false,
+        itemStyle: { color: '#333' }, lineStyle: { width: 1.6 },
+        markLine: { silent: true, symbol: 'none', label: { show: false },
+                    lineStyle: { type: 'dashed', color: '#999' }, data: [{ yAxis: 20 }, { yAxis: 25 }] } },
+      { name: '+DI', type: 'line', xAxisIndex: g, yAxisIndex: g, data: IND.pdi, showSymbol: false,
+        itemStyle: { color: '#e6a23c' }, lineStyle: { width: 1 } },
+      { name: '-DI', type: 'line', xAxisIndex: g, yAxisIndex: g, data: IND.mdi, showSymbol: false,
+        itemStyle: { color: '#2e8b57' }, lineStyle: { width: 1 } });
+  }
+  indChart.setOption({
+    animation: false,
+    tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+    axisPointer: { link: [{ xAxisIndex: 'all' }] },
+    legend: { top: 2, type: 'scroll', data: lg },
+    grid: grids, xAxis: xAxes, yAxis: yAxes,
+    dataZoom: [{ type: 'inside', xAxisIndex: xAxes.map((_, i) => i), start: zoomStart, end: 100, zoomOnMouseWheel: 'shift' }],
+    series,
+  });
+}
+
+// 浮窗开关：控制各图 tooltip 浮层显隐（关闭时保留十字准线定位）
+document.getElementById('tipMain').addEventListener('change', e =>
+  mainChart.setOption({ tooltip: { showContent: e.target.checked } }));
+document.getElementById('tipInd').addEventListener('change', e => {
+  if (indChart) indChart.setOption({ tooltip: { showContent: e.target.checked } });
+});
+document.getElementById('tipEq').addEventListener('change', e =>
+  eqChart.setOption({ tooltip: { showContent: e.target.checked } }));
+
+const select = document.getElementById('strategy');
+const summary = document.getElementById('summary');
+const dayInfo = document.getElementById('dayInfo');
+const detail = document.getElementById('detail');
+const quality = document.getElementById('quality');
+const tradesBox = document.getElementById('trades');
+let current = null;
+
+const pct = v => (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+const cls = v => v >= 0 ? 'pos' : 'neg';
+const md = d => d.slice(5);
+
+RAW.groups.forEach(g => {
+  const og = document.createElement('optgroup');
+  og.label = g.label;
+  g.names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; og.appendChild(o); });
+  select.appendChild(og);
+});
+
+function head(cols) {
+  tradesBox.innerHTML = '<div class="t-head">' + cols.map(c => '<span>' + c + '</span>').join('') + '</div>';
+}
+function row(cells, bi, si, click) {
+  const r = document.createElement('div');
+  r.className = 't-row';
+  r.innerHTML = cells.map(c => '<span>' + c + '</span>').join('');
+  r.onclick = () => {
+    document.querySelectorAll('.t-row.active').forEach(x => x.classList.remove('active'));
+    r.classList.add('active');
+    focusRange(bi, si, click);
+  };
+  tradesBox.appendChild(r);
+}
+
+function focusRange(bi, si, info) {
+  const pad = 30;
+  mainChart.dispatchAction({ type: 'dataZoom',
+    start: Math.max(0, (bi - pad) * 100 / N), end: Math.min(100, (si + pad) * 100 / N) });
+  const cmp = Object.entries(RAW.strategies)
+    .map(([n, st]) => { const r = (st.equity[si] / st.equity[bi] - 1) * 100;
+      return '<span class="cmp-item ' + cls(r) + '">' + n + ' ' + pct(r) + '</span>'; })
+    .join('');
+  const hr = (RAW.holdEquity[si] / RAW.holdEquity[bi] - 1) * 100;
+  detail.innerHTML = info + '<br><span style="color:#555">同区间: ' + cmp
+    + '<span class="' + cls(hr) + '">持有 ' + pct(hr) + '</span></span>';
+}
+
+function markPoints(bd, bp, sd, sp) {
+  mainChart.setOption({ series: [
+    { id: 'fbuy', data: bd == null ? [] : [[bd, bp]] },
+    { id: 'fsell', data: sd == null ? [] : [[sd, sp]] },
+  ]});
+}
+
+function applyStrategy(name) {
+  current = name;
+  select.value = name;
+  const s = RAW.strategies[name];
+  // 净值图：当前策略加入显示（其余保持用户自己的勾选状态）
+  eqSel[name] = true;
+  eqChart.setOption({ legend: { selected: eqSel } });
+  mainChart.setOption({ series: [
+    { id: 'buy', name: name + ' 买入', data: s.buys || [] },
+    { id: 'sell', name: name + ' 卖出', data: s.sells || [] },
+    { id: 'fbuy', data: [] }, { id: 'fsell', data: [] },
+    { name: 'K线', markArea: { silent: true, data: (s.areas || []).map(a => [
+      { xAxis: RAW.categories[a[0]], itemStyle: { color: a[2] } },
+      { xAxis: RAW.categories[a[1]] }]) } },
+  ]});
+  summary.innerHTML = '<b>' + name + '</b>　' + (s.desc || '');
+  quality.innerHTML = s.quality || '';
+  const sq = document.getElementById('secQuality');
+  if (sq) sq.style.display = s.quality ? '' : 'none';
+  detail.innerHTML = '<span style="color:#999">点击下方列表中的交易行：定位 K 线区间，并显示同期跨策略收益对比</span>';
+
+  if (s.kind === 'ladder') {
+    head(['#', '买入→离场', '三档出场', '轮收益', '原因']);
+    s.rounds.forEach((t, i) => row(
+      [i + 1, md(t.bd) + '→' + md(t.sd), (t.tiers || '').replace(/ \/ /g, '/'), '<b class="' + cls(t.ret) + '">' + pct(t.ret) + '</b>', t.reason],
+      t.bi, t.maxSi, '<b>本轮回合 ' + pct(t.ret) + '</b>（' + t.bd + ' ' + t.bp + ' → ' + t.sd + '）　三档: ' + t.tiers + '　离场原因: ' + t.reason));
+  } else if (s.kind === 'switch') {
+    head(['#', '类型 区间', '明细', '收益', '天数']);
+    s.events.forEach((e, i) => row(
+      [i + 1, (e.k === 't' ? '<span class="tag t">趋势</span>' : '<span class="tag g">网格</span>') + md(e.bd) + '→' + md(e.ed),
+       e.info, '<b class="' + cls(e.ret) + '">' + pct(e.ret) + '</b>', e.days + 'd'],
+      e.bi, e.ei, '<b>' + (e.k === 't' ? '趋势笔' : '网格轮') + ' ' + pct(e.ret) + '</b>（' + e.bd + ' → ' + e.ed + '）　' + e.info));
+  } else {
+    head(['#', '买入 → 卖出', '价格', '收益', '天数']);
+    s.tradeList.forEach((t, i) => row(
+      [i + 1, md(t.bd) + ' → ' + md(t.sd), t.bp + '→' + t.sp,
+       '<b class="' + cls(t.ret) + '">' + pct(t.ret) + '</b>', t.days + 'd'],
+      t.bi, t.si, '<b>本笔 ' + pct(t.ret) + '</b>（' + t.bd + ' ' + t.bp + ' → ' + t.sd + ' ' + t.sp + '，' + t.days + ' 天）　最高浮盈 ' + pct(t.runup) + '　最深浮亏 ' + pct(t.dd)));
+    markPoints(null, 0, null, 0);
+  }
+  renderRank();
+}
+
+mainChart.on('click', params => {
+  if (params.seriesType !== 'candlestick') return;
+  const s = RAW.strategies[current];
+  const i = params.dataIndex, c = params.data[1];
+  if (s.kind !== 'mask') { dayInfo.textContent = RAW.categories[i] + '：close=' + c; return; }
+  const cost = s.holdCosts[i];
+  dayInfo.innerHTML = cost == null
+    ? RAW.categories[i] + '：空仓（close=' + c + '）'
+    : RAW.categories[i] + '：持仓 成本 ' + cost + '　close=' + c
+      + '　浮动盈亏 <b class="' + cls((c / cost - 1) * 100) + '">' + pct((c / cost - 1) * 100) + '</b>';
+});
+
+// ===== 策略排名表：全策略指标对比 + 综合分 =====
+const rankBox = document.getElementById('rank');
+const rankRows = Object.keys(RAW.strategies)
+  .map(n => ({ name: n, m: RAW.strategies[n].metrics }))
+  .concat([{ name: '买入持有', m: RAW.holdMetrics }]);
+// 综合分 = 五项指标各自排名(0 起)的平均，越小越优；缺失值按最差处理
+const WORST = { ret: -Infinity, annual: -Infinity, dd: Infinity, sharpe: -Infinity, calmar: -Infinity };
+const vOf = (r, k) => r.m[k] == null ? WORST[k] : r.m[k];
+[
+  ['ret', (a, b) => b - a],
+  ['annual', (a, b) => b - a],
+  ['dd', (a, b) => Math.abs(a) - Math.abs(b)],
+  ['sharpe', (a, b) => b - a],
+  ['calmar', (a, b) => b - a],
+].forEach(([k, cmp]) => {
+  [...rankRows].sort((x, y) => cmp(vOf(x, k), vOf(y, k)))
+    .forEach((r, i) => { r.score = (r.score || 0) + i; });
+});
+rankRows.forEach(r => { r.score /= 5; });
+
+const RANK_COLS = [
+  { k: 'name', label: '策略', dir: 1, get: r => r.name, fmt: v => v },
+  { k: 'ret', label: '总收益', dir: -1, get: r => r.m.ret,
+    fmt: v => '<span class="' + cls(v) + '">' + pct(v) + '</span>' },
+  { k: 'annual', label: '年化', dir: -1, get: r => r.m.annual,
+    fmt: v => '<span class="' + cls(v) + '">' + pct(v) + '</span>' },
+  { k: 'dd', label: '最大回撤', dir: 1, get: r => r.m.dd,
+    fmt: v => '<span class="neg">' + v.toFixed(1) + '%</span>' },
+  { k: 'sharpe', label: '夏普', dir: -1, get: r => r.m.sharpe, fmt: v => v == null ? '--' : v.toFixed(2) },
+  { k: 'calmar', label: '卡尔玛', dir: -1, get: r => r.m.calmar, fmt: v => v == null ? '--' : v.toFixed(2) },
+  { k: 'trades', label: '交易数', dir: -1, get: r => r.m.trades, fmt: v => v },
+  { k: 'win', label: '胜率', dir: -1, get: r => r.m.win, fmt: v => v == null ? '--' : v.toFixed(1) + '%' },
+  { k: 'score', label: '综合分', dir: 1, get: r => r.score, fmt: v => v.toFixed(1) },
+];
+let rankKey = 'score', rankDir = 1;
+
+function renderRank() {
+  const col = RANK_COLS.find(c => c.k === rankKey);
+  const rows = [...rankRows].sort((a, b) => {
+    const av = col.get(a), bv = col.get(b);
+    if (av === null && bv === null) return a.name.localeCompare(b.name, 'zh');
+    if (av === null) return 1;
+    if (bv === null) return -1;
+    const d = col.k === 'name' ? String(av).localeCompare(String(bv), 'zh')
+      : col.k === 'dd' ? Math.abs(av) - Math.abs(bv) : av - bv;
+    return (d !== 0 ? d : a.name.localeCompare(b.name, 'zh')) * rankDir;
+  });
+  const th = RANK_COLS.map(c =>
+    '<th data-k="' + c.k + '">' + c.label +
+    (c.k === rankKey ? (rankDir === 1 ? ' ▲' : ' ▼') : '') + '</th>').join('');
+  const trs = rows.map((r, i) =>
+    '<tr data-n="' + r.name + '"' + (r.name === current ? ' class="active"' : '') + '>' +
+    '<td>' + (i + 1) + '</td>' +
+    RANK_COLS.map(c => '<td>' + c.fmt(c.get(r)) + '</td>').join('') +
+    '</tr>').join('');
+  rankBox.innerHTML = '<table><thead><tr><th>排名</th>' + th + '</tr></thead><tbody>' + trs + '</tbody></table>';
+  rankBox.querySelectorAll('th[data-k]').forEach(el => {
+    el.onclick = () => {
+      const k = el.dataset.k;
+      if (rankKey === k) rankDir = -rankDir;
+      else { rankKey = k; rankDir = RANK_COLS.find(c => c.k === k).dir; }
+      renderRank();
+    };
+  });
+  rankBox.querySelectorAll('tbody tr').forEach(tr => {
+    const n = tr.dataset.n;
+    if (n in RAW.strategies) tr.onclick = () => applyStrategy(n);
+  });
+}
+
+select.addEventListener('change', () => applyStrategy(select.value));
+applyStrategy('三档+冷却协议');
+window.addEventListener('resize', () => { mainChart.resize(); eqChart.resize(); if (indChart) indChart.resize(); });
+</script>
+</body>
+</html>
