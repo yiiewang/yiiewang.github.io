@@ -27,7 +27,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from analyze import load, regime_components, signal_bulls
+from analyze import regime_components, regime_labels, signal_bulls
 from scan import UNIVERSE_PATH, load_ok, load_universe, valid_mask
 
 HOLDS = (5, 10, 20, 60)
@@ -51,21 +51,6 @@ def price_panels(symbols: list[dict], period: str) -> tuple[pd.DataFrame, pd.Dat
         o[s["code"]] = df["open"]
         c[s["code"]] = df["close"]
     return pd.DataFrame(o).sort_index(), pd.DataFrame(c).sort_index()
-
-
-def regime_labels(df: pd.DataFrame) -> pd.Series | None:
-    """逐日 regime 标签：震荡 / 趋势↑ / 趋势↓ / 过渡。"""
-    comp = regime_components(df)
-    if comp is None or not {"pdi", "mdi"}.issubset(df.columns):
-        return None
-    adx = df["adx"]
-    trend = (comp["score"] == 0) | (adx >= 35.0)
-    up = df["pdi"] > df["mdi"]
-    label = pd.Series("过渡", index=df.index)
-    label[comp["score"] == 3] = "震荡"
-    label[trend & up] = "趋势↑"
-    label[trend & ~up] = "趋势↓"
-    return label
 
 
 def collect_events(symbols: list[dict], period: str) -> pd.DataFrame:

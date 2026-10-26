@@ -20,7 +20,14 @@ from pathlib import Path
 
 import pandas as pd
 
-from analyze import DATA_DIR, load, regime_components, signal_bulls
+from analyze import (
+    DATA_DIR,
+    load,
+    regime_components,
+    regime_label,
+    signal_bulls,
+    state_run,
+)
 
 ROOT = Path(__file__).resolve().parent
 UNIVERSE_PATH = ROOT / "universe.json"
@@ -111,7 +118,7 @@ def ret_panel(symbols: list[dict], period: str, n: int) -> pd.DataFrame:
 
 
 # ── 模式一：当日截面快照 ────────────────────────────────────
-def _state_run(bull: pd.Series) -> int:
+def state_run(bull: pd.Series) -> int:
     """当前状态已持续多少根 K 线（从最后一段同状态起算）。"""
     bb = bull.dropna()
     if bb.empty:
@@ -146,7 +153,10 @@ def run_snapshot(cfg: dict, write: bool = True) -> pd.DataFrame:
             print(f"  [跳过] {s['code']} 缺少 {period} 数据")
             continue
         last = df.iloc[-1]
-        regime, score = _regime_label(df.reset_index())
+        dfr = df.reset_index()
+        comp = regime_components(dfr)
+        regime = regime_label(dfr)
+        score = int(comp["score"].iloc[-1]) if comp is not None else -1
         row = {
             "date": last.name.date().isoformat(),
             "code": s["code"],
@@ -161,7 +171,7 @@ def run_snapshot(cfg: dict, write: bool = True) -> pd.DataFrame:
         bulls = signal_bulls(df)
         for name, b in bulls.items():
             row[f"s_{name}"] = int(bool(b.dropna().iloc[-1])) if not b.dropna().empty else None
-            row[f"run_{name}"] = _state_run(b)
+            row[f"run_{name}"] = state_run(b)
         if DUAL_SIGNALS[0] in bulls and DUAL_SIGNALS[1] in bulls:
             dual = _and(bulls[DUAL_SIGNALS[0]].astype(float),
                         bulls[DUAL_SIGNALS[1]].astype(float))
