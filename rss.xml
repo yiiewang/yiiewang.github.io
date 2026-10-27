@@ -6,8 +6,32 @@
   <link>https://cloaks.cn/</link>
   <description>Cloaks｜Yiiewang 的个人站点 —— 博客记录思考过程，知识库沉淀能力体系。涵盖技术、工程实践、思维方法、领域知识、人文素养、工具效率和职业发展七大能力域。欢迎浏览、搜索和留言讨论。</description>
   <language>zh-CN</language>
-  <lastBuildDate>Sat, 24 Oct 2026 15:27:13 GMT</lastBuildDate>
+  <lastBuildDate>Tue, 27 Oct 2026 11:06:46 GMT</lastBuildDate>
   <atom:link href="https://cloaks.cn/rss.xml" rel="self" type="application/rss+xml"/>
+  <item>
+    <title>从 ssh -L 到自研多路复用：手写一个隧道协议</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/27/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/27/</guid>
+    <pubDate>Tue, 27 Oct 2026 00:00:00 GMT</pubDate>
+    <description>自己写一个 ssh -L 的替代品：一条转发一条 TCP 连接，从握手、io.Copy 双向桥接到半关闭 CloseWrite，四个测试守住不变量，并说清它离 VSCode 那种单连接多路复用还差几步。</description>
+    <category>Go</category>
+    <category>TCP</category>
+    <category>网络协议</category>
+    <category>端口转发</category>
+    <category>隧道</category>
+  </item>
+  <item>
+    <title>一条 TCP 上跑 100 条流：手写帧协议与 stream 生命周期</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/27-1/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/27-1/</guid>
+    <pubDate>Tue, 27 Oct 2026 00:00:00 GMT</pubDate>
+    <description>把 v1 的"一条转发一条连接"改成"N 条流共享一条 TCP"：帧格式怎么定、streamID 为什么分奇偶、背压为什么靠阻塞投递、为什么 bridge 要从断言类型改成断言能力，以及 100 条流并发不串包的实测。</description>
+    <category>Go</category>
+    <category>TCP</category>
+    <category>网络协议</category>
+    <category>多路复用</category>
+    <category>隧道</category>
+  </item>
   <item>
     <title>均线的物理课：EMA 的重心、速度与加速度</title>
     <link>https://cloaks.cn/blog/posts/2026/10/24/</link>
@@ -231,30 +255,6 @@
     <category>并发编程</category>
     <category>锁</category>
     <category>死锁</category>
-    <category>源码阅读</category>
-  </item>
-  <item>
-    <title>《史记·货殖列传》精讲：两千年前把市场规律说透的一篇文章</title>
-    <link>https://cloaks.cn/blog/posts/2026/10/01-1/</link>
-    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/01-1/</guid>
-    <pubDate>Thu, 01 Oct 2026 00:00:00 GMT</pubDate>
-    <description>《史记·货殖列传》精讲：逐段对照原文与白话，拆解司马迁的经济哲学——善者因之、天下熙熙、贵上极则反贱、无财作力少有斗智既饶争时，并引申亚当·斯密、奥派经济学、行为金融与康波周期等现代理论互证，看两千年前这篇「经济列传」如何把市场规律说透。</description>
-    <category>史记</category>
-    <category>货殖列传</category>
-    <category>经济思想</category>
-    <category>读书笔记</category>
-    <category>逆向投资</category>
-  </item>
-  <item>
-    <title>队列的内存演进史：从链表到 [][]string 的五个台阶</title>
-    <link>https://cloaks.cn/blog/posts/2026/09/30/</link>
-    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/09/30/</guid>
-    <pubDate>Wed, 30 Sep 2026 00:00:00 GMT</pubDate>
-    <description>从链表、单一 slice、环形缓冲到分段切片，五个台阶讲清队列的内存演进：每一步解决上一步的什么痛点，Go channel、Linux kfifo、Disruptor、Go GC workbuf 各自站在哪级台阶上。读完看懂 delay_…</description>
-    <category>Go</category>
-    <category>数据结构</category>
-    <category>队列</category>
-    <category>内存管理</category>
     <category>源码阅读</category>
   </item>
 </channel>
