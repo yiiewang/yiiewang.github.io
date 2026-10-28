@@ -25,11 +25,13 @@ hide:
       <span class="announce-item">🐹 Go + SQLite · 单二进制交付</span>
       <span class="announce-item">📁 上传 · 管理 · 分享 · 文件全链路</span>
       <span class="announce-item">📝 折叠 · 目录 · 宽屏表格 · 预览增强</span>
+      <span class="announce-item">🐞 v1.1.4 · mermaid 渲染修复 · 分栏预览同步</span>
       <span class="announce-item">📱 移动端适配 · 数据完全自持</span>
       <span class="announce-item">✦ Workbench · 个人开发工作台</span>
       <span class="announce-item">🐹 Go + SQLite · 单二进制交付</span>
       <span class="announce-item">📁 上传 · 管理 · 分享 · 文件全链路</span>
       <span class="announce-item">📝 折叠 · 目录 · 宽屏表格 · 预览增强</span>
+      <span class="announce-item">🐞 v1.1.4 · mermaid 渲染修复 · 分栏预览同步</span>
       <span class="announce-item">📱 移动端适配 · 数据完全自持</span>
     </div>
   </div>
@@ -61,7 +63,7 @@ hide:
 
 我给自己定的目标一直没变：做一个能真正天天用的个人开发工作台。它叫 **Workbench**，跑在 Go + SQLite 上，前端是 Vite + Vue3 + TypeScript。文件浏览、上传与管理、Todo 看板、用户与组织管理、分享下载，全在一个二进制里。
 
-一路迭代到 **v1.1.3**：文件从"只能看"补成"能上传、能建目录、能改名移动"，软链接有了独立身份，手机浏览器也能正常用了，Markdown 预览则长出了折叠、目录和宽屏表格。这些都不是规划出来的，是每天用着用着发现"这里少一块"，然后补上的。
+一路迭代到 **v1.1.4**：文件从"只能看"补成"能上传、能建目录、能改名移动"，软链接有了独立身份，手机浏览器也能正常用了，Markdown 预览则长出了折叠、目录和宽屏表格。最新的 v1.1.4 没有堆新功能，只把一件天天遇到的事修干净——mermaid 图从"时好时坏"变成"打开就能画"，顺带补掉侧栏折叠按钮被视口左缘裁掉的老毛病。这些都不是规划出来的，是每天用着用着发现"这里少一块"，然后补上的。
 
 ## 为什么不用现成的
 
@@ -141,7 +143,7 @@ hide:
       <div class="card__title">Markdown 与 HTML 预览</div>
     </div>
     <div class="card__body">
-      <div class="card__desc">宽屏铺满、标题折叠（连子标题一起折）、右下角悬浮目录、宽表格左右滚动 + 表头首列常驻；Mermaid 按需加载，HTML 走沙箱 iframe 且页内锚点可跳转。</div>
+      <div class="card__desc">宽屏铺满、标题折叠（连子标题一起折）、右下角悬浮目录、宽表格左右滚动 + 表头首列常驻；Mermaid 按需加载并与代码高亮链路解耦（v1.1.4 起稳定渲染，编辑器分栏预览同样可画且带 300ms 防抖），HTML 走沙箱 iframe 且页内锚点可跳转。</div>
     </div>
   </div>
 
@@ -217,16 +219,17 @@ HTML 文件是任意内容，必须隔离在 iframe 里，所以 `sandbox` 不�
 - **构建链路**：`//go:embed` 要求 `frontend/dist` 存在，fresh clone 必须先 `make all` 才能编译，否则直接报错。
 - **`!important` 会盖掉内联样式**：移动端抽屉的媒体查询写了 `width: 280px !important`，把折叠态的内联 `width: 0` 一起盖掉，抽屉再也收不起来。显隐这类状态最好交给 `transform` 这类不会与布局宽度打架的属性。
 - **全局注册函数被自己覆盖**：有个组件把包装函数又写回 `window.openShareModal`，而包装函数内部正是调用 `window.openShareModal`——访问过那个页面后再点分享就是无限递归。`window` 上的全局入口只能有一个注册方。
+- **渲染链路上游会污染下游**：mermaid 代码块先被 highlight.js 的 `highlightAuto` 插了一堆 `<span>`，而 `mermaid.run()` 拿的正是节点 `innerHTML` —— 这些标签被当成源码文本，直接报 `Syntax error in text`。修法是 mermaid 块原样输出（只转义 `&`、`<`、`>`）。**两个库共用一条渲染链时，上游的"美化"就是下游的"污染"，顺序必须显式约定，不能靠默认。**
 - **迭代残留比代码债更难发现**：`noUnusedLocals` 一直是 `false`，于是没人调用的导出、永远不会被触发的 emit 链路、写了但没逻辑对应的 CSS 类，就这么一轮轮攒下来。后来开启这个开关，一次清出六处未使用符号。**能给编译器管的检查，别交给自觉。**
 
 ## 写在最后
 
 写这个工作台，最大的收获不是代码，是 **想清楚了一个问题：工具应该长在人的工作流里，而不是让人去适应工具**。
 
-它现在还在持续迭代，当前版本 **v1.1.3**（[Release 与变更记录](https://github.com/yiiewang/workbench/releases/tag/v1.1.3)）。如果你也想要一个"数据在自己手里、想改就改"的个人工具，欢迎来 [GitHub](https://github.com/yiiewang/workbench) 看看，或者直接体验[在线实例](http://159.75.112.77/)。
+它现在还在持续迭代，当前版本 **v1.1.4**（[Release 与变更记录](https://github.com/yiiewang/workbench/releases/tag/v1.1.4)）。如果你也想要一个"数据在自己手里、想改就改"的个人工具，欢迎来 [GitHub](https://github.com/yiiewang/workbench) 看看，或者直接体验[在线实例](http://159.75.112.77/)。
 
 板块里还有[示例代码](../examples/)和[效率工具](../tools/zsh-setup/)——[返回实验室概览](../)。
 
 ---
 
-*最后更新：2026-10-23（v1.1.3）*
+*最后更新：2026-10-26（v1.1.4）*
