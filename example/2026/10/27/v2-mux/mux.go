@@ -8,6 +8,21 @@ import (
 	"time"
 )
 
+// 本文件是 v2 的核心：把 N 条转发压到一条 TCP 上。
+//
+// 三个角色：
+//   - Session：持有唯一一条隧道 TCP，一个读 goroutine 按 streamID 分发帧，
+//     写侧用一把锁保证整帧原子写出
+//   - Stream：会话上的一条逻辑流，实现 net.Conn——
+//     这样 v1 的 bridge / io.Copy 桥接代码可以原样复用
+//   - bridge：把一条本地连接和一条 Stream 接起来双向拷贝
+//
+// 与 v1 的关系：只换了搬运层，握手、半关闭、失败快速收尾这些设计全部保留。
+//
+// 三条贯穿全文件的不变量：
+//  1. 写帧必须整帧原子（writeMu），否则并发写会咬出半帧
+//  2. 投递数据给 Stream 时绝不持锁，因为投递会阻塞（背压）
+//  3. 流结束必须从 streams 里摘掉，会话结束必须关掉所有流
 const (
 	// dialTimeout 连接隧道服务端与连接目标地址的超时。
 	dialTimeout = 5 * time.Second
@@ -38,14 +53,14 @@ type Session struct {
 	writeMu sync.Mutex // 保证整帧原子写入
 
 	mu      sync.Mutex
-	streams map[uint32]*Stream
-	nextID  uint32
-	closed  bool
+	streams map[uint32]*Stream // streamID → 流，流结束必须摘掉，否则只增不减
+	nextID  uint32             // 本端下一个可用的 streamID，每次 +2
+	closed  bool               // 会话是否已关闭，由 mu 保护
 
-	acceptCh  chan *Stream
-	doneCh    chan struct{}
-	closeOnce sync.Once
-	closeErr  error
+	acceptCh  chan *Stream  // 对端主动开出来的流排队等 Accept
+	doneCh    chan struct{} // 会话结束广播，所有等待方据此退出
+	closeOnce sync.Once     // Close 幂等：读循环和上层都可能调
+	closeErr  error         // 结束原因（正常关闭为 nil）
 }
 
 // newSession 在一条已建立的连接上起会话。isClient 决定本端用奇数还是偶数 streamID。
@@ -158,6 +173,13 @@ func (s *Session) readLoop() {
 	_ = s.Close(err)
 }
 
+// handleFrame 按帧类型分发。
+//
+// 先取流、立刻放锁再处理：后续动作（尤其是 DATA 的投递）可能阻塞，
+// 持锁阻塞会把整条会话上所有流一起卡死。
+//
+// 找不到对应流的帧一律丢弃——那是已经结束的流迟到的数据，
+// 按 TCP 的语义也应当无声丢弃，不能当作错误。
 func (s *Session) handleFrame(f frame) {
 	s.mu.Lock()
 	st := s.streams[f.streamID]
@@ -223,6 +245,9 @@ func (s *Session) newStreamLocked(id uint32, target string) *Stream {
 	return st
 }
 
+// removeStream 把流从会话里摘掉。
+//
+// 每个流生命周期结束时必须调用一次：map 只增不减会让长跑的会话慢慢吃满内存。
 func (s *Session) removeStream(id uint32) {
 	s.mu.Lock()
 	delete(s.streams, id)
@@ -232,22 +257,22 @@ func (s *Session) removeStream(id uint32) {
 // Stream 是会话上的一条流，实现 net.Conn——
 // 这样 v1 那套 io.Copy 桥接代码可以原样复用，不必为多路复用重写。
 type Stream struct {
-	id     uint32
-	target string
-	sess   *Session
+	id     uint32   // 本端或对端分配的 streamID
+	target string   // 建流时约定的目标地址
+	sess   *Session // 承载本流的会话
 
-	recv   chan []byte
-	openCh chan error
-	finCh  chan struct{}
-	doneCh chan struct{}
+	recv   chan []byte   // 接收队列：容量即背压闸门
+	openCh chan error    // Open 的握手结果（SYNACK=nil / RST=错误）
+	finCh  chan struct{} // 对端发完（收到 FIN/RST）：读侧结束
+	doneCh chan struct{} // 本流彻底结束：读写都返回错误/EOF
 
 	finOnce  sync.Once // 发送 FIN（半关闭）
 	recvOnce sync.Once // 收到对端 FIN
 	doneOnce sync.Once // 本流彻底结束
 
-	mu       sync.Mutex
-	cur      []byte
-	closeErr error
+	mu       sync.Mutex // 保护 cur 与 closeErr
+	cur      []byte     // 上一次 Read 没读完的残留
+	closeErr error      // 结束原因
 }
 
 var _ net.Conn = (*Stream)(nil)
@@ -270,6 +295,10 @@ func (st *Stream) Reset() error {
 	return err
 }
 
+// Write 把业务字节拆成不超过 maxFramePayload 的 DATA 帧发出。
+//
+// 拆帧有两个原因：单帧长度字段不能无限大；更重要的是一条大帧会长时间占住
+// 会话的写锁，把其他流的写入全堵住——拆小才能让多条流公平地交替发送。
 func (st *Stream) Write(p []byte) (int, error) {
 	select {
 	case <-st.doneCh:
@@ -292,6 +321,12 @@ func (st *Stream) Write(p []byte) (int, error) {
 	return sent, nil
 }
 
+// Read 从接收队列取数据。
+//
+// 两个细节：
+//   - 残留字节放在 cur 里，保证一次 Write 的数据可以被多次 Read 取走
+//   - 收到 FIN 后仍要把队列里剩余的数据读完才返回 EOF，
+//     否则对端最后一段响应会凭空消失（与 v1 半关闭是同一个语义）
 func (st *Stream) Read(p []byte) (int, error) {
 	if len(st.cur) == 0 {
 		// 先把队列里已到达的数据取干净，避免收到 FIN 后把剩余数据丢掉
@@ -356,6 +391,8 @@ func (st *Stream) closeRemote() {
 	})
 }
 
+// signalOpen 传递握手结果。openCh 容量为 1 且用非阻塞发送：
+// 重复收到 SYNACK/RST 时不会把读循环卡住。
 func (st *Stream) signalOpen(err error) {
 	select {
 	case st.openCh <- err:
@@ -363,6 +400,10 @@ func (st *Stream) signalOpen(err error) {
 	}
 }
 
+// closeWith 用指定原因结束这条流，并从会话里摘掉。
+//
+// doneOnce 保证幂等：流的结束可能来自多条路径——本地 Close、
+// 对端 RST、会话断开——它们可能并发发生。
 func (st *Stream) closeWith(err error) {
 	st.mu.Lock()
 	if st.closeErr == nil {
@@ -376,8 +417,16 @@ func (st *Stream) closeWith(err error) {
 	})
 }
 
+// 下面几个方法只是为了让 Stream 满足 net.Conn 接口。
+//
+// 地址沿用底层隧道连接的地址：一条流没有独立的网络地址，
+// 它的"对端"就是隧道的对端。
 func (st *Stream) LocalAddr() net.Addr  { return st.sess.conn.LocalAddr() }
 func (st *Stream) RemoteAddr() net.Addr { return st.sess.conn.RemoteAddr() }
+
+// 超时控制暂不支持：一条流上的 deadline 会牵扯到会话读循环的调度，
+// 留给 v5 与保活、重连一起做。调用方若依赖 deadline 会立刻得到错误，
+// 而不是被静默忽略。
 func (st *Stream) SetDeadline(t time.Time) error {
 	return errDeadlineUnsupported
 }
@@ -429,6 +478,13 @@ func firstErr(errs ...error) error {
 	return nil
 }
 
+// copyAndHalfClose 把 src 的数据拷给 dst，src 结束后对 dst 半关闭。
+//
+// io.Copy 正常结束（src 读到 EOF）返回 nil error，所以这里不区分
+// "正常结束"与"对端 RST"——两者都要对 dst 做同样的收尾动作。
+//
+// 用 CloseWrite 而不是 Close：前者是"我发完了，你还能发"，
+// 后者是"我挂了"，会把对端还没发完的响应一起埋掉（详见 v1 那篇）。
 func copyAndHalfClose(dst, src net.Conn) (int64, error) {
 	n, err := io.Copy(dst, src)
 
