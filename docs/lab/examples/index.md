@@ -17,6 +17,7 @@ description: 博客全部可运行示例代码的目录：example/ 路径与文�
 | `2026/09/08-8` | LMAX / Disruptor 全套 14 文件：缓存行填充、单/多生产者、依赖图、journal / 快照 / 恢复、输出 Topic | [08-8](../../blog/posts/2026/09/08-8.md) | `go run ./2026/09/08-8` |
 | `2026/09/09-1` | 三种等待策略成本实测：stall / ladder 两套实验，多核对照 | [09-1](../../blog/posts/2026/09/09-1.md) | `go run ./2026/09/09-1/park-or-spin -exp=stall -procs=1` |
 | `2026/09/15` | Go 网络九连练：TCP / RPC / gRPC / gin / gorm / 存储 / 滑动窗口缓存 / 微服务（9 个模块） | [15](../../blog/posts/2026/09/15.md) | 各模块 README，部分自带 `go.mod` |
+| `2026/10/27` | minibridge 手写隧道协议三阶段：v1 端口转发 / v2 帧协议多路复用 / v3 TLS + 认证 + 目标白名单 | [27](../../blog/posts/2026/10/27.md)、[27-1](../../blog/posts/2026/10/27-1.md) | `cd 2026/10/27 && go test -race ./...`（该目录自带 `go.mod`） |
 
 运行命令都在 `example/` 根目录下执行（`cd example && go run ./…`）。
 
@@ -24,7 +25,7 @@ description: 博客全部可运行示例代码的目录：example/ 路径与文�
 
 - **同构映射**：示例路径 = 文章路径，新文章配新示例目录，不看文档也知道代码属于哪篇
 - **文件即小节**：`sequence.go`、`single.go`、`blp.go`……文件名对应文章代码块的 `title` 标注
-- **一个根模块**：除 15 号的 6 个多模块示例（grpc-basics、grpc-middleware、user-service 等自带 `go.mod`）外，全部挂在根 `example/go.mod` 下，`go build ./...` 一把过
+- **一个根模块**：除 15 号的 6 个多模块示例（grpc-basics、grpc-middleware、user-service 等自带 `go.mod`），以及自带 `go.mod` 的 `2026/10/27`（minibridge，依赖 `golang.org/x/crypto`）外，全部挂在根 `example/go.mod` 下，`go build ./...` 一把过
 - **质量线**：收录的示例全部过 `go build` / `go vet`，能跑的过实际运行验证（08-8 的三个 demo 输出数字与文章逐一对账）
 
 ## 独立工具
@@ -33,4 +34,4 @@ description: 博客全部可运行示例代码的目录：example/ 路径与文�
 
 ---
 
-*最后更新：2026-09-17*
+*最后更新：2026-10-28*

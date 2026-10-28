@@ -30,15 +30,15 @@ hide:
     <p class="hero__desc">我的开发阵地——自研项目、博客示例代码、效率工具与电子书架。不是演示项目的堆砌，而是天天在用的东西。</p>
     <div class="stats stats--bare">
       <div class="stat">
-        <div class="stat__num">1</div>
+        <div class="stat__num">2</div>
         <div class="stat__label">自研项目</div>
       </div>
       <div class="stat">
-        <div class="stat__num">5</div>
+        <div class="stat__num">6</div>
         <div class="stat__label">示例组</div>
       </div>
       <div class="stat">
-        <div class="stat__num">88</div>
+        <div class="stat__num">110</div>
         <div class="stat__label">Go 文件</div>
       </div>
       <div class="stat">
@@ -53,7 +53,7 @@ hide:
   </div>
 </div>
 
-<div class="section-header"><span class="section-header__label">🧭 四大板块</span><div class="section-header__line"></div><span class="section-header__dot"></span></div>
+<div class="section-header"><span class="section-header__label">🧭 板块与项目</span><div class="section-header__line"></div><span class="section-header__dot"></span></div>
 
 <div class="card-grid">
 
@@ -66,12 +66,21 @@ hide:
     </div>
   </a>
 
+  <a href="project/minibridge/" class="card card--link card--pad card--row">
+    <div class="icon-box violet">🔌</div>
+    <div class="card__body">
+      <div class="card__title">minibridge 隧道</div>
+      <div class="card__desc">把 ssh -L 写到底：v1 一条转发一条连接，v2 一条 TCP 跑 N 条流，v3 加 TLS、可插拔认证与目标白名单。</div>
+      <span class="badge badge--success">v1–v3 完成 · v4/v5 计划</span>
+    </div>
+  </a>
+
   <a href="examples/" class="card card--link card--pad card--row">
     <div class="icon-box blue">📦</div>
     <div class="card__body">
       <div class="card__title">示例代码</div>
-      <div class="card__desc">博客全部可运行代码，路径与文章同构——并发系列、LMAX 全套、Go 网络九连练。</div>
-      <span class="badge">5 组 · 88 文件</span>
+      <div class="card__desc">博客全部可运行代码，路径与文章同构——并发系列、LMAX 全套、Go 网络九连练，以及 minibridge 隧道三阶段。</div>
+      <span class="badge">6 组 · 110 文件</span>
     </div>
   </a>
 

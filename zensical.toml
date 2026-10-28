@@ -365,6 +365,7 @@ nav = [
   {"实验室" = [
     {"概览" = "lab/index.md"},
     {"Workbench 项目" = "lab/project/index.md"},
+    {"minibridge 隧道" = "lab/project/minibridge.md"},
     {"示例代码" = "lab/examples/index.md"},
     {"电子书" = "lab/ebooks/index.md"},
     {"zsh 一键安装" = "lab/tools/zsh-setup.md"},
