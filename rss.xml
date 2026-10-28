@@ -6,7 +6,7 @@
   <link>https://cloaks.cn/</link>
   <description>Cloaks｜Yiiewang 的个人站点 —— 博客记录思考过程，知识库沉淀能力体系。涵盖技术、工程实践、思维方法、领域知识、人文素养、工具效率和职业发展七大能力域。欢迎浏览、搜索和留言讨论。</description>
   <language>zh-CN</language>
-  <lastBuildDate>Wed, 28 Oct 2026 10:39:31 GMT</lastBuildDate>
+  <lastBuildDate>Wed, 28 Oct 2026 11:05:23 GMT</lastBuildDate>
   <atom:link href="https://cloaks.cn/rss.xml" rel="self" type="application/rss+xml"/>
   <item>
     <title>把 1000 条 TCP 压成 1 条：一次设计推导的完整记录</title>
@@ -19,6 +19,18 @@
     <category>并发</category>
     <category>协议设计</category>
     <category>建模</category>
+  </item>
+  <item>
+    <title>让隧道敢监听公网：TLS、认证与白名单的推导过程</title>
+    <link>https://cloaks.cn/blog/posts/2026/10/28-1/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/28-1/</guid>
+    <pubDate>Wed, 28 Oct 2026 00:00:00 GMT</pubDate>
+    <description>v2 之后隧道能跑、能复用，但只敢绑在 127.0.0.1——因为它有明文、无鉴权、目标随便填三个洞。这篇记录把这三个洞一层层堵上的推导过程：证书从哪来、为什么 InsecureSkipVerify 等于没加密、为什么必须先认证后转发、白…</description>
+    <category>TLS</category>
+    <category>安全</category>
+    <category>系统设计</category>
+    <category>认证</category>
+    <category>Go</category>
   </item>
   <item>
     <title>从 ssh -L 到自研多路复用：手写一个隧道协议</title>
@@ -244,18 +256,6 @@
     <category>货殖列传</category>
     <category>范蠡</category>
     <category>数据验证</category>
-  </item>
-  <item>
-    <title>三句话，一个闭环：范蠡经商智慧的周期模型</title>
-    <link>https://cloaks.cn/blog/posts/2026/10/02-1/</link>
-    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/02-1/</guid>
-    <pubDate>Fri, 02 Oct 2026 00:00:00 GMT</pubDate>
-    <description>把范蠡的经商智慧收拢成一个周期思维模型：钱不能停、货不能烂、人弃我取三句话如何构成一个循环，以及「定趋势→抓执行→稳运营→会退出→等下一轮」的执行闭环，为什么断一环就失效。</description>
-    <category>货殖列传</category>
-    <category>范蠡</category>
-    <category>周期</category>
-    <category>逆向投资</category>
-    <category>思维模型</category>
   </item>
 </channel>
 </rss>
