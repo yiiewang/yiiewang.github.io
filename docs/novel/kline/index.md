@@ -8,22 +8,27 @@ hide:
 
 <!-- ===== Hero ===== -->
 <div class="hero">
-  <div class="hero__inner">
-    <div class="hero__eyebrow">
-      <span class="hero__eyebrow-dot"></span>
-      <span>连载中 · 2024.09.24 → 2026.10.24</span>
+  <div class="hero__inner" style="display:flex;align-items:center;gap:3rem;flex-wrap:wrap;justify-content:center;">
+    <div style="flex-shrink:0;">
+      <img src="../../assets/images/novel-kline-cover.png" alt="《第一根K线》封面" style="width:260px;max-width:60vw;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.35);">
     </div>
-    <h1>📈 第一根K线</h1>
-    <p class="hero__desc">一部贴着真实 K 线生长的长篇小说。从 2024 年 9·24 行情到今天，两年、四卷、三十章，约十五万字。主角是刚毕业的年轻人，本金两万三千块。他不是唯一在炒股的人——同一个市场里，还有另外四个。</p>
-    <div class="hero__tags">
-      <span class="hero__tag">📊 真实行情</span>
-      <span class="hero__tag">🧒 刚毕业</span>
-      <span class="hero__tag">👥 五种玩法</span>
-      <span class="hero__tag">🚫 不预知未来</span>
-    </div>
-    <div class="hero__actions">
-      <a href="volume-1/chapter-01/" class="btn btn--primary">📖 从第一章读</a>
-      <a href="bible/" class="btn btn--secondary">📚 创作圣经</a>
+    <div style="flex:1;min-width:280px;text-align:left;">
+      <div class="hero__eyebrow">
+        <span class="hero__eyebrow-dot"></span>
+        <span>连载中 · 2024.09.24 → 2026.10.24</span>
+      </div>
+      <h1>📈 第一根K线</h1>
+      <p class="hero__desc">一部贴着真实 K 线生长的长篇小说。从 2024 年 9·24 行情到今天，两年、四卷、三十章，约十五万字。主角是刚毕业的年轻人，本金两万三千块。他不是唯一在炒股的人——同一个市场里，还有另外四个。</p>
+      <div class="hero__tags">
+        <span class="hero__tag">📊 真实行情</span>
+        <span class="hero__tag">🧒 刚毕业</span>
+        <span class="hero__tag">👥 五种玩法</span>
+        <span class="hero__tag">🚫 不预知未来</span>
+      </div>
+      <div class="hero__actions">
+        <a href="volume-1/chapter-01/" class="btn btn--primary">📖 从第一章读</a>
+        <a href="bible/" class="btn btn--secondary">📚 创作圣经</a>
+      </div>
     </div>
   </div>
 </div>
