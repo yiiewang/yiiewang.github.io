@@ -150,6 +150,32 @@ func TestSessionCloseClosesStreams(t *testing.T) {
 	}
 }
 
+// PING / PONG 是会话级帧：不查流表，也不该被"找不到流就丢弃"那条规则波及。
+func TestSessionAnswersPINGRegardlessOfStreamID(t *testing.T) {
+	a, b := net.Pipe()
+	sess := newSession(a, false)
+	t.Cleanup(func() { _ = sess.Close(nil) })
+
+	// 故意用一个不存在的 streamID：流级帧会因此被丢弃，会话级帧必须照常回应
+	if err := writeFrame(b, frame{typ: framePING, streamID: 4242}); err != nil {
+		t.Fatalf("write ping: %v", err)
+	}
+
+	if err := b.SetReadDeadline(time.Now().Add(3 * time.Second)); err != nil {
+		t.Fatalf("set deadline: %v", err)
+	}
+	f, err := readFrame(b)
+	if err != nil {
+		t.Fatalf("read pong: %v", err)
+	}
+	if f.typ != framePONG {
+		t.Fatalf("want PONG, got %s", f.typ)
+	}
+	if f.streamID != 0 {
+		t.Fatalf("session-level frame must carry streamID 0, got %d", f.streamID)
+	}
+}
+
 // ---------------- 测试桩 ----------------
 
 // startMuxServer 起一个 v2 隧道服务端，返回它的地址。

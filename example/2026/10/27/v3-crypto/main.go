@@ -2,10 +2,12 @@
 //
 // 在 v2 的多路复用之上加三件事：
 //  1. TLS：加密 + 服务端身份（客户端必须校验证书，绝不能 InsecureSkipVerify）
-//  2. 认证：可插拔。默认 sshkey（用 OpenSSH 密钥做挑战-响应），可选 mtls（客户端证书）
+//  2. 认证：mTLS 客户端证书，握手内完成，不额外发明协议
 //  3. 授权：目标白名单，治 SSRF
 //
-// 顺序是铁律：TLS 握手 → 认证 → 才接受 SYN → 才 dial 目标。
+// 顺序是铁律：TLS 握手（含客户端证书校验）→ 才接受 SYN → 才 dial 目标。
+// 第二层之所以不做成应用层协议，是因为 TLS 已经把这件事做对了：
+// 校验失败根本进不到应用层，省掉一整个"认证没过就别 dial"的窗口。
 package main
 
 import (
@@ -16,7 +18,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -38,12 +39,23 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `用法：
-  v3-crypto server -addr :9000 -cert srv.crt -key srv.key -allow 127.0.0.1:8000
-  v3-crypto client -listen :8080 -server host:9000 -target 127.0.0.1:8000 \
-      -ca ca.crt -identity ~/.ssh/id_ed25519
+	fmt.Fprint(os.Stderr, `双向 TLS：两端各持有自己的证书，各校验对方一次。
+注意 -cert / -key 同名不同物——服务端那是服务端的，客户端那是客户端的。
 
-  认证方式 -auth：sshkey（默认，用 SSH 密钥做挑战-响应）| mtls（客户端证书）
+服务端必填：
+  -cert        服务端证书 PEM（客户端拿 -ca 校验它）
+  -key         服务端私钥 PEM
+  -client-ca   校验客户端证书的 CA PEM
+
+客户端必填：
+  -ca          校验服务端证书的 CA PEM
+  -cert        客户端证书 PEM（服务端拿 -client-ca 校验它）
+  -key         客户端私钥 PEM
+  -target      目标地址 host:port（服务端视角）
+
+  server -addr :9000 -cert srv.crt -key srv.key -client-ca ca.crt
+  client -listen :8080 -server host:9000 -target 127.0.0.1:8000 \
+         -ca ca.crt -cert cli.crt -key cli.key
 `)
 }
 
@@ -53,19 +65,22 @@ func runServer(args []string) {
 	addr := fs.String("addr", "127.0.0.1:9000", "隧道监听地址")
 	certFile := fs.String("cert", "", "服务端证书 PEM（必填）")
 	keyFile := fs.String("key", "", "服务端私钥 PEM（必填）")
-	authMode := fs.String("auth", "sshkey", "客户端认证方式：sshkey | mtls")
-	authorizedKeys := fs.String("authorized-keys", defaultAuthorizedKeys(), "sshkey 模式下的公钥名单")
-	clientCAFile := fs.String("client-ca", "", "mtls 模式下校验客户端证书的 CA PEM")
-	allowSpec := fs.String("allow", "127.0.0.1:*", "允许拨号的目标，逗号分隔")
+	clientCAFile := fs.String("client-ca", "", "校验客户端证书的 CA PEM（必填）")
+	allowSpec := fs.String("allow", "127.0.0.1:*", "允许拨号的目标，逗号分隔\n    可选，默认只放行回环")
 	_ = fs.Parse(args)
 
-	if *certFile == "" || *keyFile == "" {
-		log.Fatalf("server requires -cert and -key")
+	if *certFile == "" || *keyFile == "" || *clientCAFile == "" {
+		log.Fatalf("server requires -cert, -key and -client-ca")
 	}
 
 	cert, err := tls.LoadX509KeyPair(*certFile, *keyFile)
 	if err != nil {
 		log.Fatalf("load server cert failed, err=%v", err)
+	}
+
+	clientCA, err := os.ReadFile(*clientCAFile)
+	if err != nil {
+		log.Fatalf("read client ca failed, err=%v", err)
 	}
 
 	allow, err := NewAllowList(strings.Split(*allowSpec, ","))
@@ -75,53 +90,19 @@ func runServer(args []string) {
 
 	cfg := &tls.Config{
 		Certificates: []tls.Certificate{cert},
-		MinVersion:   tls.VersionTLS13,
-	}
-
-	auth, err := newServerAuth(*authMode, cfg, *authorizedKeys, *clientCAFile)
-	if err != nil {
-		log.Fatalf("setup auth failed, err=%v", err)
+		// 这两行就是全部的客户端认证。少了它们，谁都能连。
+		ClientCAs:  loadCertPool(clientCA),
+		ClientAuth: tls.RequireAndVerifyClientCert,
+		MinVersion: tls.VersionTLS13,
 	}
 
 	ln, err := tls.Listen("tcp", *addr, cfg)
 	if err != nil {
 		log.Fatalf("listen tunnel failed, addr=%s, err=%v", *addr, err)
 	}
-	log.Printf("crypto tunnel server listening, addr=%s, auth=%s", *addr, auth.Name())
+	log.Printf("crypto tunnel server listening, addr=%s, auth=mtls", *addr)
 
-	serveCrypto(ln, auth, allow)
-}
-
-// newServerAuth 按模式装配认证器。
-//
-// mtls 模式要把根池和 ClientAuth 写进 tls.Config——
-// 少了这两行，x509Auth 那个空实现就等于"谁都能连"。
-func newServerAuth(mode string, cfg *tls.Config, authorizedKeys, clientCAFile string) (Authenticator, error) {
-	switch mode {
-	case "sshkey":
-		keys, err := LoadAuthorizedKeys(authorizedKeys)
-		if err != nil {
-			return nil, err
-		}
-		log.Printf("loaded %d authorized key(s) from %s", len(keys), authorizedKeys)
-		return newSSHKeyServerAuth(keys), nil
-
-	case "mtls":
-		if clientCAFile == "" {
-			return nil, fmt.Errorf("mtls requires -client-ca")
-		}
-		pemData, err := os.ReadFile(clientCAFile)
-		if err != nil {
-			return nil, err
-		}
-		pool := loadCertPool(pemData)
-		cfg.ClientCAs = pool
-		cfg.ClientAuth = tls.RequireAndVerifyClientCert
-		return x509Auth{}, nil
-
-	default:
-		return nil, fmt.Errorf("unknown auth mode %q", mode)
-	}
+	serveCrypto(ln, allow)
 }
 
 // runClient 启动带 TLS 的转发客户端。
@@ -131,15 +112,13 @@ func runClient(args []string) {
 	server := fs.String("server", "127.0.0.1:9000", "隧道服务端地址")
 	target := fs.String("target", "", "目标地址 host:port（必填，服务端视角）")
 	caFile := fs.String("ca", "", "校验服务端证书的 CA PEM（必填）")
-	authMode := fs.String("auth", "sshkey", "认证方式：sshkey | mtls")
-	identity := fs.String("identity", defaultIdentity(), "sshkey 模式下的私钥路径")
-	certFile := fs.String("cert", "", "mtls 模式下的客户端证书 PEM")
-	keyFile := fs.String("key", "", "mtls 模式下的客户端私钥 PEM")
+	certFile := fs.String("cert", "", "客户端证书 PEM（必填）")
+	keyFile := fs.String("key", "", "客户端私钥 PEM（必填）")
 	serverName := fs.String("server-name", "", "TLS 校验用的服务名，默认取 -server 的主机部分")
 	_ = fs.Parse(args)
 
-	if *target == "" || *caFile == "" {
-		log.Fatalf("client requires -target and -ca")
+	if *target == "" || *caFile == "" || *certFile == "" || *keyFile == "" {
+		log.Fatalf("client requires -target, -ca, -cert and -key")
 	}
 
 	pemData, err := os.ReadFile(*caFile)
@@ -153,27 +132,31 @@ func runClient(args []string) {
 		}
 	}
 
-	cfg := &tls.Config{
-		RootCAs:    loadCertPool(pemData),
-		ServerName: name,
-		MinVersion: tls.VersionTLS13,
+	pair, err := tls.LoadX509KeyPair(*certFile, *keyFile)
+	if err != nil {
+		log.Fatalf("load client cert failed, err=%v", err)
 	}
 
-	auth, err := newClientAuth(*authMode, cfg, *identity, *certFile, *keyFile)
-	if err != nil {
-		log.Fatalf("setup auth failed, err=%v", err)
+	cfg := &tls.Config{
+		RootCAs:      loadCertPool(pemData),
+		ServerName:   name,
+		Certificates: []tls.Certificate{pair},
+		MinVersion:   tls.VersionTLS13,
 	}
 
 	conn, err := tls.Dial("tcp", *server, cfg)
 	if err != nil {
 		log.Fatalf("dial tunnel server failed, server=%s, err=%v", *server, err)
 	}
-	if err := auth.Client(conn); err != nil {
-		log.Fatalf("authenticate failed, auth=%s, err=%v", auth.Name(), err)
-	}
-	log.Printf("crypto tunnel ready, server=%s, auth=%s", *server, auth.Name())
-
 	sess := newSession(conn, true)
+
+	// 逼出服务端对客户端证书的裁决：TLS 1.3 下 tls.Dial 成功不代表认证通过，
+	// 服务端拒收时它已经把连接关了。这里拿不到 PONG 就直接退出，
+	// 而不是等到第一条流失败才暴露——那时错误已经埋在一堆转发失败里了。
+	if err := sess.Handshake(handshakeTimeout); err != nil {
+		log.Fatalf("server rejected this client, check -cert/-key against the server's -client-ca, server=%s, err=%v", *server, err)
+	}
+	log.Printf("crypto tunnel ready, server=%s, auth=mtls", *server)
 
 	ln, err := net.Listen("tcp", *listen)
 	if err != nil {
@@ -201,47 +184,20 @@ func runClient(args []string) {
 	}
 }
 
-func newClientAuth(mode string, cfg *tls.Config, identity, certFile, keyFile string) (Authenticator, error) {
-	switch mode {
-	case "sshkey":
-		signer, err := LoadPrivateKey(identity)
-		if err != nil {
-			return nil, err
-		}
-		return newSSHKeyClientAuth(signer), nil
-
-	case "mtls":
-		if certFile == "" || keyFile == "" {
-			return nil, fmt.Errorf("mtls requires -cert and -key")
-		}
-		pair, err := tls.LoadX509KeyPair(certFile, keyFile)
-		if err != nil {
-			return nil, err
-		}
-		cfg.Certificates = []tls.Certificate{pair}
-		return x509Auth{}, nil
-
-	default:
-		return nil, fmt.Errorf("unknown auth mode %q", mode)
-	}
-}
-
-// serveCrypto 接受连接：先认证，认证通过才起会话。
-func serveCrypto(ln net.Listener, auth Authenticator, allow *AllowList) {
+// serveCrypto 接受连接并起会话。
+//
+// 这里没有"认证"这一步，是因为它已经在 TLS 握手里做完了：能 Accept 到
+// 的连接必然持有 -client-ca 签发的证书，校验失败的连接被 crypto/tls
+// 直接丢掉，根本到不了应用层。这正是 mTLS 相对应用层认证的优势——
+// 不存在"认证没过但已经能驱动服务端 dial"的窗口。
+func serveCrypto(ln net.Listener, allow *AllowList) {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
 			log.Printf("accept failed, err=%v", err)
 			return
 		}
-		go func() {
-			if err := auth.Server(conn); err != nil {
-				log.Printf("auth failed, remote=%s, err=%v", conn.RemoteAddr(), err)
-				_ = conn.Close()
-				return
-			}
-			serveSession(newSession(conn, false), allow)
-		}()
+		go serveSession(newSession(conn, false), allow)
 	}
 }
 
@@ -293,18 +249,4 @@ func loadCertPool(pemData []byte) *x509.CertPool {
 	return pool
 }
 
-func defaultAuthorizedKeys() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "authorized_keys"
-	}
-	return filepath.Join(home, ".ssh", "authorized_keys")
-}
 
-func defaultIdentity() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "id_ed25519"
-	}
-	return filepath.Join(home, ".ssh", "id_ed25519")
-}

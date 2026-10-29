@@ -28,6 +28,8 @@ const (
 	dialTimeout = 5 * time.Second
 	// openTimeout 是发出 SYN 后等待对端 SYNACK 的超时。
 	openTimeout = 5 * time.Second
+	// handshakeTimeout 是建会话后确认对端接受本端的超时。
+	handshakeTimeout = 5 * time.Second
 	// streamBacklog 是每条流接收队列的长度，也是背压的闸门（见 Stream.deliver）。
 	streamBacklog = 16
 	// acceptBacklog 是对端主动开流时的排队长度，v4 反向转发会用它。
@@ -58,6 +60,7 @@ type Session struct {
 	closed  bool               // 会话是否已关闭，由 mu 保护
 
 	acceptCh  chan *Stream  // 对端主动开出来的流排队等 Accept
+	pongCh    chan struct{} // 收到 PONG 的通知；Handshake 靠它确认对端接受了本端
 	doneCh    chan struct{} // 会话结束广播，所有等待方据此退出
 	closeOnce sync.Once     // Close 幂等：读循环和上层都可能调
 	closeErr  error         // 结束原因（正常关闭为 nil）
@@ -69,6 +72,7 @@ func newSession(conn net.Conn, isClient bool) *Session {
 		conn:     conn,
 		streams:  make(map[uint32]*Stream),
 		acceptCh: make(chan *Stream, acceptBacklog),
+		pongCh:   make(chan struct{}, 1),
 		doneCh:   make(chan struct{}),
 	}
 	// 客户端用奇数、服务端用偶数：双方同时 Open 也不会撞号（HTTP/2 同规则）。
@@ -124,6 +128,35 @@ func (s *Session) Accept() (*Stream, error) {
 	}
 }
 
+// Handshake 确认对端真的接受了这条连接：发一帧 PING，等它的 PONG。
+//
+// 为什么需要它：mTLS 下服务端对客户端证书的裁决发生在握手之后，而 TLS 1.3
+// 的客户端在收到裁决之前就认为自己的握手完成了——所以 tls.Dial 返回 nil
+// 并不代表认证通过。发一帧 PING 就把裁决逼了出来：服务端拒收时会直接关掉
+// 连接，这里等到的就是 doneCh 而不是 PONG。
+func (s *Session) Handshake(timeout time.Duration) error {
+	// 丢掉可能残留的旧 PONG，否则会拿上一次的结果冒充这一次。
+	select {
+	case <-s.pongCh:
+	default:
+	}
+
+	if err := s.writeFrame(frame{typ: framePING}); err != nil {
+		return err
+	}
+
+	select {
+	case <-s.pongCh:
+		return nil
+	case <-s.doneCh:
+		return ErrSessionClosed
+	case <-time.After(timeout):
+		err := errors.New("minibridge: handshake timeout, peer did not answer PING")
+		_ = s.Close(err)
+		return err
+	}
+}
+
 // Close 关闭会话，并把所有还活着的流一起收尾——否则它们的上层连接会集体挂死。
 func (s *Session) Close(cause error) error {
 	s.closeOnce.Do(func() {
@@ -175,12 +208,46 @@ func (s *Session) readLoop() {
 
 // handleFrame 按帧类型分发。
 //
+// 帧分两类，分法不是按名字而是按**归属**：
+//   - 会话级（PING / PONG）：属于这条隧道连接本身，与 streamID 无关
+//   - 流级（其余）：属于某条流，必须按 streamID 找到它
+//
+// 会话级帧在查流表之前就分流走了：它们不需要流，也不该被下面那条
+// "找不到流就丢弃"的规则波及。
+func (s *Session) handleFrame(f frame) {
+	switch f.typ {
+	case framePING, framePONG:
+		s.handleSessionFrame(f)
+	default:
+		s.handleStreamFrame(f)
+	}
+}
+
+// handleSessionFrame 处理属于连接本身、与流无关的帧。
+//
+// 这一对不看 streamID：PING 谁发的都回 PONG，PONG 谁回的都算数。
+// 所以回包固定写 streamID=0——会话级帧不属于任何流，
+// 回显对端的 ID 只会让人误以为它能按流分发。
+func (s *Session) handleSessionFrame(f frame) {
+	switch f.typ {
+	case framePING:
+		_ = s.writeFrame(frame{typ: framePONG, streamID: 0})
+	case framePONG:
+		select {
+		case s.pongCh <- struct{}{}:
+		default: // 没人等就丢掉，保活回包不需要排队
+		}
+	}
+}
+
+// handleStreamFrame 处理流级帧。
+//
 // 先取流、立刻放锁再处理：后续动作（尤其是 DATA 的投递）可能阻塞，
 // 持锁阻塞会把整条会话上所有流一起卡死。
 //
 // 找不到对应流的帧一律丢弃——那是已经结束的流迟到的数据，
 // 按 TCP 的语义也应当无声丢弃，不能当作错误。
-func (s *Session) handleFrame(f frame) {
+func (s *Session) handleStreamFrame(f frame) {
 	s.mu.Lock()
 	st := s.streams[f.streamID]
 	s.mu.Unlock()
@@ -205,8 +272,6 @@ func (s *Session) handleFrame(f frame) {
 		if st != nil {
 			st.deliver(f.payload) // 注意：此时没有持有任何锁，deliver 允许阻塞
 		}
-	case framePING:
-		_ = s.writeFrame(frame{typ: framePONG, streamID: f.streamID})
 	}
 }
 

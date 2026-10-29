@@ -24,12 +24,12 @@ hide:
       <span class="announce-item">✦ minibridge · 从 ssh -L 到自研多路复用</span>
       <span class="announce-item">🔌 v1 转发 · 一条连接一条流</span>
       <span class="announce-item">🧩 v2 帧协议 · 一条 TCP 跑 100 条流</span>
-      <span class="announce-item">🔐 v3 TLS 1.3 + sshkey/mTLS + 目标白名单</span>
+      <span class="announce-item">🔐 v3 TLS 1.3 + mTLS 双向认证 + 目标白名单</span>
       <span class="announce-item">🧪 三阶段 42 个测试函数 · -race 全绿</span>
       <span class="announce-item">✦ minibridge · 从 ssh -L 到自研多路复用</span>
       <span class="announce-item">🔌 v1 转发 · 一条连接一条流</span>
       <span class="announce-item">🧩 v2 帧协议 · 一条 TCP 跑 100 条流</span>
-      <span class="announce-item">🔐 v3 TLS 1.3 + sshkey/mTLS + 目标白名单</span>
+      <span class="announce-item">🔐 v3 TLS 1.3 + mTLS 双向认证 + 目标白名单</span>
       <span class="announce-item">🧪 三阶段 42 个测试函数 · -race 全绿</span>
     </div>
   </div>
@@ -103,7 +103,7 @@ go test -count=1 -race ./...   # 跑全部阶段的测试
       <div class="card__title">v3 · 加密与认证</div>
     </div>
     <div class="card__body">
-      <div class="card__desc">TLS 1.3 打底，认证可插拔（sshkey 挑战-响应 / mTLS 客户端证书），目标白名单治 SSRF。顺序是铁律：先认证，才接受开流。</div>
+      <div class="card__desc">TLS 1.3 打底，mTLS 双向证书认证在握手内完成，目标白名单治 SSRF。顺序是铁律：先认证，才接受开流。</div>
       <span class="badge badge--success">✅ 完成</span>
     </div>
   </a>
@@ -116,7 +116,7 @@ go test -count=1 -race ./...   # 跑全部阶段的测试
 |---|---|---|---|---|
 | v1 最简转发 | `v1-forward` | ✅ 完成 | 监听/拨号、握手协议、`io.Copy` 双向桥接、半关闭 | [27](../../blog/posts/2026/10/27.md) |
 | v2 帧协议多路复用 | `v2-mux` | ✅ 完成 | 帧格式、stream 生命周期、单连接跑多条流 | [27-1](../../blog/posts/2026/10/27-1.md) |
-| v3 加密与认证 | `v3-crypto` | ✅ 完成 | TLS 校验证书、挑战-响应、目标白名单 | 代码先行 |
+| v3 加密与认证 | `v3-crypto` | ✅ 完成 | TLS 双向证书校验、握手内完成认证、目标白名单 | 代码先行 |
 | v4 反向转发与控制面 | `v4-control` | ⏳ 计划 | 反向通道语义、运行时注册/注销端口 | — |
 | v5 生产化 | `v5-ops` | ⏳ 计划 | 心跳保活、断线重连、端口探测、优雅退出 | — |
 
@@ -196,31 +196,36 @@ curl http://127.0.0.1:18000/   # 访问本机 18000 == 访问机器 A 视角下�
 ## v3：给隧道上锁
 
 ```bash
-# 服务端：证书 + 白名单（只允许连 127.0.0.1:8000）
+# 服务端：自己的证书 + 校验客户端证书的 CA + 白名单（只允许连 127.0.0.1:8000）
 go run ./v3-crypto server -addr :9000 -cert srv.crt -key srv.key \
-    -allow 127.0.0.1:8000
+    -client-ca ca.crt -allow 127.0.0.1:8000
 
-# 客户端：校验证书的 CA + 身份证明
+# 客户端：校验证书的 CA + 自己的证书
 go run ./v3-crypto client -listen :8080 -server host:9000 \
-    -target 127.0.0.1:8000 -ca ca.crt -identity ~/.ssh/id_ed25519
+    -target 127.0.0.1:8000 -ca ca.crt -cert cli.crt -key cli.key
 ```
 
 ### 顺序是铁律
 
 ```text
-TLS 握手 → 认证 → 才接受 SYN → 才 dial 目标
+TLS 握手（内含客户端证书校验）→ 才接受 SYN → 才 dial 目标
 ```
 
-认证没过就绝不能让对端驱动我们 dial——否则等于给陌生人留了一个 SSRF 入口。所以 `Authenticator` 的位置是：**TLS 之后，第一个 SYN 之前**。
+认证没过就绝不能让对端驱动我们 dial——否则等于给陌生人留了一个 SSRF 入口。所以校验的位置是：**TLS 之内，第一个 SYN 之前**。放进 TLS 而不是自己实现，好处是校验失败的连接在 `Accept` 之前就被丢掉了，"认证"和"建会话"之间不可能存在中间态。
 
-### 认证可插拔
+### 认证就两行配置
 
-| 方式 | flag | 怎么证明身份 |
+```go
+cfg.ClientCAs  = loadCertPool(clientCA)
+cfg.ClientAuth = tls.RequireAndVerifyClientCert
+```
+
+| 端 | 必填 | 作用 |
 |---|---|---|
-| `sshkey`（默认） | `-identity ~/.ssh/id_ed25519` | 服务端发 32 字节随机 nonce，客户端用私钥签名，服务端拿 `authorized_keys` 里的公钥验签 |
-| `mtls` | `-cert` `-key` + 服务端 `-client-ca` | 客户端证书校验在 TLS 握手内完成，应用层两个方法都是空实现 |
+| 服务端 | `-client-ca` | 用哪个 CA 校验客户端证书 |
+| 客户端 | `-cert` `-key` | 客户端自己的证书与私钥（`ca.crt` 是服务端 CA 签的，别搞混） |
 
-`sshkey` 用的不是 SSH 协议，只是 SSH 的**密钥格式与签名算法**；挑战-响应本身与通道用什么加密无关。mTLS 那条"空实现"能成立的前提是服务端设了 `ClientAuth: RequireAndVerifyClientCert` 并配好 `ClientCAs`——少了这两行，它就等于"谁都能连"。
+这两行就是全部的客户端认证，应用层一个字都不用写。前提是它们真的被设上——少了 `ClientAuth`，配置看起来齐全，实际等于"谁都能连"。把校验压进 `tls.Config` 而不是留在应用层，就是为了不给这种漏配留位置。
 
 ### 白名单：治 SSRF，也治 DNS rebinding
 
@@ -254,7 +259,7 @@ cd example/2026/10/27 && go test -count=1 -race ./...
 |---|---|
 | v1 | 握手往返与跨包读取、超长目标拒绝、版本/ magic 校验、`looks like HTTP` 识别、端到端回显、不可达目标、半关闭穿透、20 并发 |
 | v2 | 帧往返与超大帧拒绝、流回显、`RST` 后会话存活、100 条流并发不串包、半关闭、会话关闭带动所有流 |
-| v3 | 白名单解析与域名规则拒绝、sshkey 往返与未知密钥拒绝、不可信 CA 拒绝、明文客户端拒绝、mTLS 强制客户端证书、加密隧道端到端转发、白名单外目标拒绝 |
+| v3 | 白名单解析与域名规则拒绝、不可信 CA 拒绝、明文客户端拒绝、mTLS 强制客户端证书、加密隧道端到端转发、白名单外目标拒绝 |
 
 ## 技术栈
 

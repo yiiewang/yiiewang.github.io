@@ -2,17 +2,12 @@ package main
 
 import (
 	"crypto/ecdsa"
-	"crypto/ed25519"
-	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"net"
 	"strings"
-	"sync"
 	"testing"
 	"time"
-
-	"golang.org/x/crypto/ssh"
 )
 
 // ---------------- 白名单 ----------------
@@ -60,69 +55,12 @@ func TestAllowListRejectsDomainRule(t *testing.T) {
 	}
 }
 
-// ---------------- 认证：SSH 密钥挑战-响应 ----------------
-
-func TestSSHKeyAuthRoundTrip(t *testing.T) {
-	signer := testSigner(t)
-	server := newSSHKeyServerAuth([]ssh.PublicKey{signer.PublicKey()})
-	client := newSSHKeyClientAuth(signer)
-
-	sErr, cErr := runAuthPair(server, client)
-	if sErr != nil || cErr != nil {
-		t.Fatalf("auth should succeed, server err=%v, client err=%v", sErr, cErr)
-	}
-}
-
-func TestSSHKeyAuthRejectsUnknownKey(t *testing.T) {
-	server := newSSHKeyServerAuth([]ssh.PublicKey{testSigner(t).PublicKey()})
-	client := newSSHKeyClientAuth(testSigner(t)) // 另一把钥匙
-
-	sErr, cErr := runAuthPair(server, client)
-	if sErr == nil {
-		t.Fatalf("server should reject unknown key")
-	}
-	if cErr == nil {
-		t.Fatalf("client should learn it was rejected")
-	}
-}
-
-// runAuthPair 在内存管道上跑一次完整的认证握手。
-func runAuthPair(server, client Authenticator) (serverErr, clientErr error) {
-	c1, c2 := net.Pipe()
-	var wg sync.WaitGroup
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		serverErr = server.Server(c1)
-	}()
-	go func() {
-		defer wg.Done()
-		clientErr = client.Client(c2)
-	}()
-	wg.Wait()
-	return serverErr, clientErr
-}
-
-func testSigner(t *testing.T) ssh.Signer {
-	t.Helper()
-
-	_, priv, err := ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		t.Fatalf("generate key: %v", err)
-	}
-	signer, err := ssh.NewSignerFromKey(priv)
-	if err != nil {
-		t.Fatalf("build signer: %v", err)
-	}
-	return signer
-}
-
 // ---------------- TLS ----------------
 
 func TestTLSRejectsUntrustedCA(t *testing.T) {
 	ca, caKey := testCA(t)
 	cfg := testServerTLSConfig(t, ca, caKey)
-	addr := startCryptoServer(t, cfg, x509Auth{}, testAllowAll(t))
+	addr := startCryptoServer(t, cfg, testAllowAll(t))
 
 	// 用另一家 CA 去校验服务端证书：必须失败
 	otherCA, _ := testCA(t)
@@ -143,7 +81,7 @@ func TestTLSRejectsUntrustedCA(t *testing.T) {
 func TestTLSRejectsPlaintextClient(t *testing.T) {
 	ca, caKey := testCA(t)
 	cfg := testServerTLSConfig(t, ca, caKey)
-	addr := startCryptoServer(t, cfg, x509Auth{}, testAllowAll(t))
+	addr := startCryptoServer(t, cfg, testAllowAll(t))
 
 	// 不带 TLS 直接连：服务端等的是 TLS ClientHello，握手必然失败
 	conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
@@ -167,14 +105,11 @@ func TestMTLSRequiresClientCert(t *testing.T) {
 	target := startMuxEchoTarget(t)
 
 	ca, caKey := testCA(t)
-	cfg := testServerTLSConfig(t, ca, caKey)
-	cfg.ClientCAs = CertPool(ca)
-	cfg.ClientAuth = tls.RequireAndVerifyClientCert
-	addr := startCryptoServer(t, cfg, x509Auth{}, testAllowAll(t))
+	cfg := testServerMTLSConfig(t, ca, caKey)
+	addr := startCryptoServer(t, cfg, testAllowAll(t))
 
 	// 没有客户端证书：TLS 1.3 下 tls.Dial **不会**失败——
 	// 客户端在收到服务端对证书的裁决之前就认为握手完成了。
-	// 裁决要到第一次读写才暴露（服务端这时已经关掉连接）。
 	conn, err := tls.Dial("tcp", addr, &tls.Config{
 		RootCAs:    CertPool(ca),
 		ServerName: "127.0.0.1",
@@ -183,23 +118,15 @@ func TestMTLSRequiresClientCert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
-	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
-	if _, err := conn.Read(make([]byte, 1)); err == nil {
+	defer conn.Close()
+
+	// 裁决由 Handshake 逼出来：服务端这时已经把连接关了，拿不到 PONG。
+	if err := newSession(conn, true).Handshake(3 * time.Second); err == nil {
 		t.Fatalf("server must reject client without certificate")
 	}
-	conn.Close()
 
 	// 带上客户端证书：完整走通一次转发才算真的通过
-	clientCert, err := IssueCert(ca, caKey, "client", false, nil, nil)
-	if err != nil {
-		t.Fatalf("issue client cert: %v", err)
-	}
-	withCert, err := tls.Dial("tcp", addr, &tls.Config{
-		RootCAs:      CertPool(ca),
-		ServerName:   "127.0.0.1",
-		Certificates: []tls.Certificate{clientCert},
-		MinVersion:   tls.VersionTLS13,
-	})
+	withCert, err := tls.Dial("tcp", addr, testClientTLSConfig(t, ca, caKey))
 	if err != nil {
 		t.Fatalf("mTLS dial: %v", err)
 	}
@@ -222,29 +149,37 @@ func TestMTLSRequiresClientCert(t *testing.T) {
 	}
 }
 
+// Handshake 是客户端确认"服务端真的收了我"的唯一手段，成功路径也得钉住。
+func TestSessionHandshakeSucceedsOverAcceptedMTLS(t *testing.T) {
+	ca, caKey := testCA(t)
+	cfg := testServerMTLSConfig(t, ca, caKey)
+	addr := startCryptoServer(t, cfg, testAllowAll(t))
+
+	conn, err := tls.Dial("tcp", addr, testClientTLSConfig(t, ca, caKey))
+	if err != nil {
+		t.Fatalf("mtls dial: %v", err)
+	}
+	t.Cleanup(func() { conn.Close() })
+
+	if err := newSession(conn, true).Handshake(3 * time.Second); err != nil {
+		t.Fatalf("handshake over accepted mTLS connection: %v", err)
+	}
+}
+
 // ---------------- 端到端 ----------------
 
 func TestCryptoEndToEndForward(t *testing.T) {
 	target := startMuxEchoTarget(t)
 
 	ca, caKey := testCA(t)
-	cfg := testServerTLSConfig(t, ca, caKey)
-	signer := testSigner(t)
-	addr := startCryptoServer(t, cfg, newSSHKeyServerAuth([]ssh.PublicKey{signer.PublicKey()}), testAllowAll(t))
+	cfg := testServerMTLSConfig(t, ca, caKey)
+	addr := startCryptoServer(t, cfg, testAllowAll(t))
 
-	conn, err := tls.Dial("tcp", addr, &tls.Config{
-		RootCAs:    CertPool(ca),
-		ServerName: "127.0.0.1",
-		MinVersion: tls.VersionTLS13,
-	})
+	conn, err := tls.Dial("tcp", addr, testClientTLSConfig(t, ca, caKey))
 	if err != nil {
-		t.Fatalf("tls dial: %v", err)
+		t.Fatalf("mtls dial: %v", err)
 	}
 	t.Cleanup(func() { conn.Close() })
-
-	if err := newSSHKeyClientAuth(signer).Client(conn); err != nil {
-		t.Fatalf("auth: %v", err)
-	}
 
 	sess := newSession(conn, true)
 	st, err := sess.Open(target)
@@ -266,27 +201,19 @@ func TestCryptoEndToEndForward(t *testing.T) {
 
 func TestCryptoDeniesTargetOutsideAllowList(t *testing.T) {
 	ca, caKey := testCA(t)
-	cfg := testServerTLSConfig(t, ca, caKey)
-	signer := testSigner(t)
+	cfg := testServerMTLSConfig(t, ca, caKey)
 	// 白名单只允许回环的 8000，目标用别的端口
 	allow, err := NewAllowList([]string{"127.0.0.1:8000"})
 	if err != nil {
 		t.Fatalf("build allow list: %v", err)
 	}
-	addr := startCryptoServer(t, cfg, newSSHKeyServerAuth([]ssh.PublicKey{signer.PublicKey()}), allow)
+	addr := startCryptoServer(t, cfg, allow)
 
-	conn, err := tls.Dial("tcp", addr, &tls.Config{
-		RootCAs:    CertPool(ca),
-		ServerName: "127.0.0.1",
-		MinVersion: tls.VersionTLS13,
-	})
+	conn, err := tls.Dial("tcp", addr, testClientTLSConfig(t, ca, caKey))
 	if err != nil {
-		t.Fatalf("tls dial: %v", err)
+		t.Fatalf("mtls dial: %v", err)
 	}
 	t.Cleanup(func() { conn.Close() })
-	if err := newSSHKeyClientAuth(signer).Client(conn); err != nil {
-		t.Fatalf("auth: %v", err)
-	}
 
 	sess := newSession(conn, true)
 	denied := freeMuxAddr(t) // 一个没人监听、也不在白名单里的地址
@@ -320,7 +247,31 @@ func testServerTLSConfig(t *testing.T, ca *x509.Certificate, caKey *ecdsa.Privat
 	}
 }
 
-func startCryptoServer(t *testing.T, cfg *tls.Config, auth Authenticator, allow *AllowList) string {
+// testServerMTLSConfig 在普通服务端配置之上要求并校验客户端证书。
+func testServerMTLSConfig(t *testing.T, ca *x509.Certificate, caKey *ecdsa.PrivateKey) *tls.Config {
+	cfg := testServerTLSConfig(t, ca, caKey)
+	cfg.ClientCAs = CertPool(ca)
+	cfg.ClientAuth = tls.RequireAndVerifyClientCert
+	return cfg
+}
+
+// testClientTLSConfig 造出带客户端证书、并校验服务端证书的 tls.Config。
+func testClientTLSConfig(t *testing.T, ca *x509.Certificate, caKey *ecdsa.PrivateKey) *tls.Config {
+	t.Helper()
+
+	cliCert, err := IssueCert(ca, caKey, "client", false, nil, nil)
+	if err != nil {
+		t.Fatalf("issue client cert: %v", err)
+	}
+	return &tls.Config{
+		RootCAs:      CertPool(ca),
+		ServerName:   "127.0.0.1",
+		Certificates: []tls.Certificate{cliCert},
+		MinVersion:   tls.VersionTLS13,
+	}
+}
+
+func startCryptoServer(t *testing.T, cfg *tls.Config, allow *AllowList) string {
 	t.Helper()
 
 	ln, err := tls.Listen("tcp", "127.0.0.1:0", cfg)
@@ -329,6 +280,6 @@ func startCryptoServer(t *testing.T, cfg *tls.Config, auth Authenticator, allow 
 	}
 	t.Cleanup(func() { ln.Close() })
 
-	go serveCrypto(ln, auth, allow)
+	go serveCrypto(ln, allow)
 	return ln.Addr().String()
 }
