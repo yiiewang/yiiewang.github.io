@@ -2,13 +2,14 @@
 
 > Cloaks｜Yiiewang 的个人站点 —— 博客记录思考过程，知识库沉淀能力体系。涵盖技术、工程实践、思维方法、领域知识、人文素养、工具效率和职业发展七大能力域。欢迎浏览、搜索和留言讨论。
 
-本文件由构建时自动生成，为 AI 系统提供全站索引：共 177 篇博文 + 导航内全部页面。
+本文件由构建时自动生成，为 AI 系统提供全站索引：共 178 篇博文 + 导航内全部页面。
 链接格式：[标题](绝对URL)：摘要
 
 ## 博客文章
 
 ### Go 语言
 
+- [从"能跑"到"敢一直开着"：心跳、重连与握手自检](https://cloaks.cn/blog/posts/2026/11/02/)：minibridge v4：应用层心跳为什么必须"发了要等回"、Session 为什么不会复活、重连退避为什么封顶 30s、make verify 为什么要真握一次手——把"能跑"变成"敢一直开着"的四件事。
 - [从 ssh -L 到自研多路复用：手写一个隧道协议](https://cloaks.cn/blog/posts/2026/10/27/)：自己写一个 ssh -L 的替代品：一条转发一条 TCP 连接，从握手、io.Copy 双向桥接到半关闭 CloseWrite，四个测试守住不变量，并说清它离 VSCode 那种单连接多路复用还差几步。
 - [一条 TCP 上跑 100 条流：手写帧协议与 stream 生命周期](https://cloaks.cn/blog/posts/2026/10/27-1/)：把 v1 的"一条转发一条连接"改成"N 条流共享一条 TCP"：帧格式怎么定、streamID 为什么分奇偶、背压为什么靠阻塞投递、为什么 bridge 要从断言类型改成断言能力，以及 100 条流并发不串包的实测。
 - [锁外回调、队列锁、分片锁：一句追问引出的死锁预防链](https://cloaks.cn/blog/posts/2026/10/01/)：回应《不用堆的延迟队列》里那句「锁外回调」的追问：把队列锁、分片锁、ABBA 死锁讲透，再按代价排开五级手段（锁排序／锁外回调／TryLock 回退／不可重入拆变体／atomic 不可变），最后复盘那条「锁外回调→Cleanup 不持锁→…
@@ -315,7 +316,7 @@
 
 - [概览](https://cloaks.cn/lab/index/)
 - [Workbench 项目](https://cloaks.cn/lab/project/index/)：从零到一做一个个人开发工作台，把文件浏览、上传与管理、Todo 看板、用户与组织管理揉进一个 Go + SQLite 的二进制里。聊聊这半年多踩过的坑和想明白的事。
-- [minibridge 隧道](https://cloaks.cn/lab/project/minibridge/)：minibridge 是把 ssh -L 一路写到底的学习项目——v1 一条转发一条连接，v2 一条 TCP 跑 N 条流，v3 加 TLS、可插拔认证与目标白名单。三阶段源码、帧格式、验收标准，以及每阶段"故意不做的事"都在这里。
+- [minibridge 隧道](https://cloaks.cn/lab/project/minibridge/)：minibridge 是把 ssh -L 一路写到底的学习项目——v1 一条转发一条连接，v2 一条 TCP 跑 N 条流，v3 加 TLS、mTLS 认证与目标白名单，v4 心跳保活与自动重连。四阶段源码、帧格式、验收标准，以及每阶段"故意不做的事"都在这里。
 - [示例代码](https://cloaks.cn/lab/examples/index/)：博客全部可运行示例代码的目录：example/ 路径与文章同构（YYYY/MM/DD-序号），每个示例标注对应文章、源码位置与运行命令，go build / vet / race 全绿。
 - [电子书](https://cloaks.cn/lab/ebooks/index/)：实验室电子书架：技术书籍与文档的 PDF 原件入库，站点直接伺服，在线阅读、下载均可，链接永不过期。首本：xv6 教学操作系统书（RISC-V 版 rev3）。
 - [zsh 一键安装](https://cloaks.cn/lab/tools/zsh-setup/)：一行 curl 装好 zsh + oh-my-zsh + 自动建议/语法高亮/fzf：脚本怎么做到非交互、幂等、可降级，附三个使用场景与 ZSH 变量劫持踩坑实录。
