@@ -125,12 +125,15 @@ TCP → TLS 握手（客户端校验服务端证书 + 服务端校验客户端�
 
 ```bash
 # 生成 CA、服务端证书、客户端证书（示例用自签；生产请用企业 CA 或 ACME）
-# 见 certs.go 的 GenerateCA / IssueCert
+cd v3-crypto && make certs          # 证书落在 v3-crypto/certs/（已 gitignore）
+cd ..
 
 go run ./v3-crypto server -addr 127.0.0.1:9000 \
-    -cert srv.crt -key srv.key -client-ca ca.crt -allow 127.0.0.1:8000
+    -cert v3-crypto/certs/srv.crt -key v3-crypto/certs/srv.key \
+    -client-ca v3-crypto/certs/ca.crt -allow 127.0.0.1:8000
 go run ./v3-crypto client -listen :8080 -server 127.0.0.1:9000 \
-    -target 127.0.0.1:8000 -ca ca.crt -cert cli.crt -key cli.key
+    -target 127.0.0.1:8000 -ca v3-crypto/certs/ca.crt \
+    -cert v3-crypto/certs/cli.crt -key v3-crypto/certs/cli.key
 ```
 
 注意 `-cert` / `-key` 两端同名不同物：服务端那是**服务端自己的**，客户端那是**客户端自己的**。
@@ -166,6 +169,7 @@ cfg.ClientAuth = tls.RequireAndVerifyClientCert
 | `certs.go` | 自签 CA + 证书签发（示例/测试用） |
 | `allow.go` | 目标白名单：解析规则、返回 IP 形式地址 |
 | `main.go` | `server` / `client`，串起 TLS → 会话（认证在 TLS 握手里做完了） |
+| `Makefile` | `make certs` 用 openssl 生成这套证书，`make verify` 校链与用途 |
 | `crypto_test.go` | 白名单、TLS 校验、mTLS 必须有客户端证书、端到端 |
 | `frame.go` / `mux.go` | 与 v2 相同的多路复用核心（各阶段保持自包含） |
 
