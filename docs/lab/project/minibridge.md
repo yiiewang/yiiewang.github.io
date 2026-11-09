@@ -55,7 +55,7 @@ hide:
       </div>
       <div class="hero__quote">从 <code>ssh -L</code> 出发，一步步造出 VSCode Remote-SSH 那种"一条连接多路复用"的桥接能力。每个阶段一个可运行目录，一层层往上加，每层都能看见。</div>
       <div class="hero__actions">
-        <a href="https://github.com/yiiewang/yiiewang.github.io/tree/master/example/2026/10/27" target="_blank" class="btn btn--primary">📦 源码目录</a>
+        <a href="https://github.com/yiiewang/yiiewang.github.io/tree/master/example/minibridge" target="_blank" class="btn btn--primary">📦 源码目录</a>
         <a href="../../blog/posts/2026/10/27.md" class="btn btn--secondary">📖 v1 文章</a>
         <a href="../../blog/posts/2026/10/27-1.md" class="btn btn--secondary">📖 v2 文章</a>
         <a href="../../blog/posts/2026/11/02.md" class="btn btn--secondary">📖 v4 文章</a>
@@ -71,7 +71,7 @@ hide:
 四个阶段都在同一个 Go module 下，阶段之间代码可复用，命令形态也保持一致：
 
 ```bash
-cd example/2026/10/27
+cd example/minibridge
 go test -count=1 -race ./...   # 跑全部阶段的测试
 ```
 
@@ -79,7 +79,7 @@ go test -count=1 -race ./...   # 跑全部阶段的测试
 
 <div class="card-grid">
 
-  <a href="https://github.com/yiiewang/yiiewang.github.io/tree/master/example/2026/10/27/v1-forward" target="_blank" class="card card--link card--pad">
+  <a href="https://github.com/yiiewang/yiiewang.github.io/tree/master/example/minibridge/v1-forward" target="_blank" class="card card--link card--pad">
     <div class="card__head">
       <div class="icon-box blue">🔌</div>
       <div class="card__title">v1 · 最简转发</div>
@@ -90,7 +90,7 @@ go test -count=1 -race ./...   # 跑全部阶段的测试
     </div>
   </a>
 
-  <a href="https://github.com/yiiewang/yiiewang.github.io/tree/master/example/2026/10/27/v2-mux" target="_blank" class="card card--link card--pad">
+  <a href="https://github.com/yiiewang/yiiewang.github.io/tree/master/example/minibridge/v2-mux" target="_blank" class="card card--link card--pad">
     <div class="card__head">
       <div class="icon-box violet">🧩</div>
       <div class="card__title">v2 · 帧协议多路复用</div>
@@ -101,7 +101,7 @@ go test -count=1 -race ./...   # 跑全部阶段的测试
     </div>
   </a>
 
-  <a href="https://github.com/yiiewang/yiiewang.github.io/tree/master/example/2026/10/27/v3-crypto" target="_blank" class="card card--link card--pad">
+  <a href="https://github.com/yiiewang/yiiewang.github.io/tree/master/example/minibridge/v3-crypto" target="_blank" class="card card--link card--pad">
     <div class="card__head">
       <div class="icon-box orange">🔐</div>
       <div class="card__title">v3 · 加密与认证</div>
@@ -112,7 +112,7 @@ go test -count=1 -race ./...   # 跑全部阶段的测试
     </div>
   </a>
 
-  <a href="https://github.com/yiiewang/yiiewang.github.io/tree/master/example/2026/10/27/v4-keepalive" target="_blank" class="card card--link card--pad">
+  <a href="https://github.com/yiiewang/yiiewang.github.io/tree/master/example/minibridge/v4-keepalive" target="_blank" class="card card--link card--pad">
     <div class="card__head">
       <div class="icon-box green">❤️</div>
       <div class="card__title">v4 · 长连接存活</div>
@@ -135,7 +135,7 @@ go test -count=1 -race ./...   # 跑全部阶段的测试
 | v4 长连接存活 | `v4-keepalive` | ✅ 完成 | 心跳判死、自动重连、失败退出、真握手自检 | [11-02](../../blog/posts/2026/11/02.md) |
 | v5 反向转发与控制面 | — | ⏳ 计划 | 反向通道语义、运行时注册/注销端口 | — |
 
-v5 不需要改结构：v2 已经把 `Open` / `Accept` 做成对称的，服务端反向 Open 直接接上即可。心跳重连之外的运维项（systemd、metrics、优雅退出）见 [TODO](https://github.com/yiiewang/yiiewang.github.io/tree/master/example/2026/10/27/TODO.md)。
+v5 不需要改结构：v2 已经把 `Open` / `Accept` 做成对称的，服务端反向 Open 直接接上即可。心跳重连之外的运维项（systemd、metrics、优雅退出）见 [TODO](https://github.com/yiiewang/yiiewang.github.io/tree/master/example/minibridge/TODO.md)。
 
 ---
 
@@ -301,7 +301,7 @@ NAT/安全组回收的是它自己的转发表项，两端的 TCP 栈毫发无�
 四个阶段的测试就是各阶段的不变量清单，`-race` 下全绿：
 
 ```bash
-cd example/2026/10/27 && go test -count=1 -race ./...
+cd example/minibridge && go test -count=1 -race ./...
 ```
 
 | 阶段 | 关键用例 |
@@ -325,7 +325,7 @@ cd example/2026/10/27 && go test -count=1 -race ./...
 
 <div class="page-footer">
   <p class="page-footer__title">每一层都能看见，才敢说自己懂了</p>
-  <p class="page-footer__sub">源码：<a href="https://github.com/yiiewang/yiiewang.github.io/tree/master/example/2026/10/27" target="_blank">example/2026/10/27</a> · 维护人：yiiewang</p>
+  <p class="page-footer__sub">源码：<a href="https://github.com/yiiewang/yiiewang.github.io/tree/master/example/minibridge" target="_blank">example/minibridge</a> · 维护人：yiiewang</p>
 </div>
 
 ---
