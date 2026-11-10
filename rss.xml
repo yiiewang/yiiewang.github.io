@@ -6,8 +6,20 @@
   <link>https://cloaks.cn/</link>
   <description>Cloaks｜Yiiewang 的个人站点 —— 博客记录思考过程，知识库沉淀能力体系。涵盖技术、工程实践、思维方法、领域知识、人文素养、工具效率和职业发展七大能力域。欢迎浏览、搜索和留言讨论。</description>
   <language>zh-CN</language>
-  <lastBuildDate>Tue, 10 Nov 2026 03:29:50 GMT</lastBuildDate>
+  <lastBuildDate>Tue, 10 Nov 2026 10:43:38 GMT</lastBuildDate>
   <atom:link href="https://cloaks.cn/rss.xml" rel="self" type="application/rss+xml"/>
+  <item>
+    <title>隧道掉头：反向转发、DoS 封顶与单张证书吊销</title>
+    <link>https://cloaks.cn/blog/posts/2026/11/10/</link>
+    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/11/10/</guid>
+    <pubDate>Tue, 10 Nov 2026 00:00:00 GMT</pubDate>
+    <description>minibridge v5 收官：反向转发的数据面为什么零新增代码、控制面怎么做"会话资产"与声明式重放、max-conns 为什么在握手前拒绝、泄漏一张证书为什么不再需要换 CA 重签全链——外加容器文件系统 mtime 秒级粒度这个真…</description>
+    <category>Go</category>
+    <category>TLS</category>
+    <category>隧道</category>
+    <category>mTLS</category>
+    <category>网络安全</category>
+  </item>
   <item>
     <title>从"能跑"到"敢一直开着"：心跳、重连与握手自检</title>
     <link>https://cloaks.cn/blog/posts/2026/11/02/</link>
@@ -246,19 +258,6 @@
     <category>读书笔记</category>
     <category>商业模式</category>
     <category>区块链</category>
-  </item>
-  <item>
-    <title>「活钱」作战手册：把货殖列传翻译给现代人看</title>
-    <link>https://cloaks.cn/blog/posts/2026/10/02/</link>
-    <guid isPermaLink="true">https://cloaks.cn/blog/posts/2026/10/02/</guid>
-    <pubDate>Fri, 02 Oct 2026 00:00:00 GMT</pubDate>
-    <description>把《货殖列传》的「活钱」哲学翻译成现代作战手册：无息币对应现金流管理与 CCC，旱则资舟对应逆周期左侧布局，逐什一之利对应薄利快周转的复购生意。落到个人、开店、企业、投资四个场景，每条附可执行的自检指标。</description>
-    <category>货殖列传</category>
-    <category>现金流</category>
-    <category>库存周转</category>
-    <category>逆向投资</category>
-    <category>现金流管理</category>
-    <category>实战指南</category>
   </item>
 </channel>
 </rss>
