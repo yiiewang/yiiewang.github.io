@@ -18,26 +18,45 @@ import (
 // 客户端持声明式的映射清单，每次（重）连成功后整体重放——控制面状态
 // 是 per-session 的，会话一死，服务端就把它名下的监听全部关掉。
 
-// reverseMapping 是一条反向转发的声明式注册：
-// 服务端在 bind 上监听，连上来的连接以流打回本端，本端拨号 target 后桥接。
-type reverseMapping struct {
-	bind   string // 服务端监听地址
-	target string // 本端（客户端视角）的回程目标
+// portMapping 是一条端口映射的声明：bind 监听用户接入，target 是流量的最终去向。
+// 正反向共用这一对概念，-reverse 只决定两端谁当 bind、谁当 target：
+//
+//	正向：bind 在本端 net.Listen，target 由服务端拨（服务端视角）
+//	反向：bind 注册到服务端，target 由本端拨（本端视角）
+type portMapping struct {
+	bind   string // 用户接入的监听地址
+	target string // 回程目标（拨号方视角）
 }
 
-// parseReverseSpec 解析 -reverse 的值："bind=target" 逗号分隔多条。
-// 不用 ":" 分隔是因为 bind/target 自己就是 host:port，冒号会歧义。
-func parseReverseSpec(spec string) ([]reverseMapping, error) {
+// parseBindSpec 解析 -bind 的值，SSH -L/-R 风格，逗号分隔多条：
+//
+//	[bind地址:]端口:目标host:目标端口
+//	90:127.0.0.1:80          本端（正向）或服务端（反向）监听 :90，回程 127.0.0.1:80
+//	:90:127.0.0.1:80         同上，显式给出 bind 地址（空 = 所有接口）
+//
+// 3 段式省略 bind 地址（等价 ":port"），4 段式的第一段可以是 IP 或留空。
+// IPv6 不支持——bind/target 的冒号会歧义，demo 不为它增加复杂度。
+func parseBindSpec(spec string) ([]portMapping, error) {
 	if spec == "" {
-		return nil, nil
+		return nil, fmt.Errorf("empty bind spec")
 	}
-	var out []reverseMapping
+	var out []portMapping
 	for _, item := range strings.Split(spec, ",") {
-		bind, target, ok := strings.Cut(item, "=")
-		if !ok || bind == "" || target == "" {
-			return nil, fmt.Errorf("malformed reverse item %q, want bind=target", item)
+		parts := strings.Split(item, ":")
+		var bind string
+		switch len(parts) {
+		case 3: // port:host:hostport
+			bind = ":" + parts[0]
+		case 4: // bindaddr:port:host:hostport
+			bind = parts[0] + ":" + parts[1]
+		default:
+			return nil, fmt.Errorf("malformed bind item %q, want [addr:]port:host:port", item)
 		}
-		out = append(out, reverseMapping{bind: bind, target: target})
+		target := parts[len(parts)-2] + ":" + parts[len(parts)-1]
+		if parts[len(parts)-2] == "" || parts[len(parts)-1] == "" || parts[0] == "" && len(parts) == 3 {
+			return nil, fmt.Errorf("malformed bind item %q", item)
+		}
+		out = append(out, portMapping{bind: bind, target: target})
 	}
 	return out, nil
 }
@@ -108,6 +127,7 @@ func (rm *reverseManager) listen(bind, target string) error {
 	rm.listeners[bind] = &reverseListener{ln: ln, target: target}
 	rm.mu.Unlock()
 
+	log.Printf("reverse listening, bind=%s, target=%s", bind, target)
 	go rm.acceptLoop(bind, ln, target)
 	return nil
 }
@@ -146,6 +166,7 @@ func (rm *reverseManager) bridge(bind string, conn net.Conn, target string) {
 		_ = conn.Close()
 		return
 	}
+	log.Printf("reverse accepted, bind=%s, remote=%s, id=%d", bind, conn.RemoteAddr(), st.ID())
 
 	in, out, berr := bridge(conn, st)
 	log.Printf("reverse finished, bind=%s, target=%s, user_to_target=%d, target_to_user=%d, err=%v",

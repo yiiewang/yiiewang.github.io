@@ -25,18 +25,18 @@ const reverseRetryDelay = 200 * time.Millisecond
 // 静态 -reverse 提供初值，admin 接口运行时增删，dial 成功后整体重放。
 type reverseRegistry struct {
 	mu       sync.Mutex
-	mappings []reverseMapping
+	mappings []portMapping
 }
 
-func newReverseRegistry(initial []reverseMapping) *reverseRegistry {
-	return &reverseRegistry{mappings: append([]reverseMapping(nil), initial...)}
+func newReverseRegistry(initial []portMapping) *reverseRegistry {
+	return &reverseRegistry{mappings: append([]portMapping(nil), initial...)}
 }
 
 // snapshot 返回当前清单的副本——重放和 LIST 都靠它，不暴露内部切片。
-func (r *reverseRegistry) snapshot() []reverseMapping {
+func (r *reverseRegistry) snapshot() []portMapping {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return append([]reverseMapping(nil), r.mappings...)
+	return append([]portMapping(nil), r.mappings...)
 }
 
 func (r *reverseRegistry) containsLocked(bind string) bool {
@@ -68,7 +68,7 @@ func (r *reverseRegistry) register(bind, target string, tun *tunnel) []string {
 		r.mu.Unlock()
 		return []string{fmt.Sprintf("ERR bind already registered: %s", bind)}
 	}
-	r.mappings = append(r.mappings, reverseMapping{bind: bind, target: target})
+	r.mappings = append(r.mappings, portMapping{bind: bind, target: target})
 	r.mu.Unlock()
 
 	sess := tun.current()
@@ -162,7 +162,7 @@ func bootSession(conn net.Conn, reg *reverseRegistry, allow *AllowList) (*Sessio
 		if err != nil {
 			log.Printf("reverse listen failed, bind=%s, target=%s, err=%v", m.bind, m.target, err)
 		} else {
-			log.Printf("reverse listening, bind=%s, target=%s", m.bind, m.target)
+			log.Printf("reverse registered, bind=%s, target=%s", m.bind, m.target)
 		}
 	}
 	return sess, nil

@@ -192,3 +192,19 @@ func TestAdminDeferredRegistration(t *testing.T) {
 	}
 	echoThrough(t, bind, "deferred registration")
 }
+
+// admin 只能绑回环：留空 host（监听所有接口）与非回环地址都必须拒绝。
+func TestAdminAddrIsLoopback(t *testing.T) {
+	ok := []string{"127.0.0.1:9090", "[::1]:9090", "127.0.0.1:0"}
+	for _, addr := range ok {
+		if !adminAddrIsLoopback(addr) {
+			t.Fatalf("%q should be accepted as loopback admin addr", addr)
+		}
+	}
+	bad := []string{":9090", "0.0.0.0:9090", "10.0.0.5:9090", "192.168.1.1:9090", "jump.example.com:9090", "9090"}
+	for _, addr := range bad {
+		if adminAddrIsLoopback(addr) {
+			t.Fatalf("%q must be rejected as admin addr", addr)
+		}
+	}
+}

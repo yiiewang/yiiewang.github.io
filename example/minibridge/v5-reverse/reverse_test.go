@@ -176,3 +176,30 @@ func TestReverseListenersDieWithSession(t *testing.T) {
 		time.Sleep(5 * time.Millisecond)
 	}
 }
+
+// parseBindSpec：SSH 风格 [地址:]端口:目标:端口，逗号分隔多条。
+func TestParseBindSpec(t *testing.T) {
+	ms, err := parseBindSpec("90:127.0.0.1:80,:18000:127.0.0.1:8000,10.0.0.5:91:db.local:3306")
+	if err != nil {
+		t.Fatalf("parse bind spec: %v", err)
+	}
+	want := []portMapping{
+		{bind: ":90", target: "127.0.0.1:80"},
+		{bind: ":18000", target: "127.0.0.1:8000"},
+		{bind: "10.0.0.5:91", target: "db.local:3306"},
+	}
+	if len(ms) != len(want) {
+		t.Fatalf("want %d mappings, got %d", len(want), len(ms))
+	}
+	for i, w := range want {
+		if ms[i] != w {
+			t.Fatalf("mapping[%d] = %+v, want %+v", i, ms[i], w)
+		}
+	}
+
+	for _, bad := range []string{"", "90", "90:127.0.0.1", ":90::80", "a:b:c:d:e"} {
+		if _, err := parseBindSpec(bad); err == nil {
+			t.Fatalf("%q must be rejected", bad)
+		}
+	}
+}

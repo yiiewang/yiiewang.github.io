@@ -222,6 +222,40 @@ func TestCryptoDeniesTargetOutsideAllowList(t *testing.T) {
 	}
 }
 
+// ---------------- 客户端证书 IP 绑定 ----------------
+
+// 绑定来源 IP 的客户端证书：从被绑的 IP 连，放行；整套证书拷到
+// "别的机器"（来源 IP 不在 SAN 里），握手能过但进不了会话。
+// TLS 1.3 下 tls.Dial 不报错，裁决要靠 Handshake 逼出来
+// （同 TestMTLSRequiresClientCert 的模式）。
+func TestClientCertIPBinding(t *testing.T) {
+	ca, caKey := testCA(t)
+	cfg := testServerMTLSConfig(t, ca, caKey)
+	addr := startCryptoServer(t, cfg, testAllowAll(t))
+
+	// 绑 127.0.0.1：测试连接的来源正是 127.0.0.1，必须放行
+	okConn, err := tls.Dial("tcp", addr,
+		testClientTLSConfigWithIPs(t, ca, caKey, []net.IP{net.ParseIP("127.0.0.1")}))
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	t.Cleanup(func() { okConn.Close() })
+	if err := newSession(okConn, true).Handshake(3 * time.Second); err != nil {
+		t.Fatalf("client bound to its own source ip must pass: %v", err)
+	}
+
+	// 绑一个陌生 IP（TEST-NET-1，永远不会是本机来源）：必须被拒
+	badConn, err := tls.Dial("tcp", addr,
+		testClientTLSConfigWithIPs(t, ca, caKey, []net.IP{net.ParseIP("192.0.2.1")}))
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	t.Cleanup(func() { badConn.Close() })
+	if err := newSession(badConn, true).Handshake(3 * time.Second); err == nil {
+		t.Fatalf("client cert bound to a foreign ip must be rejected")
+	}
+}
+
 // ---------------- 测试桩 ----------------
 
 func testCA(t *testing.T) (*x509.Certificate, *ecdsa.PrivateKey) {
@@ -271,6 +305,22 @@ func testClientTLSConfig(t *testing.T, ca *x509.Certificate, caKey *ecdsa.Privat
 	}
 }
 
+// testClientTLSConfigWithIPs 签一张带 IP SAN 的客户端证书（IP 绑定测试用）。
+func testClientTLSConfigWithIPs(t *testing.T, ca *x509.Certificate, caKey *ecdsa.PrivateKey, ips []net.IP) *tls.Config {
+	t.Helper()
+
+	cliCert, err := IssueCert(ca, caKey, "client", false, ips, nil)
+	if err != nil {
+		t.Fatalf("issue client cert with ips: %v", err)
+	}
+	return &tls.Config{
+		RootCAs:      CertPool(ca),
+		ServerName:   "127.0.0.1",
+		Certificates: []tls.Certificate{cliCert},
+		MinVersion:   tls.VersionTLS13,
+	}
+}
+
 func startCryptoServer(t *testing.T, cfg *tls.Config, allow *AllowList) string {
 	t.Helper()
 
@@ -280,6 +330,43 @@ func startCryptoServer(t *testing.T, cfg *tls.Config, allow *AllowList) string {
 	}
 	t.Cleanup(func() { ln.Close() })
 
-	go serveCrypto(ln, allow)
+	go serveCrypto(ln, allow, 64)
 	return ln.Addr().String()
+}
+
+// 并发上限：名额占满后，新连接被直接关闭——连 TLS 握手都不给做，
+// 攻击者拿不到任何应用层资源。
+func TestServerRejectsWhenConnLimitReached(t *testing.T) {
+	ca, caKey := testCA(t)
+	cfg := testServerMTLSConfig(t, ca, caKey)
+
+	ln, err := tls.Listen("tcp", "127.0.0.1:0", cfg)
+	if err != nil {
+		t.Fatalf("tls listen: %v", err)
+	}
+	t.Cleanup(func() { ln.Close() })
+	go serveCrypto(ln, testAllowAll(t), 1)
+	addr := ln.Addr().String()
+
+	// 第一条：占住唯一名额，握手、会话一切正常
+	c1, err := tls.Dial("tcp", addr, testClientTLSConfig(t, ca, caKey))
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	t.Cleanup(func() { c1.Close() })
+	if err := newSession(c1, true).Handshake(3 * time.Second); err != nil {
+		t.Fatalf("first conn must pass: %v", err)
+	}
+
+	// 第二条：名额已满，立即被服务端关闭（读到 EOF 而不是超时）
+	c2, err := net.DialTimeout("tcp", addr, 2*time.Second)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	t.Cleanup(func() { c2.Close() })
+	c2.SetReadDeadline(time.Now().Add(3 * time.Second))
+	buf := make([]byte, 1)
+	if _, err := c2.Read(buf); err == nil {
+		t.Fatalf("second conn must be closed when limit reached")
+	}
 }

@@ -1,3 +1,3 @@
 module github.com/yiiewang/yiiewang.github.io/example/minibridge
 
-go 1.24.13
+go 1.23
