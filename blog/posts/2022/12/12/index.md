@@ -1,0 +1,81 @@
+# Linux lshw 命令：硬件信息查看利器
+
+`lshw`（list hardware）是 Linux 系统中用于获取详细硬件配置信息的工具。它可以报告内存配置、固件版本、主板配置、CPU 信息、缓存配置、总线速度等。
+
+> [!WARNING]
+>
+> **权限要求**
+>
+> `lshw` 需要以 root 权限运行才能获取完整信息，否则只会显示部分数据。
+
+## 常用参数
+
+| 参数 | 说明 |
+| --- | --- |
+| `-short` | 紧凑格式显示硬件列表 |
+| `-class <类型>` | 只显示指定类型的硬件 |
+| `-html` | 以 HTML 格式输出 |
+| `-xml` | 以 XML 格式输出 |
+| `-json` | 以 JSON 格式输出 |
+| `-businfo` | 显示总线信息（SCSI、USB、IDE、PCI 地址） |
+| `-sanitize` | 移除敏感信息（IP 地址、序列号等） |
+| `-numeric` | 同时显示数字 ID |
+
+## 常用命令
+
+### 快速查看硬件概览
+
+```bash
+sudo lshw -short
+```
+
+### 查看指定类型硬件
+
+```bash
+# 查看磁盘和存储控制器
+sudo lshw -class disk -class storage
+
+# 查看网络设备
+sudo lshw -class network
+
+# 查看内存信息
+sudo lshw -class memory
+```
+
+### 导出硬件报告
+
+```bash
+# 导出为 HTML 格式
+sudo lshw -html > device_tree.html
+
+# 导出为 XML 格式
+sudo lshw -xml > device_tree.xml
+
+# 导出为 JSON 格式
+sudo lshw -json > device_tree.json
+```
+
+## 支持的硬件类型
+
+常用的 `-class` 参数值：
+
+| 类型 | 说明 |
+| --- | --- |
+| `system` | 系统信息 |
+| `bus` | 总线 |
+| `memory` | 内存 |
+| `processor` | CPU |
+| `disk` | 磁盘 |
+| `storage` | 存储控制器 |
+| `network` | 网络设备 |
+| `display` | 显卡 |
+| `multimedia` | 多媒体设备 |
+
+## 相关命令
+
+| 命令 | 说明 |
+| --- | --- |
+| `lspci` | 查看 PCI 设备 |
+| `lsusb` | 查看 USB 设备 |
+| `dmidecode` | 查看 DMI/SMBIOS 信息 |
+| `hwinfo` | 更详细的硬件信息工具 |

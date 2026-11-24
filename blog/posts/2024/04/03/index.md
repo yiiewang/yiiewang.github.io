@@ -1,0 +1,87 @@
+# 我对 Context 包的理解
+
+Go 的 `context` 包用于并发控制、超时管理和跨函数传递数据。本文深入讲解 context 的正确使用方式，避免常见的误用陷阱。
+
+## 方法介绍
+
+context 有两种创建方式 `context.Background()` 和 `context.TODO()`。这两个函数没有本质的区别，分析它们的源码可以发现都衍生自 `emptyCtx`：
+
+```go
+// An emptyCtx is never canceled, has no values, and has no deadline.
+// It is the common base of backgroundCtx and todoCtx.
+type emptyCtx struct{}
+
+func (emptyCtx) Deadline() (deadline time.Time, ok bool) {
+    return
+}
+
+func (emptyCtx) Done() <-chan struct{} {
+    return nil
+}
+
+func (emptyCtx) Err() error {
+    return nil
+}
+
+func (emptyCtx) Value(key any) any {
+    return nil
+}
+
+type backgroundCtx struct{ emptyCtx }
+
+func (backgroundCtx) String() string {
+    return "context.Background"
+}
+
+type todoCtx struct{ emptyCtx }
+
+func (todoCtx) String() string {
+    return "context.TODO"
+}
+
+// Background returns a non-nil, empty [Context]. It is never canceled, has no
+// values, and has no deadline. It is typically used by the main function,
+// initialization, and tests, and as the top-level Context for incoming
+// requests.
+func Background() Context {
+    return backgroundCtx{}
+}
+
+// TODO returns a non-nil, empty [Context]. Code should use context.TODO when
+// it's unclear which Context to use or it is not yet available (because the
+// surrounding function has not yet been extended to accept a Context
+// parameter).
+func TODO() Context {
+    return todoCtx{}
+}
+```
+
+从源码中可以很清晰的看到 `Background` 建议在上下文最开始使用，所有其他上下文都应该从它衍生出来，`TODO` 建议在不确定使用什么类型上下文或在开发阶段（即使用的方法还没有被正式纳入生命周期管理时）使用。
+
+使用上出初始化方法创建的上下文并没有任何功能，具体需要使用 context 包提供的 `WithX` 系列方法派生功能：
+
+```go
+func WithCancel(parent Context) (ctx Context, cancel CancelFunc)
+func WithDeadline(parent Context, deadline time.Time) (Context, CancelFunc)
+func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc)
+func WithValue(parent Context, key, val interface{}) Context
+```
+
+其数据结构均为组合了父 context 的对象：
+
+```go
+type xCtx struct {
+    Context
+
+    // ...
+    // 业务相关的属性
+}
+```
+
+基于一个父 Context 可以随意衍生，其实这就是一个 Context 树，树的每个节点都可以有任意多个子节点，节点层级可以有任意多个，每个子节点都依赖于其父节点。
+
+### WithValue 携带数据
+
+### 超时控制
+
+### WithCancel 取消控制

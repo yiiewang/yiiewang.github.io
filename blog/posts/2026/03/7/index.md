@@ -1,0 +1,1331 @@
+# 长安链运维与压测手册
+
+这是一份命令级操作手册，按场景整理长安链集群的运维、链操作与压测：Ansible 批量运维、节点与分片管理、CMC 命令行（链配置 / 合约 / 系统合约 / 链上查询）、压测与数据准备、日志分析、性能调优、辅助工具。原《CMC 命令行工具使用指南》已并入 CMC 章节，后续新的操作命令继续往这里加。
+
+## Ansible 批量运维
+
+### 文件分发
+
+```bash
+ansible shard_servers -m copy -a "src=./shard.tgz dest=/data"
+ansible shard_servers -m copy -a "src=./shard_cmc.tgz dest=/data"
+```
+
+### 全局连通性检查
+
+```bash
+ansible all_servers -m ping
+```
+
+## 节点与分片管理
+
+### 二进制部署与校验（集群）
+
+```bash
+# 分发新编译的 chainmaker 二进制
+ansible shard_servers -m copy -a "src=./chainmaker dest=/data mode=0755"
+
+# 校验 MD5
+ansible shard_servers -m shell -a "cd /data && md5sum chainmaker" \
+  | grep "<md5_hash>" | wc -l
+
+# 逐节点替换二进制
+ansible shard_servers -m shell -a "cd /data && \cp -f chainmaker shard/chainmaker-v2.3.7-node1/bin/"
+ansible shard_servers -m shell -a "cd /data && \cp -f chainmaker shard/chainmaker-v2.3.7-node2/bin/"
+ansible shard_servers -m shell -a "cd /data && \cp -f chainmaker shard/chainmaker-v2.3.7-node3/bin/"
+ansible shard_servers -m shell -a "cd /data && \cp -f chainmaker shard/chainmaker-v2.3.7-node4/bin/"
+
+# 批量校验替换结果
+ansible shard_servers -m shell -a \
+  "cd /data && md5sum shard/chainmaker-v2.3.7-node*/bin/chainmaker" \
+  | grep "<md5_hash>" | wc -l
+```
+
+### 本地换包：批量替换 + MD5 校验
+
+不上远程、只在本地换二进制时（例如 Mac 上跑四节点链，先把发布包里的二进制换成 `darwin-arm64` 产物），`for` + `cp` 一条命令批量替换，`md5sum` 一条命令校验（在 `chainmaker-go/scripts` 下执行）：
+
+```bash
+# 批量替换：四个 org 包的 bin/chainmaker 换成 bin/ 下的 darwin-arm64 产物
+for f in ../build/release/chainmaker-v2.4.0_beta-wx-org*/bin/chainmaker; do
+  cp -f ../bin/chainmaker-v2.4.0-darwin-arm64 "$f"
+done
+
+# 校验：源文件与四份副本一起算 md5，5 行哈希一致才算替换成功
+md5sum /data/workspace/dev/chainmaker-go/bin/chainmaker-v2.4.0-darwin-arm64 \
+       /data/workspace/dev/chainmaker-go/build/release/chainmaker-v2.4.0_beta-wx-org*/bin/chainmaker
+```
+
+- `org*` 由 shell 在循环前展开成 4 个路径；一个都没匹配到会直接报错（bash 默认没有 `nullglob`），版本号升级时路径里的 `v2.4.0_beta` 要同步改
+- `cp -f` 覆盖不提示（压过交互式 shell 里的 `cp -i` 别名）；目标已存在时只替换内容，可执行权限保留
+- 校验列表必须带上源文件——它是基准线；只比四份副本互相一致，证明不了它们来自目标文件
+- 只要一个判定结果：`md5sum … | awk '{print $1}' | sort -u | wc -l`，输出 `1` 即全部一致
+- macOS 上没有 `md5sum`（用 `md5` 或 `shasum -a 256`）；`file bin/chainmaker` 出现 `Mach-O` + `arm64` 才算选对产物
+
+### 解压部署包
+
+```bash
+ansible shard_servers -m shell -a "cd /data && tar zxvf shard.tgz"
+ansible shard_servers -m shell -a "cd /data && tar zxvf shard_cmc.tgz"
+```
+
+### 快速初始化分片
+
+```bash
+# 1. 停止所有 chainmaker 进程
+ansible shard_servers -m shell -a "pkill chainmaker"
+
+# 2. 清除旧数据
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node* -name "data" -type d \
+  -execdir bash -c "rm -rf data" \;'
+
+# 3. 清理日志
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node* -name "log" -type d \
+  -execdir bash -c "rm -rf log" \;'
+
+# 4. 从备份恢复初始数据
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node* -name "data.bak" -type d \
+  -execdir bash -c "cp -rf data.bak data" \;'
+
+# 5. 批量启动
+ansible shard_servers -m shell -a \
+  "find /data/shard/chainmaker-v2.3.7-node*/bin -name 'start.sh' \
+  -execdir bash -c './start.sh' \;"
+
+# 6. 等待启动完成后检查状态
+sleep 10
+ansible-playbook .ansible/playbooks/check_sfc_status.yml \
+  -e "target=shard_servers" -e "soft='chainmaker start'" -e "count=4"
+```
+
+### 备份分片数据
+
+```bash
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node* -name "data" -type d \
+  -execdir bash -c "cp -rf data data.bak" \;'
+```
+
+### 重启节点
+
+```bash
+# 方式一：kill + start
+ansible shard_servers -m shell -a "pkill chainmaker"
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/bin/ -name "start.sh" \
+  -execdir bash -c "./start.sh" \;'
+
+# 方式二：restart
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/bin/ -name "restart.sh" \
+  -execdir bash -c "./restart.sh" \;'
+
+# 方式三：stop
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/bin/ -name "stop.sh" \
+  -execdir bash -c "./stop.sh" \;'
+```
+
+## CMC · 链配置管理
+
+### 查询链配置
+
+```bash
+./cmc client chainconfig query \
+  --sdk-conf-path=./testdata/sdk_config.yml
+```
+
+```bash
+./cmc client chainconfig query \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml
+```
+
+```bash
+# 查询 WAL 写入模式
+ansible shard_servers -m shell -a \
+  "cd /data/shard_cmc && ./cmc client chainconfig query \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml | grep -A 1 'WAL_write_mode'"
+
+# 查询区块交易容量
+ansible shard_servers -m shell -a \
+  "cd /data/shard_cmc && ./cmc client chainconfig query \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml | grep -A 1 'block_tx_capacity'"
+```
+
+### 更新区块参数
+
+```bash
+# 更新区块参数（invoke CHAIN_CONFIG / BLOCK_UPDATE）
+./cmc client contract user invoke \
+  --contract-name=CHAIN_CONFIG \
+  --method=BLOCK_UPDATE \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml \
+  --params="{\"block_tx_capacity\":\"2000\",\"tx_timestamp_verify\":\"true\",\"tx_timeout\":\"600\",\"block_size\":\"200\",\"block_interval\":\"20\",\"tx_parameter_size\":\"50\"}" \
+  --admin-key-file-paths=./testdata/crypto-config/node1/admin/admin1/admin1.key,./testdata/crypto-config/node1/admin/admin2/admin2.key,./testdata/crypto-config/node1/admin/admin3/admin3.key \
+  --sync-result=true \
+  --result-to-string=true
+
+# 集群批量：更新区块交易容量为 5000
+ansible shard_servers -m shell -a \
+  "cd /data/shard_cmc && ./cmc client chainconfig block update \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml \
+  --admin-key-file-paths=./testdata/crypto-config/node1/admin/admin1/admin1.key,./testdata/crypto-config/node1/admin/admin2/admin2.key,./testdata/crypto-config/node1/admin/admin3/admin3.key \
+  --block-tx-capacity 5000"
+```
+
+### 共识扩展配置
+
+```bash
+# 设置 WAL 写入模式
+./cmc client chainconfig consensusextra add \
+  --extra-config-key=WAL_write_mode \
+  --extra-config-value="2" \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml \
+  --admin-key-file-paths=./testdata/crypto-config/node1/admin/admin1/admin1.key,./testdata/crypto-config/node1/admin/admin2/admin2.key,./testdata/crypto-config/node1/admin/admin3/admin3.key
+```
+
+## CMC · 合约管理
+
+### 创建合约
+
+```bash
+./cmc client contract user create \
+  --contract-name=fact \
+  --runtime-type=DOCKER_GO \
+  --byte-code-path=/data/workspace/prod/contracts-go/fact/fact.7z \
+  --version=1.0 \
+  --sdk-conf-path=./testdata/sdk_config.yml \
+  --admin-key-file-paths=./testdata/crypto-config/wx-org1.chainmaker.org/user/admin1/admin1.tls.key,./testdata/crypto-config/wx-org2.chainmaker.org/user/admin1/admin1.tls.key,./testdata/crypto-config/wx-org3.chainmaker.org/user/admin1/admin1.tls.key,./testdata/crypto-config/wx-org4.chainmaker.org/user/admin1/admin1.tls.key \
+  --admin-crt-file-paths=./testdata/crypto-config/wx-org1.chainmaker.org/user/admin1/admin1.tls.crt,./testdata/crypto-config/wx-org2.chainmaker.org/user/admin1/admin1.tls.crt,./testdata/crypto-config/wx-org3.chainmaker.org/user/admin1/admin1.tls.crt,./testdata/crypto-config/wx-org4.chainmaker.org/user/admin1/admin1.tls.crt \
+  --sync-result=true \
+  --params="{}"
+```
+
+> [!NOTE]
+>
+> **证书模式说明**
+>
+> 证书模式需要同时提供 `--admin-key-file-paths` 和 `--admin-crt-file-paths`，多个组织的管理员密钥和证书用逗号分隔。
+
+```bash
+./cmc client contract user create \
+  --contract-name=fact \
+  --runtime-type=DOCKER_GO \
+  --byte-code-path=/data/workspace/prod/contracts-go/fact/fact.7z \
+  --version=1.0 \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml \
+  --admin-key-file-paths=./testdata/crypto-config/node1/admin/admin1/admin1.key \
+  --sync-result=true
+```
+
+> [!TIP]
+>
+> **公钥模式简化**
+>
+> 公钥模式只需提供管理员私钥，无需证书文件，配置更简洁。
+
+## CMC · 系统合约
+
+系统合约提供了链级别的原生功能，包括获取用户地址、铸币、转账和余额查询。
+
+### 获取用户地址
+
+```bash
+./cmc cert userAddr \
+  --pubkey-cert-path=./testdata/crypto-config/node2/user/client1/client1.pem \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml
+```
+
+示例地址：
+
+| 节点 | 地址 |
+| --- | --- |
+| node1:client1 | `BmUAa6vKFSu1fP6Zi6FbzP9fZwWwFLjVfoHCc34n87hV` |
+| node2:client2 | `8CqhsVoX5symw3H9r723pgXGAkEcDgwvVHc4zzrcUptZ` |
+
+### 铸币操作
+
+```bash
+./cmc client contract system mint \
+  --amount=1000000000 \
+  --address=BmUAa6vKFSu1fP6Zi6FbzP9fZwWwFLjVfoHCc34n87hV \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml \
+  --chain-id=chain1 \
+  --user-signkey-file-path=./testdata/crypto-config/node1/user/client1/client1.key \
+  --sync-result=true
+```
+
+```bash
+./cmc client contract system mint \
+  --amount=1000000000 \
+  --address=BmUAa6vKFSu1fP6Zi6FbzP9fZwWwFLjVfoHCc34n87hV \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml \
+  --chain-id=chain1 \
+  --user-signkey-file-path=./testdata/crypto-config/node1/admin/admin1/admin1.key \
+  --sync-result=true
+```
+
+### 转账操作
+
+```bash
+./cmc client contract system transfer \
+  --amount=1 \
+  --address=8CqhsVoX5symw3H9r723pgXGAkEcDgwvVHc4zzrcUptZ \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml \
+  --chain-id=chain1 \
+  --user-signkey-file-path=./testdata/crypto-config/node1/user/client1/client1.key
+```
+
+### 查询余额
+
+```bash
+# 单节点查询
+./cmc client contract system balance-of \
+  --address=01qhsVoX5symw3H9r723pgXGAkEcDgwvVHc4zzrcUptZ \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml \
+  --chain-id=chain1 \
+  --user-signkey-file-path=./testdata/crypto-config/node1/user/client1/client1.key
+
+# 集群批量查询
+ansible shard_servers -m shell -a \
+  "cd /data/shard_cmc && ./cmc client contract system balance-of \
+  --address=0854455354000800000000fe8e26b8b645ee1ed5 \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml \
+  --chain-id=chain1 \
+  --user-signkey-file-path=./testdata/crypto-config/node1/user/client1/client1.key"
+```
+
+## CMC · 用户合约
+
+### DPOS\_ERC20 合约
+
+DPOS\_ERC20 是长安链的 ERC20 代币合约实现，支持铸币、转账和余额查询。
+
+#### 铸币
+
+```bash
+./cmc client contract user invoke \
+  --contract-name=DPOS_ERC20 \
+  --method=MINT \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml \
+  --params='{"contract_name":"DPOS_ERC20","shard_num":"2","topic":"topic","to":"00qhsVoX5symw3H9r723pgXGAkEcDgwvVHc4zzrcUptZ","value":"1000000000"}' \
+  --admin-key-file-paths=./testdata/crypto-config/node1/admin/admin1/admin1.key,./testdata/crypto-config/node1/admin/admin2/admin2.key,./testdata/crypto-config/node1/admin/admin3/admin3.key \
+  --sync-result=true \
+  --result-to-string=true
+```
+
+#### 转账
+
+```bash
+./cmc client contract user invoke \
+  --contract-name=DPOS_ERC20 \
+  --method=TRANSFER_FROM \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml \
+  --params='{"contract_name":"DPOS_ERC20","shard_num":"2","topic":"topic","from":"00qhsVoX5symw3H9r723pgXGAkEcDgwvVHc4zzrcUptZ","to":"01qhsVoX5symw3H9r723pgXGAkEcDgwvVHc4zzrcUptZ","value":"1"}' \
+  --admin-key-file-paths=./testdata/crypto-config/node1/admin/admin1/admin1.key,./testdata/crypto-config/node1/admin/admin2/admin2.key,./testdata/crypto-config/node1/admin/admin3/admin3.key \
+  --sync-result=true \
+  --result-to-string=true
+```
+
+#### 查询余额
+
+```bash
+./cmc client contract user invoke \
+  --contract-name=DPOS_ERC20 \
+  --method=GET_BALANCEOF \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml \
+  --params='{"contract_name":"DPOS_ERC20","shard_num":"1","topic":"topic","owner":"0154455354000100000000d238e34df68b973112","to":"01qhsVoX5symw3H9r723pgXGAkEcDgwvVHc4zzrcUptZ","value":"1"}' \
+  --admin-key-file-paths=./testdata/crypto-config/node1/admin/admin1/admin1.key,./testdata/crypto-config/node1/admin/admin2/admin2.key,./testdata/crypto-config/node1/admin/admin3/admin3.key \
+  --sync-result=true \
+  --result-to-string=true
+```
+
+### 存证合约（fact）
+
+存证合约用于将文件哈希等信息上链存证。
+
+#### 保存存证
+
+```bash
+./cmc client contract user invoke \
+  --contract-name=fact \
+  --method=save \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml \
+  --params='{"file_name":"name007","file_hash":"ab3456df5799b87c77e7f88","time":"6543234"}' \
+  --sync-result=true
+```
+
+#### 查询存证
+
+```bash
+./cmc client contract user invoke \
+  --contract-name=save_04 \
+  --method=findByFileHash \
+  --params='{"evidence_type":"test","version":"1.2","file_hash":"aaaaaa","file_name":"bbb","time":"123"}' \
+  --sdk-conf-path=./testdata/sdk_config.yml \
+  --admin-key-file-paths=./testdata/crypto-config/wx-org1.chainmaker.org/user/admin1/admin1.tls.key,./testdata/crypto-config/wx-org2.chainmaker.org/user/admin1/admin1.tls.key,./testdata/crypto-config/wx-org3.chainmaker.org/user/admin1/admin1.tls.key \
+  --admin-crt-file-paths=./testdata/crypto-config/wx-org1.chainmaker.org/user/admin1/admin1.tls.crt,./testdata/crypto-config/wx-org2.chainmaker.org/user/admin1/admin1.tls.crt,./testdata/crypto-config/wx-org3.chainmaker.org/user/admin1/admin1.tls.crt \
+  --sync-result=true
+```
+
+## CMC · 链上查询
+
+### 查询区块
+
+```bash
+# 按高度查询（证书模式）
+./cmc query block-by-height 5748 --chain-id=chain1 \
+  --sdk-conf-path=./testdata/sdk_config.yml
+
+# 按高度查询（公钥模式）
+./cmc query block-by-height 1122 --chain-id=chain1 \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml
+
+# 不带读写集
+./cmc query block-by-height 156434 --chain-id=chain1 \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml --with-rw-set=false
+```
+
+### 查询交易
+
+```bash
+./cmc query tx chain1_f2d4ac387116407005584a5cee380145f2d4ac387116407005584a5_0 \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml
+```
+
+### 查询交易池
+
+```bash
+# 单节点查询
+./cmc txpool status --sdk-conf-path ./testdata/sdk_config.yml
+./cmc txpool status --sdk-conf-path ./testdata/sdk_config_pk.yml
+
+# 实时监控交易池
+watch -n 0.1 'cd /data/shard_cmc && ./cmc txpool status \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml'
+
+# 集群批量查询
+ansible shard_servers -m shell -a \
+  "cd /data/shard_cmc && ./cmc txpool status \
+  --sdk-conf-path=./testdata/sdk_config_pk.yml"
+```
+
+## 配置项批量变更
+
+### chainmaker.yml 配置
+
+#### 一致性引擎（TBFT）
+
+```bash
+# 启用 tbft 配置块
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec sed -i "s/# tbft:/tbft:/g" {} \;'
+
+# 设置 broadcaster_interval 为 6000
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec sed -i \
+  "/tbft:/, +3 {/# broadcaster_interval: 1000/s/# broadcaster_interval: 1000/broadcaster_interval: 6000/}" {} \;'
+
+# 验证
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec grep -A 3 "tbft:" {} \;'
+```
+
+#### 交易过滤器与分片
+
+```bash
+# tx_filter type: 0 -> 3
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec sed -i \
+  "/tx_filter:/, +6 {/type:/s/0/3/}" {} \;'
+
+# sharding type: 0 -> 1
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec sed -i \
+  "/sharding:/, +30 {/type:/s/0/1/}" {} \;'
+
+# sharding interval: 10 -> 600
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec sed -i \
+  "/sharding:/, +30 {/interval:/s/10/600/}" {} \;'
+```
+
+#### 存储与性能优化
+
+```bash
+# 关闭慢日志
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec sed -i "s/slow_log: 2/slow_log: 0/g" {} \;'
+
+# 启用 RWC 缓存
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec sed -i "s/enable_rwc: false/enable_rwc: true/g" {} \;'
+
+# 扩大滚动窗口缓存容量
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec sed -i \
+  "s/rolling_window_cache_capacity: 600000/rolling_window_cache_capacity: 1000000/g" {} \;'
+```
+
+#### logdb\_segment\_size 差异化配置
+
+```bash
+# 先统一设置基准值
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec sed -i \
+  "s/logdb_segment_size: 368/logdb_segment_size: 10240/g" {} \;'
+
+# 各节点差异化配置（对比测试用）
+ansible shard_servers -m shell -a \
+  'cd /data/shard && sed -i "s/logdb_segment_size: 10240/logdb_segment_size: 200/g" \
+  chainmaker-v2.3.7-node1/config/node1/chainmaker.yml'
+
+ansible shard_servers -m shell -a \
+  'cd /data/shard && sed -i "s/logdb_segment_size: 10240/logdb_segment_size: 256/g" \
+  chainmaker-v2.3.7-node2/config/node2/chainmaker.yml'
+
+ansible shard_servers -m shell -a \
+  'cd /data/shard && sed -i "s/logdb_segment_size: 10240/logdb_segment_size: 312/g" \
+  chainmaker-v2.3.7-node3/config/node3/chainmaker.yml'
+
+ansible shard_servers -m shell -a \
+  'cd /data/shard && sed -i "s/logdb_segment_size: 10240/logdb_segment_size: 368/g" \
+  chainmaker-v2.3.7-node4/config/node4/chainmaker.yml'
+```
+
+#### 监控开关
+
+```bash
+# 启用 Prometheus 监控
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec sed -i \
+  "/monitor:/,+3 {/enabled:/s/false/true/}" {} \;'
+```
+
+#### 网络监听地址
+
+```bash
+# 将监听地址从 0.0.0.0 改为 127.0.0.1
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec sed -i \
+  "s/listen_addr: \/ip4\/0.0.0.0/listen_addr: \/ip4\/127.0.0.1/g" {} \;'
+```
+
+### 日志配置（log.yml）
+
+```bash
+# 系统日志级别调整
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "log.yml" -exec sed -i \
+  "/system:/, +6 {/log_level_default:/s/INFO/ERROR/}" {} \;'
+
+# 模块级日志调整
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "log.yml" -exec sed -i \
+  "/system:/, +6 {/net:/s/net/consensus/}" {} \;'
+
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "log.yml" -exec sed -i \
+  "/system:/, +6 {/#vm:/s/#vm: ERROR/txpool: INFO/}" {} \;'
+
+# 验证配置
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "log.yml" -exec grep -A 6 "system:" {} \;'
+```
+
+### 配置校验命令集
+
+```bash
+# 检查各项配置是否生效
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec grep -H "slow_log" {} \;' | grep "slow_log" | wc -l
+
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec grep -H "pool_type" {} \;'
+
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec grep -H "rolling_window_cache_capacity" {} \;'
+
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec grep "enable_rwc" {} \;' | grep "enable_rwc" | wc -l
+
+ansible shard_servers -m shell -a \
+  'cd /data/shard && find chainmaker-v2.3.7-node*/config/node*/ \
+  -name "chainmaker.yml" -exec grep -A 2 "write_buffer_size" {} \;'
+```
+
+## Prometheus 监控部署
+
+```bash
+# 批量部署 node_exporter（排除特定节点）
+ansible all_servers --limit='!<excluded_nodes>' -m shell -a \
+  'cd /data/ && tar zxvf node_exporter-1.3.1.linux-amd64.tar.gz && \
+  cd node_exporter-1.3.1.linux-amd64 && nohup ./node_exporter > nohup.out 2>&1 &'
+
+# 验证部署（期望 198，排除 2 台）
+ansible all_servers -m shell -a 'pgrep node_exporter' | grep -v rc=0 | wc -l
+
+# 启动 Prometheus
+nohup prometheus --config.file=prometheus.yml \
+  --storage.tsdb.path=/data/prometheus \
+  --storage.tsdb.retention.time=30d \
+  --storage.tsdb.retention.size=50GB 2>&1 &
+```
+
+## 压测工具与数据准备
+
+### SFC 压测工具
+
+```bash
+./sfc benchmark \
+  --requests 100000 \
+  --sdk-conf-path ./testdata/config.yml \
+  --tx mintdata
+```
+
+```bash
+./sfc benchmark \
+  --duration 600 \
+  --concurrency 100 \
+  --sleep-time 5 \
+  --sdk-conf-path ./testdata/config.yml \
+  --tx mintdata
+```
+
+### 多压力机并行压测
+
+每台压力机处理不同的数据文件，公式 `(n-1)*3+1` 计算起始文件编号：
+
+```bash
+# 压力机 1：3 个并行进程
+./sfc benchmark --requests 1048575 --sdk-conf-path ./testdata/config.yml --tx mintdata_1
+./sfc benchmark --requests 1048575 --sdk-conf-path ./testdata/config.yml --tx mintdata_2
+./sfc benchmark --requests 1048575 --sdk-conf-path ./testdata/config.yml --tx mintdata_3
+wait
+
+# 压力机 2：3 个并行进程
+./sfc benchmark --requests 1048575 --sdk-conf-path ./testdata/config.yml --tx mintdata_4
+./sfc benchmark --requests 1048575 --sdk-conf-path ./testdata/config.yml --tx mintdata_5
+./sfc benchmark --requests 1048575 --sdk-conf-path ./testdata/config.yml --tx mintdata_6
+```
+
+### CMC 内置并行压测
+
+```bash
+./cmc parallel invoke \
+  --loop-num=1000 \
+  --print-time=3 \
+  --thread-num=10 \
+  --timeout=3600 \
+  --sleep-time=1 \
+  --climb-time=5 \
+  --contract-name=fact \
+  --method=save \
+  --chain-id=chain1 \
+  --org-IDs=wx-org1.chainmaker.org \
+  --hosts=127.0.0.1:12301 \
+  --tls-host-names=chainmaker.org \
+  --use-tls=true \
+  --ca-path=./testdata/crypto-config/wx-org1.chainmaker.org/ca \
+  --user-keys=./testdata/crypto-config/wx-org1.chainmaker.org/user/client1/client1.tls.key \
+  --user-crts=./testdata/crypto-config/wx-org1.chainmaker.org/user/client1/client1.tls.crt \
+  --sign-keys=./testdata/crypto-config/wx-org1.chainmaker.org/user/client1/client1.sign.key \
+  --sign-crts=./testdata/crypto-config/wx-org1.chainmaker.org/user/client1/client1.sign.crt \
+  --pairs-file=/data/workspace/prod/contracts-go/fact/params.json
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `--loop-num` | 每线程循环次数 |
+| `--thread-num` | 并发线程数 |
+| `--climb-time` | 爬坡时间（秒），逐步增加并发 |
+| `--pairs-file` | 参数文件路径 |
+| `--sleep-time` | 每轮间隔（毫秒） |
+
+### user invoke 并发压出块
+
+用 `user invoke` 自带的并发参数压出块：`--concurrency` 个 goroutine 各发 `--total-count-per-goroutine` 笔，总量 = 两者相乘。
+
+```bash
+./cmc client contract user invoke \
+  --sdk-conf-path=./testdata/sdk_config.yml \
+  --contract-name=T \
+  --method=P \
+  --params='{"k":"keyname","v":"abcdef0123456789abcdef0123456789"}' \
+  --concurrency=16 \
+  --total-count-per-goroutine=1000
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `--contract-name` / `--method` / `--params` | 被测合约、方法与入参（示例里是 T 合约的 P 方法，按实际替换） |
+| `--concurrency` | 并发 goroutine 数 |
+| `--total-count-per-goroutine` | 每个 goroutine 发送的笔数 |
+
+- 上面这条：`16 × 1000 = 16000` 笔，目的不是验证业务正确性，而是把区块打满——压出块
+- 未带 `--sync-result`，不等回执，适合纯压量；成功率另用链上查询核对
+- 压力上不去先查两个上限：`block_tx_capacity`（见「CMC · 链配置管理」）与 `txpool.max_txpool_size`（见「性能调优配置汇总」）
+- 要验的是防重而不是压量：复用真实 txid 串行/并发重放，见「交易防重验证（txfilter）」
+
+### xargs 并行压测
+
+适合快速验证少量交易：
+
+```bash
+seq 1 10000 | xargs -I {} -P 10 -n 1 sh -c '
+  ./cmc client contract user invoke \
+    --contract-name=fact \
+    --method=save \
+    --sdk-conf-path=./testdata/sdk_config.yml \
+    --params="{\"file_name\":\"name-$1\",\"file_hash\":\"ab3456df5799b87c77e7f88-$1\",\"time\":\"6543234\"}" \
+    --sync-result=true
+' sh {}
+```
+
+### 交易数据格式
+
+压测工具使用 JSON 格式定义交易模板。`random` 字段控制是否随机化参数值。
+
+#### MINT 交易
+
+```json
+{
+  "contract_name": "DPOS_ERC20",
+  "contract_method": "MINT",
+  "tx_type": 0,
+  "params": {
+    "contract_name": {"data": "DPOS_ERC20", "random": 0},
+    "shard_num": {"data": "1", "random": 0},
+    "topic": {"data": "topic", "random": 0},
+    "to": {"data": "14762327914152", "random": 0},
+    "value": {"data": "1000000000", "random": 0}
+  }
+}
+```
+
+#### TRANSFER\_FROM 交易
+
+```json
+{
+  "contract_name": "DPOS_ERC20",
+  "contract_method": "TRANSFER_FROM",
+  "tx_type": 0,
+  "params": {
+    "contract_name": {"data": "DPOS_ERC20", "random": 0},
+    "shard_num": {"data": "1", "random": 0},
+    "topic": {"data": "topic", "random": 0},
+    "from": {"data": "14762327914152", "random": 0},
+    "to": {"data": "14762327914152", "random": 0},
+    "value": {"data": "1", "random": 0}
+  }
+}
+```
+
+### 批量测试数据生成
+
+#### 分片参数配置
+
+不同分片的参数文件只需修改 `shard_num` 字段：
+
+```json
+[
+  {"value": "DPOS_ERC20", "key": "contract_name", "unique": true},
+  {"value": "a", "key": "shard_num", "unique": true},
+  {"value": "topic", "key": "topic", "unique": true},
+  {"value": "10000000000000", "key": "to", "unique": true}
+]
+```
+
+```json
+[
+  {"value": "DPOS_ERC20", "key": "contract_name", "unique": true},
+  {"value": "b", "key": "shard_num", "unique": true},
+  {"value": "topic", "key": "topic", "unique": true},
+  {"value": "10000000000000", "key": "to", "unique": true}
+]
+```
+
+#### Go 参数生成工具
+
+用于批量生成存证合约的随机交易参数文件：
+
+gen\_params.go
+
+```go
+package main
+
+import (
+    "crypto/rand"
+    "encoding/base64"
+    "encoding/json"
+    "fmt"
+    "log"
+    "os"
+)
+
+func main() {
+    inputJSON := `[
+        {"key":"file_name","value":"001","unique":false,"increase":true},
+        {"key":"file_hash","value":"ab3456df5799b87c77e7f88","unique":false},
+        {"key":"time","value":"6543234","unique":false,"increase":true}
+    ]`
+
+    var data []map[string]interface{}
+    if err := json.Unmarshal([]byte(inputJSON), &data); err != nil {
+        log.Fatal("JSON 解析错误:", err)
+    }
+
+    // 生成 256 字节随机数据并 Base64 编码
+    randomBytes := make([]byte, 1<<8)
+    if _, err := rand.Read(randomBytes); err != nil {
+        log.Fatal("随机数据生成错误:", err)
+    }
+    base64Str := base64.StdEncoding.EncodeToString(randomBytes)
+
+    // 更新 file_hash 字段
+    for i, item := range data {
+        if item["key"] == "file_hash" {
+            data[i]["value"] = base64Str
+            break
+        }
+    }
+
+    outputJSON, err := json.Marshal(data)
+    if err != nil {
+        log.Fatal("JSON 序列化错误:", err)
+    }
+
+    if err := os.WriteFile("/data/workspace/prod/contracts-go/fact/params.json", outputJSON, 0644); err != nil {
+        fmt.Println(err)
+    }
+}
+```
+
+### 压测数据分片
+
+压测数据需要按账户地址范围分配到不同压力机。每台压力机处理 10 个账户的交易数据，分为 3 个文件。
+
+> [!TIP]
+>
+> **分片规则**
+>
+> 地址前缀按 hex 范围划分，每台压力机负责一段地址区间。公式：`(n-1)*3+1` 计算起始文件编号。
+
+| 账户范围 | 地址前缀 | 主压力机 | 备用压力机 |
+| --- | --- | --- | --- |
+| 1-10 | `0[1-9a]` | stress2 (10.x.x.101) | stress10 (10.x.x.115) |
+| 11-20 | `0[b-f]`, `1[0-4]` | stress1 (10.x.x.86) | stress40 (10.x.x.80) |
+| 21-30 | `1[5-9a-e]` | stress5 (10.x.x.106) | stress14 (10.x.x.119) |
+| 31-40 | `1f`, `2[0-8]` | stress9 (10.x.x.114) | stress36 (10.x.x.76) |
+| 41-50 | `2[9a-f]`, `3[0-2]` | stress17 (10.x.x.123) | stress18 (10.x.x.124) |
+| 51-60 | `3[3-9a-c]` | stress13 (10.x.x.118) | stress22 (10.x.x.129) |
+| 61-70 | `3[d-f]`, `4[0-6]` | stress21 (10.x.x.127) | stress26 (10.x.x.50) |
+| 71-80 | `4[7-9a-f]`, `50` | stress25 (10.x.x.131) | stress30 (10.x.x.68) |
+| 81-90 | `5[1-9a]` | stress29 (10.x.x.67) | stress34 (10.x.x.72) |
+| 91-100 | `5[b-f]`, `6[0-4]` | stress33 (10.x.x.71) | stress38 (10.x.x.77) |
+| 101-110 | `6[5-9a-e]` | stress37 (10.x.x.51) | stress42 (10.x.x.84) |
+| 111-120 | `6f`, `7[0-8]` | stress41 (10.x.x.83) | stress46 (10.x.x.57) |
+| 121-130 | `7[9a-f]`, `8[0-2]` | stress45 (10.x.x.55) | stress50 (10.x.x.62) |
+| 131-140 | `8[3-9a-c]` | stress49 (10.x.x.61) | stress48 (10.x.x.60) |
+| 141-150 | `8[d-f]`, `9[0-6]`, `00` | stress6 (10.x.x.108) | stress44 (10.x.x.53) |
+
+数据提取示例：
+
+```bash
+# 设置编码
+export PYTHONIOENCODING=utf-8
+# 自动生成分片数据
+python3 generate_transfer_from.py -b "cross_shard_5pct/addresses_*" -o ./transfer_from_5pct
+```
+
+手动提取示例（以账户 1-10 为例）：
+
+```bash
+# 从 150 个原始文件中按地址前缀提取到 3 个目标文件
+ls transfer_from_{1..50} 2>/dev/null \
+  | xargs -I {} bash -c "grep -E '\"from\":{\"data\":\"0[1-9a]' {}" > transfer_from_4
+
+ls transfer_from_{51..100} 2>/dev/null \
+  | xargs -I {} bash -c "grep -E '\"from\":{\"data\":\"0[1-9a]' {}" > transfer_from_5
+
+ls transfer_from_{101..150} 2>/dev/null \
+  | xargs -I {} bash -c "grep -E '\"from\":{\"data\":\"0[1-9a]' {}" > transfer_from_6
+```
+
+## 集群压测：压力机管理
+
+### 部署压力工具
+
+```bash
+ansible stress_servers -m copy -a "src=./helper dest=/data"
+ansible stress_servers -m shell -a "cd /data && tar zxvf sfc_stress.tgz"
+
+# 更新压测脚本和二进制
+ansible stress_servers -m copy -a \
+  "src=start_transfer_stress.sh dest=/data/sfc_stress/start_transfer_stress.sh"
+ansible stress_servers -m copy -a "src=sfc dest=/data/sfc_stress/sfc"
+
+# 分发压测数据包
+ansible stress_servers -m copy -a \
+  "src=/data/mock_data/transfer_from_5pct.tgz dest=/data/sfc_stress/mock/"
+
+# 解压压测数据包
+ansible stress_servers -m shell -a \
+  'cd /data/sfc_stress/mock && tar zxvf transfer_from_5pct.tgz'
+```
+
+### 压测参数调整
+
+```bash
+# 调整持续时间
+ansible stress_servers -m shell -a \
+  'cd /data/sfc_stress && sed -i "s/DURATION=600/DURATION=300/g" start_transfer_stress.sh'
+
+# 调整并发数
+ansible stress_servers -m shell -a \
+  'cd /data/sfc_stress && sed -i "s/CONCURRENCY=150/CONCURRENCY=100/g" start_transfer_stress.sh'
+
+# 调整休眠时间
+ansible stress_servers -m shell -a \
+  'cd /data/sfc_stress && sed -i "s/SLEEP_TIME=5/SLEEP_TIME=1/g" start_transfer_stress.sh'
+
+# 添加忽略未发送分片标志
+ansible stress_servers -m shell -a \
+  'cd /data/sfc_stress && sed -i \
+  "s/--main-methods/--ignore-not-send-shards true --main-methods/g" start_transfer_stress.sh'
+
+# 验证参数
+ansible stress_servers -m shell -a \
+  "cd /data/sfc_stress && grep 'DURATION=' start_transfer_stress.sh" \
+  | grep "DURATION=300" | wc -l
+
+ansible stress_servers -m shell -a \
+  "cd /data/sfc_stress && grep 'CONCURRENCY=' start_transfer_stress.sh" \
+  | grep "CONCURRENCY=100" | wc -l
+```
+
+### SDK 配置调优
+
+```bash
+# 关闭自动检测优化
+ansible stress_servers -m shell -a \
+  'cd /data/sfc_stress/testdata && find sdk_config_node_* -name "shard*" \
+  -exec sed -i "s/optimize_detection: 60/optimize_detection: -1/g" {} \;'
+
+# 减少连接数
+ansible stress_servers -m shell -a \
+  'cd /data/sfc_stress/testdata && find sdk_config_node_* -name "shard*" \
+  -exec sed -i "s/conn_cnt: 10/conn_cnt: 2/g" {} \;'
+
+# 批量替换链名称（shard → chain）
+ansible stress_servers -m shell -a \
+  'cd /data/sfc_stress/testdata && find config_pk_* \
+  -exec sed -i "s/\"shard/\"chain/g" {} \;'
+
+# 批量替换合约名称（user_save → DPOS_ERC20）
+ansible stress_servers -m shell -a \
+  'cd /data/sfc_stress/testdata && find config_pk_* \
+  -exec sed -i "s/contract: \"user_save\"/contract: \"DPOS_ERC20\"/g" {} \;'
+
+# 启用指定分片配置（取消注释）
+ansible stress_servers -m shell -a \
+  'cd /data/sfc_stress/testdata && find config_pk_* \
+  -exec sed -i "s/#- shard_id: \"chain19/- shard_id: \"chain19/g" {} \;'
+
+ansible stress_servers -m shell -a \
+  'cd /data/sfc_stress/testdata && find config_pk_* \
+  -exec sed -i "s/#- shard_id: \"chain146/- shard_id: \"chain146/g" {} \;'
+
+ansible stress_servers -m shell -a \
+  'cd /data/sfc_stress/testdata && find config_pk_* \
+  -exec sed -i "s|#config_path: \"./testdata/sdk_config_node_4/shard19.yml|config_path: \"./testdata/sdk_config_node_4/shard19.yml|g" {} \;'
+
+ansible stress_servers -m shell -a \
+  'cd /data/sfc_stress/testdata && find config_pk_* \
+  -exec sed -i "s|#config_path: \"./testdata/sdk_config_node_4/shard146.yml|config_path: \"./testdata/sdk_config_node_4/shard146.yml|g" {} \;'
+```
+
+### 执行压测
+
+```bash
+# 清理旧日志
+ansible stress_servers -m shell -a "cd /data/sfc_stress && rm -rf ./results/* log sdk.log*"
+
+# 铸币
+ansible-playbook .ansible/playbooks/start_mint.yml
+
+# 转账压测（全部压力机）
+ansible-playbook .ansible/playbooks/start_transfer_stress.yml
+
+# 转账压测（指定压力机）
+ansible-playbook .ansible/playbooks/start_transfer_stress.yml \
+  -e "target=stress1,stress5,stress9,stress13,stress17,stress21,stress25,stress29,stress33,stress37,stress41,stress45,stress49,stress2,stress6,stress10,stress40,stress14,stress36,stress18,stress22,stress26,stress30,stress34,stress38,stress42,stress46,stress50,stress48,stress44"
+
+# 单机压测（自定义数据目录和任务数）
+ansible-playbook .ansible/playbooks/start_transfer_stress.yml \
+  -e "target=stress5 transfer_data_dir=/data/sfc_stress/mock/transfer_from_1pct task_count=1"
+
+# 全部压力机（自定义数据目录和任务数）
+ansible-playbook .ansible/playbooks/start_transfer_stress.yml \
+  -e "target=stress_servers transfer_data_dir=/data/sfc_stress/mock/transfer_from_50pct task_count=1 duration=600 concurrency=50"
+```
+
+### 压测状态检查
+
+```bash
+# 通过 playbook 检查
+ansible-playbook .ansible/playbooks/check_sfc_status.yml
+
+# 指定检查轮次
+ansible-playbook .ansible/playbooks/check_sfc_status.yml -e "count=3"
+
+# 手动检查 sfc 进程数
+ansible stress_servers -m shell -a "pgrep sfc | wc -l" \
+  | grep -v "rc=0" | grep "0" | wc -l
+
+# 停止所有 sfc 进程
+ansible stress_servers -m shell -a "pkill sfc"
+```
+
+### 结果收集与分析
+
+```bash
+# 同步结果到控制节点
+ansible stress_servers -m synchronize -a \
+  "mode=pull src=/data/sfc_stress/results/ dest=./sfc_results/"
+
+# 汇总 TPS
+find sfc_results/transfer_stress_stress*.out -exec grep -H "TPS" {} \;
+
+# 计算校准 TPS 平均值
+grep "校准TPS" sfc_results/transfer_stress_stress* \
+  | awk -F':' '{print $NF}' \
+  | awk '{sum+=$1; count++} END {printf "总平均值: %.2f\n", sum/count}'
+```
+
+## 交易防重验证（txfilter）
+
+用同一个 T/P 合约验证防重：先发一笔真交易拿到 txid，再用 `--tx-id` 重放它，期望被 txfilter 拦下。
+
+### 重放测试：复用真实 txid
+
+```bash
+# ① 先发一笔，拿到 txid（--sync-result=true 才会返回结果）
+./cmc client contract user invoke \
+  --sdk-conf-path=./testdata/sdk_config.yml \
+  --contract-name=T --method=P \
+  --params='{"k":"keyname","v":"abcdef0123456789abcdef0123456789"}' \
+  --sync-result=true
+#   → 记下返回的 txId，例如 7c9e98befbb64cec916765d760d4def5aa26f8bac78d419c9018b8d220e7f041
+
+# ② 重放同一 txid（期望：被防重拦截）
+./cmc client contract user invoke \
+  --sdk-conf-path=./testdata/sdk_config.yml \
+  --contract-name=T --method=P \
+  --params='{"k":"keyname","v":"abcdef0123456789abcdef0123456789"}' \
+  --tx-id=7c9e98befbb64cec916765d760d4def5aa26f8bac78d419c9018b8d220e7f041 \
+  --sync-result=true
+
+# ③ 并发重放同一 txid（--tx-id 下 concurrency 失效，在 shell 层并发）
+TXID=7c9e98befbb64cec916765d760d4def5aa26f8bac78d419c9018b8d220e7f041
+for i in $(seq 1 32); do
+  ./cmc client contract user invoke --sdk-conf-path=./testdata/sdk_config.yml \
+    --contract-name=T --method=P \
+    --params='{"k":"keyname","v":"abcdef0123456789abcdef0123456789"}' \
+    --tx-id=$TXID --sync-result=true &
+done; wait
+```
+
+> [!WARNING]
+>
+> **txid 必须复用 ① 返回的，不要手填**
+>
+> 手填字符串不会命中 `shardingbirdsnest` 过滤器，`IsExists` 会走 DB 兜底路径（`tx_filter_test.go` 的 `NormalKeyDBError` 分支）——那测的是数据库，不是防重组件。只有时间戳格式的真实 txid 才走过滤器主路径。
+
+### 边界：同 k/v ≠ 双花
+
+把一条并发压量命令 **原样跑两遍**（量级随意，下面按 80k 计）：
+
+```text
+第一遍：80,000 笔，txid = t1..t80000，全部写入 k="keyname"
+第二遍：80,000 笔，txid = t80001..t160000，参数完全相同
+结果：160,000 笔全部被接受 —— 正常，不是 bug
+```
+
+| 场景 | txfilter 行为 | 归属 |
+| --- | :---: | --- |
+| 同一笔交易（同 txid）重复提交 | 拦截 | txfilter 职责 |
+| 相同业务参数（同 k/v）但不同 txid | 放行 | **合约层幂等性**，不是 txfilter 职责 |
+
+指望「第二遍被拒」，是把 txid 级去重和业务级幂等混为一谈。要做业务幂等（如转账只成功一次），得在合约 `P` 里加唯一性约束——例如把业务单号写入 KV 并判重，而不是指望 txfilter。
+
+### 验证与对账
+
+```bash
+# 确认只入块一次
+./cmc query tx <txid> --chain-id=chain1 --sdk-conf-path=./testdata/sdk_config.yml
+./cmc query block-by-txid <txid> --chain-id=chain1 --sdk-conf-path=./testdata/sdk_config.yml
+
+# 看重复交易在池里哪个阶段被拦（节点侧）
+./cmc txpool status --sdk-conf-path=./testdata/sdk_config.yml
+./cmc txpool txs --tx-ids=<txid> --sdk-conf-path=./testdata/sdk_config.yml
+```
+
+节点侧拦截点：交易验证走 `filter.IsExists(tx.Payload.TxId, ...)`（`module/core/common/tx_helper.go:419`），提交后 txid 入过滤器（`module/core/common/committer.go:154`）。
+
+**一句话**：并发压量命令留着做压测；防重验证用 `--tx-id` 复用真实 txid 串行/并发重放——两者是完全不同的测试目标。
+
+## 日志分析
+
+### 出块信息
+
+```bash
+# 统计出块数量
+grep "common/block_helper.go:1092" chainmaker-v2.3.7-node1/log/system.log | wc -l
+
+# 实时查看出块日志
+tail -f -n 10 chainmaker-v2.3.7-node1/log/system.log \
+  | grep "commit block\|tps\|fetch\|txVerify"
+
+# 查看指定时间段日志
+grep "commit block\|tps\|fetch\|txVerify\|put block" \
+  chainmaker-v2.3.7-node1/log/system.log.2026021111
+```
+
+### 错误排查
+
+```bash
+grep "WARN\|ERROR" chainmaker-v2.3.7-node3/log/system.log.2026021111
+
+# 过滤已知无害告警
+grep "WARN\|ERROR" chainmaker-v2.3.7-node3/log/system.log.2026021111 \
+  | grep -v "kvdbhelper.go:504\|blockstore_impl.go:1271\|blockstore_impl.go:1261"
+```
+
+### 共识流程追踪
+
+```bash
+# 追踪指定区块的完整共识流程
+# 用法：设置 BLOCK_HEIGHT 为目标区块高度
+BLOCK_HEIGHT=1202 find chainmaker-v2.3.7-node*/log -name system.log -execdir bash -c \
+  'grep -H "attempt enterNewRound to ('"$BLOCK_HEIGHT"'/0)\
+  |('"$BLOCK_HEIGHT"'/0/PROPOSE) receive prevote\
+  |('"$BLOCK_HEIGHT"'/0/PROPOSE) receive proposal\
+  |simulate with dag finished, block '"$BLOCK_HEIGHT"'\
+  |'"$BLOCK_HEIGHT"'/0/PRECOMMIT) consensus save wal\
+  |commit block \['"$BLOCK_HEIGHT"'\]\
+  |put block\['"$BLOCK_HEIGHT"'\]" $(pwd)/system.log.2026021111' \;
+```
+
+单机单文件版本（不分节点目录）：
+
+```bash
+grep "attempt enterNewRound to (7787/0)\
+  \|(7787/0/PROPOSE) receive prevote\
+  \|(7787/0/PROPOSE) receive proposal\
+  \|simulate with dag finished, block 7787\
+  \|7787/0/PRECOMMIT) consensus save wal\
+  \|commit block \[7787\]" system.log
+```
+
+### 判断提案节点
+
+```bash
+grep "tps" chainmaker-v2.3.7-node1/log/system.log.2026021111 | grep "block 1203"
+grep "tps" chainmaker-v2.3.7-node2/log/system.log.2026021111 | grep "block 1203"
+grep "tps" chainmaker-v2.3.7-node3/log/system.log.2026021111 | grep "block 1203"
+grep "tps" chainmaker-v2.3.7-node4/log/system.log.2026021111 | grep "block 1203"
+```
+
+### 刷盘耗时分析
+
+```bash
+grep "put block\[" chainmaker-v2.3.7-node1/log/system.log.2026021111 | grep "writeFile"
+```
+
+### pprof 性能分析
+
+需要在 `chainmaker.yml` 中开启 pprof：
+
+```yaml
+pprof:
+  enabled: true
+  port: 16060
+```
+
+抓取与分析：
+
+```bash
+# 抓取堆内存快照
+go tool pprof http://localhost:16060/debug/pprof/heap
+
+# 进入交互式终端后常用命令：
+#   top 20        — 查看内存占用前 20 的函数
+#   list <func>   — 查看指定函数的逐行内存分配
+#   web           — 在浏览器中打开调用图（需安装 graphviz）
+#   png > heap.png — 导出调用图为图片
+#   quit          — 退出
+
+# 也可以直接导出 SVG 不进入交互模式
+go tool pprof -svg http://localhost:16060/debug/pprof/heap > heap.svg
+
+# 抓取 CPU profile（默认采样 30 秒）
+go tool pprof http://localhost:16060/debug/pprof/profile?seconds=30
+
+# 查看 goroutine 堆栈（排查泄漏）
+go tool pprof http://localhost:16060/debug/pprof/goroutine
+
+# 远程节点需替换 localhost 为实际 IP
+go tool pprof http://10.x.x.86:16060/debug/pprof/heap
+```
+
+### SDK 发送频率分析
+
+```bash
+# 按分钟统计发送量
+for i in {00..20}; do
+  echo -n "11:$i " && grep "11:$i" sdk.log.2026012611 | wc -l
+done
+
+# 按秒统计发送量
+for i in {00..59}; do
+  echo -n "11:05:$i " && grep "11:05:$i" sdk.log.2026012611 | wc -l
+done
+```
+
+### 批量收集节点日志
+
+```bash
+find chainmaker-v2.3.7-node*/log -name "system.log.2026012716" -exec sh -c '
+  for file; do
+    node_dir=$(dirname "$file" | cut -d/ -f1)
+    new_name="${node_dir}.system.log.2026012716"
+    cp "$file" "./$new_name"
+  done
+' sh {} +
+```
+
+## 性能调优配置汇总
+
+### chainmaker.yml 变更项
+
+| 配置项 | 调优值 | 说明 |
+| --- | --- | --- |
+| `txpool.max_txpool_size` | 5000000 | 扩大交易池容量 |
+| `storage.enable_rwc` | true | 启用读写缓存 |
+| `storage.write_block_type` | 1 | 优化写块模式 |
+| `storage.disable_historydb` | true | 关闭历史数据库 |
+| `storage.disable_resultdb` | true | 关闭结果数据库 |
+| `storage.disable_contract_eventdb` | true | 关闭合约事件数据库 |
+| `storage.logdb_segment_async` | true | 异步 logdb 分段 |
+| `storage.db_config.leveldb_config.write_buffer_size` | 64 | 调整写缓冲区 |
+| `storage.db_config.leveldb_config.no_sync` | true | 关闭同步写入 |
+
+### bc.yml（链配置）变更项
+
+| 配置项 | 调优值 | 变更命令 |
+| --- | --- | --- |
+| `consensus.ext_config.WAL_write_mode` | 2 | `cmc client chainconfig consensusextra add` |
+| `consensus.ext_config.TBFT_blocks_per_proposer` | 1 | `cmc client chainconfig consensusextra update` |
+| `block.block_tx_capacity` | 5000 | `cmc client chainconfig block update` |
+
+## 辅助工具
+
+### 数据备份（Helper）
+
+```bash
+./helper store backup \
+  -c=../config/wx-org1.chainmaker.org/chainmaker.yml \
+  --chain-id=chain1 \
+  --path=../backup/bak-1 \
+  --start-height=-1 \
+  --end-height=-1
+```
+
+> [!TIP]
+>
+> **参数说明**
+>
+> `--start-height=-1 --end-height=-1` 表示备份全量数据。
+
+### 单元测试与覆盖率
+
+```bash
+# 生成覆盖率报告
+go test -coverprofile=coverage.out && go tool cover -html=coverage.out -o coverage.html
+
+# 全模块覆盖率
+go test -coverprofile=coverage.out ./...
+
+# 查看函数级覆盖率
+go tool cover -func=coverage.out
+```
+
+### 代码行数统计
+
+```bash
+gocloc --include-lang=Go --output-type=json --not-match=".*_test\.go" .
+```
+
+## 附录：区块链同步服务流程
+
+```
+graph TD
+    subgraph 初始化阶段
+        A[创建 NewBlockChainSyncServer 实例] --> B[加载配置: 网络参数, 同步策略等]
+        B --> C[初始化核心组件: 区块存储, 本地状态管理器]
+    end
+
+    subgraph 启动服务
+        C --> D[启动调度器 Scheduler]
+        D --> E[初始化消息处理器 Handler]
+        E --> F[注册网络消息监听]
+    end
+
+    subgraph 运行阶段 - 定时任务
+        F --> G[启动定时器]
+        G --> H[定时检查任务 1: 节点状态同步]:::timer
+        G --> I[定时检查任务 2: 区块高度同步]:::timer
+        H --> J[生成状态同步请求?]:::decision
+        I --> K[生成区块同步请求?]:::decision
+        J -- 是 --> L[提交同步请求到调度器队列]
+        K -- 是 --> L
+    end
+
+    subgraph 运行阶段 - 消息处理
+        F --> M[监听网络消息]
+        M -- 接收状态同步响应 --> E
+        M -- 接收新区块/区块头数据 --> N[处理区块/区块头]
+        N --> O[更新本地存储]
+        N --> P[更新本地状态]
+        O --> Q[通知应用层?]:::decision
+        P --> Q
+        Q -- 是 --> R[触发事件通知]
+    end
+
+    classDef timer fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef decision fill:#ff9,stroke:#333,stroke-width:2px;
+```

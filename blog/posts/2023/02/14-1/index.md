@@ -1,0 +1,310 @@
+# 深度优先搜索算法详解
+
+深度优先搜索（Depth-First Search，DFS）是一种用于遍历或搜索树/图的算法。其核心思想是：对每一个可能的分支路径深入到底，直到不能再深入为止，然后回溯到上一个节点继续探索其他分支。
+
+因发明深度优先搜索算法，约翰·霍普克洛夫特与罗伯特·塔扬于 1986 年共同获得计算机领域的最高奖——图灵奖。
+
+## 例题
+
+### 104 二叉树的最大深度
+
+给定一个二叉树，找出其最大深度。
+
+二叉树的深度为根节点到最远叶子节点的最长路径上的节点数。
+
+**说明:** 叶子节点是指没有子节点的节点。
+
+**示例：**
+
+给定二叉树 `[3,9,20,null,null,15,7]`，
+
+3 / \\ 9 20 / \\ 15 7
+
+````text
+返回它的最大深度 3 。
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func maxDepth(root *TreeNode) int {
+    if root != nil {
+        return max(maxDepth(root.Left), maxDepth(root.Right)) + 1
+    }
+    return 0
+}
+
+func max(a int, b int) int {
+    if a > b {
+        return a
+    }
+    return b
+}
+````
+
+### 💣 101 对称二叉树
+
+给你一个二叉树的根节点 `root` ， 检查它是否轴对称。
+
+**示例 1：**
+
+[![题目图示](<https://assets.leetcode.com/uploads/2021/02/19/symtree1.jpg>)](<https://assets.leetcode.com/uploads/2021/02/19/symtree1.jpg>)
+
+**输入：** root = \[1,2,2,3,4,4,3\] **输出：** true
+
+```text
+**示例 2：**
+
+![题目图示](https://assets.leetcode.com/uploads/2021/02/19/symtree2.jpg)
+
+**输入：** root = [1,2,2,null,3,null,3]
+**输出：** false
+```
+
+**提示：**
+
+- 树中节点数目在范围 `[1, 1000]` 内
+
+  - `-100 <= Node.val <= 100`
+
+**进阶：** 你可以运用递归和迭代两种方法解决这个问题吗？
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func isSymmetric(root *TreeNode) bool {
+    return check(root, root)
+}
+
+func check(p, q *TreeNode) bool {
+    if p == nil && q == nil {
+        return true
+    }
+    if p == nil || q == nil {
+        return false
+    }
+    return p.Val == q.Val && check(p.Left, q.Right) && check(p.Right, q.Left) 
+}
+```
+
+### 226 反转二叉树
+
+给你一棵二叉树的根节点 `root` ，翻转这棵二叉树，并返回其根节点。
+
+**示例 1：**
+
+[![题目图示](<https://assets.leetcode.com/uploads/2021/03/14/invert1-tree.jpg>)](<https://assets.leetcode.com/uploads/2021/03/14/invert1-tree.jpg>)
+
+**输入：** root = \[4,2,7,1,3,6,9\] **输出：**\[4,7,2,9,6,3,1\]
+
+```text
+**示例 2：**
+
+![题目图示](https://assets.leetcode.com/uploads/2021/03/14/invert2-tree.jpg)
+
+**输入：** root = [2,1,3]
+**输出：**[2,3,1]
+```
+
+**示例 3：**
+
+**输入：** root = \[\] **输出：**\[\]
+
+````text
+**提示：**
+
+- 树中节点数目范围在 `[0, 100]` 内
+    - `-100 <= Node.val <= 100`
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func invertTree(root *TreeNode) *TreeNode {
+    if root != nil {
+        root.Left, root.Right = root.Right, root.Left
+        root.Left = invertTree(root.Left)
+        root.Right = invertTree(root.Right)
+    }
+    return root
+}
+````
+
+### 112 路径总和
+
+给你二叉树的根节点 `root` 和一个表示目标和的整数 `targetSum` 。判断该树中是否存在 **根节点到叶子节点** 的路径，这条路径上所有节点值相加等于目标和 `targetSum` 。如果存在，返回 `true` ；否则，返回 `false` 。
+
+**叶子节点** 是指没有子节点的节点。
+
+**示例 1：**
+
+[![题目图示](<https://assets.leetcode.com/uploads/2021/01/18/pathsum1.jpg>)](<https://assets.leetcode.com/uploads/2021/01/18/pathsum1.jpg>)
+
+**输入：** root = \[5,4,8,11,null,13,4,7,2,null,null,null,1\], targetSum = 22 **输出：** true **解释：** 等于目标和的根节点到叶节点路径如上图所示。
+
+```text
+**示例 2：**
+
+![题目图示](https://assets.leetcode.com/uploads/2021/01/18/pathsum2.jpg)
+
+**输入：** root = [1,2,3], targetSum = 5
+**输出：** false
+**解释：**树中存在两条根节点到叶子节点的路径：
+(1 --> 2): 和为 3
+(1 --> 3): 和为 4
+不存在 sum = 5 的根节点到叶子节点的路径。
+```
+
+**示例 3：**
+
+**输入：** root = \[\], targetSum = 0 **输出：** false **解释：** 由于树是空的，所以不存在根节点到叶子节点的路径。
+
+````text
+**提示：**
+
+- 树中节点的数目在范围 `[0, 5000]` 内
+    - `-1000 <= Node.val <= 1000`
+    - `-1000 <= targetSum <= 1000`
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func hasPathSum(root *TreeNode, targetSum int) bool {
+    if root != nil {
+        if root.Left != nil || root.Right != nil {
+            if hasPathSum(root.Left, targetSum - root.Val) || hasPathSum(root.Right, targetSum - root.Val) {
+                return true
+            }
+        } else {
+            if targetSum == root.Val {
+                return true
+            }
+        }
+    }
+    return false
+}
+````
+
+### 617 合并二叉树
+
+给你两棵二叉树： `root1` 和 `root2` 。
+
+想象一下，当你将其中一棵覆盖到另一棵之上时，两棵树上的一些节点将会重叠（而另一些不会）。你需要将这两棵树合并成一棵新二叉树。合并的规则是：如果两个节点重叠，那么将这两个节点的值相加作为合并后节点的新值；否则，**不为** null 的节点将直接作为新二叉树的节点。
+
+返回合并后的二叉树。
+
+**注意:** 合并过程必须从两个树的根节点开始。
+
+**示例 1：**
+
+[![题目图示](<https://assets.leetcode.com/uploads/2021/02/05/merge.jpg>)](<https://assets.leetcode.com/uploads/2021/02/05/merge.jpg>)
+
+**输入：** root1 = \[1,3,2,5\], root2 = \[2,1,3,null,4,null,7\] **输出：**\[3,4,5,5,4,null,7\]
+
+```text
+**示例 2：**
+
+**输入：** root1 = [1], root2 = [1,2]
+**输出：**[2,2]
+```
+
+**提示：**
+
+- 两棵树中的节点数目在范围 `[0, 2000]` 内
+
+  - `-10^4 <= Node.val <= 10^4`
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func mergeTrees(root1 *TreeNode, root2 *TreeNode) *TreeNode {
+    if root1 != nil && root2 != nil {
+        root1.Val += root2.Val
+        root1.Left = mergeTrees(root1.Left, root2.Left)
+        root1.Right = mergeTrees(root1.Right, root2.Right)
+    } else if root2 != nil {
+        return root2
+    }
+    return root1
+}
+```
+
+### 700 二叉搜索树中的搜索
+
+给定二叉搜索树（BST）的根节点 `root` 和一个整数值 `val`。
+
+你需要在 BST 中找到节点值等于 `val` 的节点。 返回以该节点为根的子树。 如果节点不存在，则返回 `null` 。
+
+**示例 1:**
+
+[![题目图示](<https://assets.leetcode.com/uploads/2021/01/12/tree1.jpg>)](<https://assets.leetcode.com/uploads/2021/01/12/tree1.jpg>)
+
+**输入：**root = \[4,2,7,1,3\], val = 2 **输出：**\[2,1,3\]
+
+```text
+**示例 2:**
+
+![题目图示](https://assets.leetcode.com/uploads/2021/01/12/tree2.jpg)
+
+<b>输入：</b>root = [4,2,7,1,3], val = 5
+<b>输出：</b>[]
+```
+
+**提示：**
+
+- 数中节点数在 `[1, 5000]` 范围内
+
+  - `1 <= Node.val <= 10^7`
+  - `root` 是二叉搜索树
+  - `1 <= val <= 10^7`
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func searchBST(root *TreeNode, val int) *TreeNode {
+    if root != nil {
+        if val == root.Val {
+            return root
+        } else if val < root.Val {
+            return searchBST(root.Left, val)
+        } else {
+            return searchBST(root.Right, val)
+        }
+    }
+    return nil
+}
+```

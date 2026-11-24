@@ -1,0 +1,149 @@
+# 使用 C++ 实现 COM 组件的示例
+
+COM（Component Object Model）是微软提出的组件化应用程序标准，允许不同编程语言编写的组件进行互操作。本文展示如何用 C++ 创建 COM 组件，涵盖接口定义、组件实现、引用计数、对象创建等核心概念。
+
+## 1\. 定义接口
+
+首先，我们需要定义一个 COM 接口。COM 接口以 `IUnknown` 为基础，通过 GUID 唯一标识。以下是 `IHello` 接口的头文件：
+
+```cpp
+// IHello.h
+#pragma once
+
+#include <Unknwn.h>
+
+// {12345678-1234-1234-1234-123456789ABC}
+static const IID IID_IHello =
+    {0x12345678, 0x1234, 0x1234, {0x12, 0x34, 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC}};
+
+interface IHello : public IUnknown {
+    virtual void Hello() = 0;
+};
+```
+
+`interface` 是 COM 中定义接口的关键字（在 C++ 中展开为 `struct`），`IID_IHello` 是一个 GUID 常量，供 `QueryInterface` 进行类型识别。
+
+## 2\. 实现接口
+
+接下来，我们创建一个类 `CHello` 来实现 `IHello` 接口。在 COM 中，所有对象必须实现 `IUnknown` 接口的三个方法：`QueryInterface`、`AddRef` 和 `Release`，以便进行接口查询和引用计数管理。
+
+```cpp
+// Hello.cpp
+#include <Windows.h>
+#include <iostream>
+#include "IHello.h"
+
+class CHello : public IHello {
+private:
+    long m_refCount;
+
+public:
+    CHello() : m_refCount(1) {}
+
+    // IUnknown 方法
+    HRESULT __stdcall QueryInterface(const IID& iid, void** ppv) override {
+        if (iid == IID_IHello) {
+            *ppv = static_cast<IHello*>(this);
+            AddRef();
+            return S_OK;
+        }
+        *ppv = nullptr;
+        return E_NOINTERFACE;
+    }
+
+    ULONG __stdcall AddRef() override {
+        return InterlockedIncrement(&m_refCount);
+    }
+
+    ULONG __stdcall Release() override {
+        ULONG count = InterlockedDecrement(&m_refCount);
+        if (count == 0) {
+            delete this;
+        }
+        return count;
+    }
+
+    // IHello 方法
+    void Hello() override {
+        std::cout << "Hello from COM!" << std::endl;
+    }
+};
+
+// COM 工厂函数
+HRESULT CreateHelloInstance(IHello** ppHello) {
+    if (ppHello == nullptr) return E_POINTER;
+    *ppHello = new CHello();
+    if (*ppHello == nullptr) return E_OUTOFMEMORY;
+    return S_OK;
+}
+```
+
+在 `CHello` 类中，我们实现了 `IHello` 接口的 `Hello` 方法，并实现了 `IUnknown` 接口的 `QueryInterface`、`AddRef` 和 `Release` 方法。`AddRef` 和 `Release` 方法用于管理对象的引用计数，确保对象在没有引用时能够被销毁。`QueryInterface` 方法用于检查请求的接口并返回相应的指针。
+
+> **简化说明**：实际 COM 开发中，对象通过实现 `IClassFactory` 接口的类工厂来创建，而非直接 `new`。本示例使用 `new` + 独立工厂函数是为了聚焦核心概念（接口、引用计数、QueryInterface），避免引入类工厂和组件注册的复杂度。生产环境应参考 MSDN 的 COM 组件注册与 `CoCreateInstance` 流程。
+
+## 3\. 使用 COM 对象
+
+创建并使用 COM 对象通常需要初始化 COM 库、创建对象、调用接口方法、最后释放对象。在此示例中，我们使用 `CoInitialize` 来初始化 COM，使用工厂函数 `CreateHelloInstance` 创建 `CHello` 对象，并调用 `Hello` 方法。
+
+```cpp
+// main.cpp
+#include <Windows.h>
+#include <iostream>
+#include "IHello.h"
+
+int main() {
+    // 初始化 COM
+    HRESULT hr = CoInitialize(nullptr);
+    if (FAILED(hr)) {
+        std::cerr << "COM initialization failed!" << std::endl;
+        return 1;
+    }
+
+    // 创建 COM 对象实例
+    IHello* pHello = nullptr;
+    hr = CreateHelloInstance(&pHello);
+    if (FAILED(hr)) {
+        std::cerr << "Failed to create COM object!" << std::endl;
+        CoUninitialize();
+        return 1;
+    }
+
+    // 调用 Hello 方法
+    pHello->Hello();
+
+    // 释放 COM 对象
+    pHello->Release();
+
+    // 释放 COM
+    CoUninitialize();
+    return 0;
+}
+```
+
+在 `main.cpp` 中，我们首先调用 `CoInitialize` 初始化 COM 库，之后使用工厂函数 `CreateHelloInstance` 创建 `CHello` 类的实例，并调用 `Hello` 方法输出消息。最后，通过调用 `Release` 来释放对象，并调用 `CoUninitialize` 来清理 COM 库。
+
+## 4\. 编译和运行
+
+在 Windows 环境下，我们可以使用 Visual Studio 编译和链接该代码。确保链接 COM 库，通常需要链接 `Ole32.lib` 和 `OleAut32.lib`。
+
+```bash
+cl /EHsc Hello.cpp main.cpp /link Ole32.lib OleAut32.lib
+```
+
+编译并运行时，输出将是：
+
+```text
+Hello from COM!
+```
+
+## **5\. 总结**
+
+通过这个简单的示例，我们展示了如何在 C++ 中实现和使用 COM 组件。关键的概念包括：
+
+- **接口**：通过接口定义组件之间的交互。
+- **引用计数**：使用引用计数管理 COM 对象的生命周期。
+- **工厂模式**：通过工厂函数创建 COM 对象。
+- **IUnknown 接口**：实现 `IUnknown` 接口以支持接口查询和引用计数。
+
+虽然 COM 的使用在现代开发中逐渐减少，但它仍然在许多遗留系统和特定应用中发挥着重要作用。掌握 COM 编程对理解 Windows 应用程序的工作原理和进行系统级开发非常重要。

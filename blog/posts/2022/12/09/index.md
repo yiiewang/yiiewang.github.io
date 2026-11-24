@@ -1,0 +1,208 @@
+# Linux lspci 命令详解
+
+`lspci` 是 Linux 系统中用于查看 PCI 总线及其连接设备信息的实用工具。无论是排查硬件问题、确认设备驱动，还是了解系统硬件配置，它都是不可或缺的诊断利器。
+
+## 快速入门
+
+### 基本用法
+
+直接运行 `lspci` 即可列出系统中所有 PCI 设备：
+
+```bash
+lspci
+```
+
+> [!TIP]
+>
+> **权限提示**
+>
+> 普通用户运行 `lspci` 时，部分信息可能受限。建议使用 `sudo lspci` 获取完整信息。
+
+下面是在 WSL2 虚拟机环境下的示例输出：
+
+```text
+3acd:00:00.0 SCSI storage controller: Red Hat, Inc. Virtio filesystem (rev 01)
+3d66:00:00.0 SCSI storage controller: Red Hat, Inc. Virtio  (rev 01)
+88c1:00:00.0 SCSI storage controller: Red Hat, Inc. Virtio filesystem (rev 01)
+e57a:00:00.0 3D controller: Microsoft Corporation Device 008e
+f584:00:00.0 SCSI storage controller: Red Hat, Inc. Virtio filesystem (rev 01)
+```
+
+输出格式为：`[域:]总线:设备.功能 设备类型: 厂商 设备名称 (版本)`
+
+## 常用参数速查
+
+### 信息详细程度
+
+| 参数 | 说明 |
+| --- | --- |
+| `-v` | 显示详细信息 |
+| `-vv` | 显示更详细的信息（推荐） |
+| `-vvv` | 显示所有可解析的信息 |
+
+### 显示格式
+
+| 参数 | 说明 |
+| --- | --- |
+| `-t` | 以树形结构显示设备层级关系 |
+| `-m` | 机器可读格式（便于脚本解析） |
+| `-mm` | 更简洁的机器可读格式 |
+
+### 内核驱动信息
+
+| 参数 | 说明 |
+| --- | --- |
+| `-k` | 显示正在使用的内核驱动和可用驱动模块 |
+
+### 配置空间转储
+
+| 参数 | 说明 |
+| --- | --- |
+| `-x` | 显示标准配置空间（前 64 字节）的十六进制转储 |
+| `-xxx` | 显示完整 PCI 配置空间（需要 root 权限） |
+| `-xxxx` | 显示扩展配置空间（4096 字节，适用于 PCI-X 2.0 和 PCIe） |
+
+### 设备 ID 显示
+
+| 参数 | 说明 |
+| --- | --- |
+| `-n` | 仅显示设备 ID 数字，不解析为名称 |
+| `-nn` | 同时显示设备 ID 数字和名称（推荐） |
+
+### 设备筛选
+
+| 参数 | 说明 | 示例 |
+| --- | --- | --- |
+| `-s` | 按插槽地址筛选 | `lspci -s 00:1f.0` |
+| `-d` | 按厂商/设备 ID 筛选 | `lspci -d 8086:` |
+
+## 实用场景
+
+### 场景一：快速查看设备详情
+
+```bash
+lspci -vvnn
+```
+
+这是日常使用最常见的组合，既能看到详细信息，又能同时显示设备的数字 ID 和名称。
+
+### 场景二：查看驱动加载情况
+
+```bash
+lspci -k
+```
+
+快速确认每个设备使用的是哪个内核驱动。
+
+### 场景三：排查设备问题
+
+如果需要向开发者报告 PCI 设备或驱动的问题，建议提供以下命令的输出：
+
+```bash
+sudo lspci -vvx    # 基本诊断信息
+sudo lspci -vvxxx  # 完整诊断信息（更推荐）
+```
+
+> [!WARNING]
+>
+> **注意**
+>
+> 部分 PCI 设备在读取配置空间某些区域时可能会崩溃，但这类设备很少见，一般无需担心。
+
+### 场景四：以树形结构查看
+
+```bash
+lspci -t
+```
+
+直观展示 PCI 总线、桥接器和设备之间的连接关系。
+
+## 输出字段说明
+
+使用 `-vmm` 参数时，输出采用 `标签: 值` 的格式，主要字段包括：
+
+| 标签 | 说明 |
+| --- | --- |
+| `Slot` | 设备插槽地址 `[域:]总线:设备.功能` |
+| `Class` | 设备类别 |
+| `Vendor` | 厂商名称 |
+| `Device` | 设备名称 |
+| `SVendor` | 子系统厂商（可选） |
+| `SDevice` | 子系统名称（可选） |
+| `PhySlot` | 物理插槽（可选，仅 Linux） |
+| `Rev` | 版本号（可选） |
+| `Driver` | 当前使用的内核驱动（可选，仅 Linux） |
+| `Module` | 可处理该设备的内核模块（可选，仅 Linux） |
+
+## 相关文件
+
+| 文件路径 | 说明 |
+| --- | --- |
+| `/usr/share/misc/pci.ids` | PCI ID 数据库（厂商、设备、类别等） |
+| `/usr/include/linux/pci.h` | PCI 规范头文件，包含字段定义 |
+| `~/.pciids-cache` | DNS 查询模式的本地缓存 |
+
+> [!TIP]
+>
+> **更新 PCI ID 数据库**
+>
+> 使用 `update-pciids` 命令可从 [https://pci-ids.ucw.cz/](<https://pci-ids.ucw.cz/>) 下载最新的 PCI ID 数据库。
+
+## 输出示例
+
+### 详细模式输出 (`lspci -vvx`)
+
+以下是一个 Virtio 文件系统控制器的详细信息示例：
+
+```text
+1b84:00:00.0 SCSI storage controller: Red Hat, Inc. Virtio filesystem (rev 01)
+    Subsystem: Red Hat, Inc. Virtio filesystem
+    Physical Slot: 3415668273
+    Control: I/O- Mem+ BusMaster+ SpecCycle- MemWINV- VGASnoop- ParErr- Stepping- SERR- FastB2B- DisINTx+
+    Status: Cap+ 66MHz- UDF- FastB2B- ParErr- DEVSEL=fast >TAbort- <TAbort- <MAbort- >SERR- <PERR- INTx-
+    Latency: 64
+    Region 0: Memory at 9ffe08000 (64-bit, non-prefetchable) [size=4K]
+    Region 2: Memory at 9ffe09000 (64-bit, non-prefetchable) [size=4K]
+    Region 4: Memory at 9ffe0a000 (64-bit, non-prefetchable) [size=4K]
+    Capabilities: [40] MSI-X: Enable+ Count=65 Masked-
+        Vector table: BAR=2 offset=00000000
+        PBA: BAR=2 offset=00000400
+    Capabilities: [4c] Vendor Specific Information: VirtIO: CommonCfg
+        BAR=0 offset=00000000 size=00000038
+    Capabilities: [5c] Vendor Specific Information: VirtIO: Notify
+        BAR=0 offset=00000038 size=00000004 multiplier=00000000
+    Capabilities: [70] Vendor Specific Information: VirtIO: ISR
+        BAR=0 offset=0000003c size=00000001
+    Capabilities: [94] Vendor Specific Information: VirtIO: DeviceCfg
+        BAR=4 offset=00000000 size=00000007
+    Kernel driver in use: virtio-pci
+00: f4 1a 49 10 06 04 10 00 01 00 00 01 00 40 00 00
+10: 04 80 e0 ff 09 00 00 00 04 90 e0 ff 09 00 00 00
+20: 04 a0 e0 ff 09 00 00 00 00 00 00 00 f4 1a 40 00
+30: 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00
+```
+
+从输出中可以看到：
+
+- **设备信息**：这是一个 Red Hat Virtio 文件系统 SCSI 控制器
+- **内存映射**：占用三个 4KB 内存区域
+- **Capabilities**：支持 MSI-X 中断（65 个向量）和多个 VirtIO 特定配置
+- **驱动**：当前使用 `virtio-pci` 驱动
+
+## 相关命令
+
+| 命令 | 说明 |
+| --- | --- |
+| `setpci` | 读写 PCI 设备配置空间 |
+| `update-pciids` | 更新本地 PCI ID 数据库 |
+| `lsusb` | 查看 USB 设备信息 |
+| `dmidecode` | 查看 DMI/SMBIOS 硬件信息 |
+
+## 总结
+
+`lspci` 是 Linux 系统硬件诊断的核心工具之一。掌握以下几个常用组合即可应对大多数场景：
+
+- **日常查看**：`lspci -vvnn`
+- **查看驱动**：`lspci -k`
+- **问题诊断**：`sudo lspci -vvxxx`
+- **层级结构**：`lspci -t`

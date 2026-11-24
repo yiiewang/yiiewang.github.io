@@ -1,0 +1,13 @@
+# 分布式系统
+
+> CAP 理论、一致性协议、分布式事务、服务治理。
+
+## 📖 知识条目
+
+| 条目 | 难度 | 状态 | 简介 |
+| --- | --- | --- | --- |
+| [负载均衡设计策略与实践](<https://cloaks.cn/knowledge/tech/architecture/distributed/load-balancing/index.md>) | 中级 | 🟢 有效 | 轮询、随机、权重、洗牌四种策略的对比与 Go 实现 |
+
+---
+
+*维护人：yiiewang · 最后更新：2026-07-01*

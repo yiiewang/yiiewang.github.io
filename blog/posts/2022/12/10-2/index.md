@@ -1,0 +1,63 @@
+# Linux watch 命令：实时监控利器
+
+`watch` 是 Linux 中用于周期性执行命令并显示输出的实用工具。默认每 2 秒刷新一次，非常适合实时监控系统状态或日志变化。
+
+## 常用参数
+
+| 参数 | 说明 |
+| --- | --- |
+| `-n <秒>` | 指定刷新间隔（默认 2 秒） |
+| `-d` | 高亮显示变化的内容 |
+| `-t` | 隐藏顶部标题栏 |
+| `-c` | 支持 ANSI 颜色显示 |
+| `-e` | 命令返回非零时退出 |
+| `-g` | 输出内容变化时退出 |
+
+> [!TIP]
+>
+> **退出方式**
+>
+> 按 `Ctrl + C` 即可停止监控。
+
+## 实用场景
+
+### 场景一：实时监控日志
+
+```bash
+watch tail /var/log/nginx/access.log
+```
+
+[![watch tail /var/log/nginx/access.log](<https://cloaks.cn/blog/posts/2022/12/watch_tail_log.png>)](<https://cloaks.cn/blog/posts/2022/12/watch_tail_log.png>)
+
+调整刷新间隔为 10 秒：
+
+```bash
+watch -n 10 tail /var/log/your_log_file
+```
+
+### 场景二：监控系统温度
+
+```bash
+watch -n 1 sensors
+```
+
+[![watch\_sensors](<https://cloaks.cn/blog/posts/2022/12/watch_sensors.png>)](<https://cloaks.cn/blog/posts/2022/12/watch_sensors.png>)
+
+### 场景三：配合管道使用
+
+当命令包含管道时，需要用引号将整个命令包裹：
+
+```bash
+watch -n1 "sensors | grep temp | awk '{ print $2 }'"
+```
+
+[![pipe\_sensors](<https://cloaks.cn/blog/posts/2022/12/pipe_sensors.png>)](<https://cloaks.cn/blog/posts/2022/12/pipe_sensors.png>)
+
+## 总结
+
+`watch` 命令简单但功能强大，常用组合：
+
+- **日志监控**：`watch tail -f /var/log/xxx.log`
+- **进程监控**：`watch -n1 "ps aux | grep nginx"`
+- **磁盘监控**：`watch -d df -h`
+- **网络监控**：`watch -n1 "netstat -an | grep ESTABLISHED | wc -l"`

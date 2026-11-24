@@ -1,0 +1,269 @@
+# 两个生产者之后：给无锁环形队列加同步的三条路
+
+[前作](<https://cloaks.cn/blog/posts/2026/09/04-1/index.md>)讲 kfifo 时留了一句狠话：
+
+> [!NOTE]
+>
+> **前作：一个没有名字的持久化设计**
+>
+> 每根指针都满足"单写多读"，配合内存屏障保证可见性，锁就是多余的。这个前提一旦被打破（两个生产者），无锁立刻失效，必须自己加同步。
+
+[上一篇](<https://cloaks.cn/blog/posts/2026/09/07/index.md>)把翻车现场拍成了慢动作——`head++` 是读-改-写三步，两个生产者同读到 `head=5`，一个元素静默丢失。这篇接着走下一步：**怎么修**。原文给了三条出路的目录但没给代码，这里补全。
+
+## 1\. 要修的到底是什么
+
+先把竞争拆开。两个生产者进场，打碎的其实只是一个动作：**认领槽位**（谁拿到 `head=5`、谁该拿 6）。而"数据先于指针可见"的发布顺序问题，本身并没有坏——只是没人替它做担保了。
+
+所以修复目标一句话：**把"认领"重新变成原子操作，同时保住"发布"的顺序语义**。
+
+这两件事正交，混在一起谈就会觉得"加同步"是一团浆糊。三条路线，本质上就是用三种方式回答这两个问题：乐观地重试（CAS）、悲观地排队（mutex）、干脆改结构让前提复活（per-slot 状态机 / 归并写者）。
+
+## 2\. 路线一：CAS 认领 + 提交计数
+
+直觉方案是给 `head++` 换成 CAS 循环。但只做这一步有个隐蔽的坑：CAS 成功的瞬间 `head` 已经 +1，而数据还没写进槽位——消费者看 `head` 前进了，立刻去读，读到空槽。**CAS 只修了"抢"，没修"序"**。
+
+正确做法是把 `head` 的职责拆成两个计数器：
+
+- `head`：**认领边界**，生产者用 CAS 抢占，抢到即锁定槽位号
+- `committed`：**发布边界**，只有"轮到自己"的生产者才能推进
+
+```go
+type MPSC struct {
+    buf       []entry
+    head      int64 // 认领边界：生产者 CAS 抢
+    committed int64 // 发布边界：轮到的生产者推进
+    tail      int64 // 消费者独占写
+}
+
+func (q *MPSC) Push(e entry) bool {
+    for {
+        head := atomic.LoadInt64(&q.head)
+        if head-atomic.LoadInt64(&q.tail) >= int64(len(q.buf)) {
+            return false // 满：认领前退出，无副作用
+        }
+        // 认领：只有一个生产者能打成功，槽位号 = head
+        if !atomic.CompareAndSwapInt64(&q.head, head, head+1) {
+            continue // 被抢了，重读重试
+        }
+        q.buf[head&(int64(len(q.buf))-1)] = e // 槽位已归我，放心写
+        for atomic.LoadInt64(&q.committed) != head {
+            runtime.Gosched() // 排队交卷：等前面的生产者先发布
+        }
+        atomic.StoreInt64(&q.committed, head+1) // release：数据先落地，边界后推进
+        return true
+    }
+}
+
+func (q *MPSC) Pop() (entry, bool) {
+    tail := q.tail
+    if tail == atomic.LoadInt64(&q.committed) { // acquire：与 release 配对
+        return entry{}, false // 空
+    }
+    e := q.buf[tail&(int64(len(q.buf))-1)]
+    atomic.StoreInt64(&q.tail, tail+1) // 释放槽位
+    return e, true
+}
+```
+
+正确性逐条对上：
+
+1. 每个成功的 CAS 拿到唯一槽位号，两个生产者写同一格的事故根除
+2. 消费者只看 `committed`，认领了但没交卷的槽位它读不到——空槽问题根除
+3. 消费者读完数据才推进 `tail`，而下一圈认领者（`pos + cap`）必须等 `tail` 越过 `pos`，覆盖时旧值必已被读走
+
+代价也明摆着：**交卷要排队**。认领了 5 号槽的生产者要是被调度器晾在一边，6 号、7 号全堵着交不了卷。这是 FIFO 语义的固有代价——区别只是堵的位置从消费侧挪到了发布侧。
+
+> [!TIP]
+>
+> 认领解决"谁写哪里"，发布解决"什么时候可见"。多生产者下这是两个独立的问题，一套 CAS 只够修第一个。
+
+## 3\. 路线二：生产者侧加锁
+
+回头看一眼 mutex，会发现它没那么土。锁的作用不是保护整个队列，而是 **临时恢复 `head` 的唯一写者**——同一时刻只有持锁的那个生产者有写权，SPSC 的全部纪律原样复活：
+
+```go
+type MPSCMutex struct {
+    mu   sync.Mutex // 只罩生产者
+    buf  []entry
+    head int64 // 生产者写（持锁），消费者读
+    tail int64 // 消费者独占写
+}
+
+func (q *MPSCMutex) Push(e entry) bool {
+    q.mu.Lock()
+    defer q.mu.Unlock()
+    if q.head-atomic.LoadInt64(&q.tail) >= int64(len(q.buf)) {
+        return false // 满
+    }
+    q.buf[q.head&(int64(len(q.buf))-1)] = e
+    atomic.StoreInt64(&q.head, q.head+1) // 锁保写权，atomic 保发布
+    return true
+}
+
+func (q *MPSCMutex) Pop() (entry, bool) {
+    // 与 SPSC 版完全一致：tail 仍是唯一写者，消费者无锁
+    tail := q.tail
+    if tail == atomic.LoadInt64(&q.head) {
+        return entry{}, false
+    }
+    e := q.buf[tail&(int64(len(q.buf))-1)]
+    atomic.StoreInt64(&q.tail, tail+1)
+    return e, true
+}
+```
+
+注意 `Push` 最后那行注释：锁管住了生产者之间的写权，但消费者不拿锁，它看不到锁的 happens-before——所以发布 `head` 依然必须走 atomic。**锁保写权，atomic 保发布**，两种机制各管一件事，缺一不可。
+
+对比路线一：mutex 快路径就是一次 CAS，慢路径休眠让核，比自旋重试对调度器友好得多。Go 标准库的 channel 干脆用一把 `hchan.lock` 罩住整个通道，收发全锁——标准库都选了简单。绝大多数场景，生产者侧加锁就是性价比最优解。
+
+## 4\. 路线三：别修了，改结构
+
+前两条路都在修"共享的 `head`"。第三条路问：为什么非要有一个共享的 `head`？队列的状态不一定是全局边界，可以拆散了下放。拆法有两个方向：往下拆得更细（per-slot 序列号），或者往上拆得更粗（归并写者）。
+
+### 4.1 per-slot 序列号：让每个槽位跑自己的状态机
+
+[Vyukov 的 MPMC 队列](<https://www.1024cores.net/home/lock-free-algorithms/queues/bounded-mpmc-queue>)、Disruptor 的多生产者模式、JCTools，全是同一族：**每个槽位存一个序列号 `seq`，记录"本槽下一次可写时的绝对位置"**。
+
+`seq` 不是下标，是单调递增的绝对位置，按"圈"轮转（一圈 cap 个槽位）：
+
+```text
+初始:            seq = i          (槽 i 属于第一圈的 pos=i，可写)
+生产者发布:       seq = pos + 1    (数据就位，可读)
+消费者消费完毕:   seq = pos + cap  (回到可写，对应下一圈的 pos+cap)
+```
+
+一个值同时充当下标和回合数：绕一圈回到同一格时 `seq` 已经长过了 cap，天然带着"第几圈"的信息——既不需要 ABA 保护，每次状态判断也只是一次比较。完整实现：
+
+```go
+type cell struct {
+    seq  int64 // 状态机：== pos 可写，== pos+1 可读
+    data entry
+    _    [56]byte // 补齐到独立 64B 缓存行（按 entry 大小调整）
+}
+
+type MPMC struct {
+    buf    []cell // 容量为 2 的幂
+    mask   int64
+    enqPos int64 // 生产者 CAS 认领
+    deqPos int64 // 消费者 CAS 认领
+}
+
+func NewMPMC(capacity int64) *MPMC {
+    q := &MPMC{buf: make([]cell, capacity), mask: capacity - 1}
+    for i := range q.buf {
+        q.buf[i].seq = int64(i) // 初始：槽 i 属于第一圈的 pos=i
+    }
+    return q
+}
+
+func (q *MPMC) Push(e entry) bool {
+    pos := atomic.LoadInt64(&q.enqPos)
+    for {
+        c := &q.buf[pos&q.mask]
+        switch seq := atomic.LoadInt64(&c.seq); {
+        case seq == pos: // 轮到我：本圈此槽可写
+            if atomic.CompareAndSwapInt64(&q.enqPos, pos, pos+1) {
+                c.data = e                       // 先写数据
+                atomic.StoreInt64(&c.seq, pos+1) // 后发布（release）
+                return true
+            }
+        case seq < pos: // 上一圈的数据还没被消费 → 满
+            return false
+        default: // 别人先认领了，刷新重试
+            pos = atomic.LoadInt64(&q.enqPos)
+        }
+    }
+}
+
+func (q *MPMC) Pop() (entry, bool) {
+    pos := atomic.LoadInt64(&q.deqPos)
+    for {
+        c := &q.buf[pos&q.mask]
+        switch seq := atomic.LoadInt64(&c.seq); {
+        case seq == pos+1: // 本圈数据就位
+            if atomic.CompareAndSwapInt64(&q.deqPos, pos, pos+1) {
+                e := c.data                             // 先读数据
+                atomic.StoreInt64(&c.seq, pos+q.mask+1) // 后释放（= pos+cap，下圈可写）
+                return e, true
+            }
+        case seq < pos+1: // 本圈还没发布 → 空
+            return entry{}, false
+        default: // 别人先认领了，刷新重试
+            pos = atomic.LoadInt64(&q.deqPos)
+        }
+    }
+}
+```
+
+> [!TIP]
+>
+> **完整代码**
+>
+> 本节实现的可运行版本（含基础使用演示、恰好一次投递校验，以及与 channel 的对比压测）在仓库 [example/per-slot](<https://github.com/yiiewang/yiiewang.github.io/tree/master/example/per-slot>)：
+>
+> ```bash
+> cd example
+> go run ./2026/09/07-1/per-slot                       # 基础使用 + 默认压测矩阵
+> go run ./2026/09/07-1/per-slot -p 8 -c 8 -n 2000000  # 自定义压测参数
+> go run -race ./2026/09/07-1/per-slot -n 20000        # 竞态检测（数据量压小）
+> ```
+
+对着路线一的两处死结，数一数"改结构"买到了什么：
+
+1. **`committed` 没了，生产者不再排队交卷**。发布不依赖全局边界，每个槽位自带就绪标志，生产者写完自己的格子立刻返回。但队头阻塞没有消失，只是搬了家：认领 5 号的生产者卡住，消费者在 5 号格看到 `seq != 6` 就报空，6 号哪怕已发布也读不出来——FIFO 语义必须如此。区别在于，路线一里 6 号被堵在 `Push` 里自旋烧 CPU，这里 6 号早就返回了，缺口对消费者只是一次"队空"汇报
+2. **消费者享受了同等待遇**。`deqPos` 也是 CAS 认领、槽位释放也是 per-slot，多消费者不再打架——队列从 MPSC 直接升到 MPMC
+3. **写热点被打散**。剩下的争用只有认领用的两个游标（`enqPos`/`deqPos`），高频的发布/释放写操作落在各自不同的缓存行上。路线一的 `committed` 是所有生产者之间倒手的一根缓存行；这里是 N 个格子 N 台独立状态机，两个生产者写相邻槽位连同一个缓存行都不碰（前提是 padding 到位）
+
+代价同样清楚：内存从"一个 entry 数组"变成"64 字节对齐的 cell 数组"；seq 的三态转换必须严格正确——发布 +1、释放 +cap，每一个 off-by-one 都是拿竞态换来的。[Disruptor](<https://lmax-exchange.github.io/disruptor/>) 在这条路上走得更远，用独立的 availableBuffer 记录每格就绪状态，让消费者能跳过缺口批量推进——代价是又多一层设计。
+
+### 4.2 归并写者：在架构层消灭多写者
+
+更激进的方向：不修队列，让 N 个生产者在进队列之前先收敛成 1 个。
+
+```go
+type MergedQ struct {
+    inbox chan entry // 任意 goroutine 都能投递
+    spsc  SPSC       // 第一篇的实现，原样复用
+}
+
+// 唯一的转发者：SPSC 的唯一生产者
+func (m *MergedQ) Run() {
+    for e := range m.inbox {
+        for !m.spsc.Push(e) {
+            runtime.Gosched() // 满：等消费者腾地方
+        }
+    }
+}
+```
+
+业务方只做一件事：`m.inbox <- e`。
+
+从数据结构的角度看这很土——在无锁队列前面垫一个 channel，用一个队列解决另一个队列。但从竞争的角度看，这是釜底抽薪：**竞争的根源是"多写者共享一份状态"，那就别让多写者在数据结构上碰面，数据结构自己就不需要任何同步**。SPSC 的"每根指针单写"前提全部复活，第一篇的实现一行不用改。
+
+这个模式有大量严肃应用：Actor 模型里每个 actor 的 mailbox 恰好单消费者，actor 之间天然 MPSC；事件溯源靠单写者顺序追加事件、读侧全部摊开；Go 世界干脆把这套做法制度化成了"不要通过共享内存来通信"。
+
+代价是多一跳转发延迟，转发 goroutine 是吞吐上限——毕竟它一个人扛下所有写入。但队列本来就是架构级流水线的一环时，这不是代价，这就是架构本身。
+
+## 5\. 选型与注意事项
+
+| 路线 | 写路径成本 | 复杂度 | 适合 |
+| --- | --- | --- | --- |
+| CAS + committed | 无锁，但自旋重试 + 排队交卷 | 高 | 生产者少、禁止上锁的硬实时 |
+| 生产者侧 mutex | 快路径一次 CAS，竞争时休眠让核 | 低 | **默认选择** |
+| per-slot 序列号 | 槽位级并行，吞吐最高 | 最高 | 高性能库（Disruptor、JCTools） |
+| 归并写者 | 转嫁给前置通道 | 架构级 | Actor / 单写者风格系统 |
+
+- ⚠️ **ABA**：这里用 int64 单调计数，实际跑 584 年才会回绕，CAS 没有 ABA 之忧。把下标截成 32 位存储时才需要担心
+- ⚠️ **自旋 vs 休眠**：核多于线程时自旋是优势（不让核心），核超订阅时是灾难（烧 CPU 换空转）。`Gosched()` 是两者的妥协——但这句注释引出的追问（阻塞还是自旋、Gosched 与 park/唤醒的分工、1P 下的实测翻车）见[这篇实测](<https://cloaks.cn/blog/posts/2026/09/09-1/index.md>)
+- ⚠️ **false sharing**：`head`/`committed`/`tail` 要各占独立缓存行；多生产者 CAS 同一个 `head` 本身就是缓存行争用热点，per-slot 方案把热点打散正是为了这个
+- ✅ 验证：路线一、二都能过 `go test -race`——atomic 访问被视为同步，不会误报
+
+## 小结
+
+上一篇给过无锁的公式：**唯一写者 + release/acquire + 缓存行隔离**。两个生产者打碎了第一项，三条修复路线对应三种哲学：乐观地重试、悲观地排队、重新设计让前提复活。
+
+CAS 不是无锁的银弹——它只是把"等"换成了"重试"，把锁的临界区压缩成一条指令。真正的高手不修被打破的前提，而是把结构改成前提从未被打破的样子。修 bug 的最高境界，是让 bug 的前提不成立。
+
+---
+
+*最后更新：2026-09-08*

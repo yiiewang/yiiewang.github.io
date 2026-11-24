@@ -1,0 +1,407 @@
+# 滑动窗口算法详解
+
+滑动窗口是一种通过双指针同向移动来解决数组/字符串问题的技巧。本质上是暴力解法的优化——通过维护一个「窗口」避免重复计算。掌握滑动窗口的关键在于：**理解什么时候扩大窗口，什么时候缩小窗口**。
+
+## 适用场景
+
+滑动窗口适合解决以下类型的问题：
+
+- **连续子数组/子串**问题
+- 需要找「最长」或「最短」的满足条件的子序列
+- 字符串匹配、去重统计
+
+> [!TIP]
+>
+> **何时使用滑动窗口**
+>
+> 当题目涉及「连续」「子数组」「子串」「最长/最短」这些关键词时，优先考虑滑动窗口。
+
+## 核心思路
+
+### 寻找最长子序列
+
+```text
+左右指针 L、R 从起点出发，R 不断右移扩大窗口：
+├─ 满足条件 → 更新最优结果，继续扩大
+└─ 不满足条件 → L 右移缩小窗口，直到满足条件
+```
+
+### 寻找最短子序列
+
+```text
+左右指针 L、R 从起点出发，R 不断右移扩大窗口：
+├─ 满足条件 → 更新最优结果，L 右移尝试更短的解
+└─ 不满足条件 → 继续扩大窗口
+```
+
+## 代码模板
+
+```go
+func findLongest(arr []int) int {
+    left, right := 0, 0
+    result := 0
+
+    for right < len(arr) {
+        // 1. 扩大窗口，加入 arr[right]
+
+        // 2. 不满足条件时，缩小窗口
+        for 不满足条件 {
+            // 移除 arr[left]
+            left++
+        }
+
+        // 3. 更新最优结果
+        if right - left + 1 > result {
+            result = right - left + 1
+        }
+        right++
+    }
+    return result
+}
+```
+
+```go
+func findShortest(arr []int, target int) int {
+    left, right := 0, 0
+    result := math.MaxInt
+
+    for right < len(arr) {
+        // 1. 扩大窗口，加入 arr[right]
+
+        // 2. 满足条件时，尝试缩小窗口
+        for 满足条件 {
+            // 更新最优结果
+            if right - left + 1 < result {
+                result = right - left + 1
+            }
+            // 移除 arr[left]
+            left++
+        }
+        right++
+    }
+    return result
+}
+```
+
+---
+
+## 实战练习
+
+按难度从易到难，我选了 9 道经典题目：
+
+| 难度 | 题目 | 类型 | 关键点 |
+| --- | --- | --- | --- |
+| 🟢 | 643\. 子数组最大平均数 | 固定窗口 | 窗口大小固定为 k |
+| 🟢 | 1876\. 长度为三且各字符不同的子字符串 | 固定窗口 | 用 Set 判断重复 |
+| 🟢 | 2269\. 找到一个数字的 K 美丽值 | 固定窗口 | 字符串转数字 |
+| 🟢 | 1984\. 学生分数的最小差值 | 排序+滑窗 | 先排序再滑动 |
+| 🟡 | 219\. 存在重复元素 II | 滑动哈希 | 用 Set 维护窗口 |
+| 🟡 | 209\. 长度最小的子数组 | 最短子数组 | 经典模板题 |
+| 🟡 | 2379\. 得到 K 个黑块的最少涂色次数 | 固定窗口 | 统计窗口内白块 |
+| 🟡 | 3\. 无重复字符的最长子串 | 最长子串 | 经典模板题 |
+
+---
+
+### 🟢 643. 子数组最大平均数 I
+
+> 给定数组 `nums` 和整数 `k`，找出长度为 `k` 的连续子数组的最大平均数。
+
+**示例**：
+
+```text
+输入：nums = [1,12,-5,-6,50,3], k = 4
+输出：12.75
+解释：(12-5-6+50)/4 = 12.75
+```
+
+**思路**：固定大小的滑动窗口，维护窗口内元素的和。
+
+```go
+func findMaxAverage(nums []int, k int) float64 {
+    // 计算第一个窗口的和
+    sum := 0
+    for i := 0; i < k; i++ {
+        sum += nums[i]
+    }
+    maxSum := sum
+
+    // 滑动窗口：加入右边元素，移除左边元素
+    for i := k; i < len(nums); i++ {
+        sum = sum + nums[i] - nums[i-k]
+        if sum > maxSum {
+            maxSum = sum
+        }
+    }
+    return float64(maxSum) / float64(k)
+}
+```
+
+---
+
+### 🟢 1876. 长度为三且各字符不同的子字符串
+
+> 返回字符串中长度为 3 且不含重复字符的子串数量。
+
+**示例**：
+
+```text
+输入：s = "aababcabc"
+输出：4
+解释：好子字符串："abc"、"bca"、"cab"、"abc"
+```
+
+**思路**：固定窗口大小为 3，用 Set 判断是否有重复字符。
+
+```go
+func countGoodSubstrings(s string) int {
+    if len(s) < 3 {
+        return 0
+    }
+
+    result := 0
+    for i := 0; i <= len(s)-3; i++ {
+        if isUnique(s[i : i+3]) {
+            result++
+        }
+    }
+    return result
+}
+
+func isUnique(s string) bool {
+    return s[0] != s[1] && s[1] != s[2] && s[0] != s[2]
+}
+```
+
+---
+
+### 🟢 2269. 找到一个数字的 K 美丽值
+
+> K 美丽值 = 能整除 num 的长度为 k 的子字符串数目。
+
+**示例**：
+
+```text
+输入：num = 240, k = 2
+输出：2
+解释："24" 能整除 240，"40" 能整除 240
+```
+
+**思路**：将数字转为字符串，滑动窗口取子串并转回数字判断。
+
+```go
+func divisorSubstrings(num int, k int) int {
+    s := strconv.Itoa(num)
+    result := 0
+
+    for i := 0; i <= len(s)-k; i++ {
+        sub, _ := strconv.Atoi(s[i : i+k])
+        if sub != 0 && num%sub == 0 {
+            result++
+        }
+    }
+    return result
+}
+```
+
+---
+
+### 🟢 1984. 学生分数的最小差值
+
+> 从数组中选 k 个元素，使最大值与最小值的差最小。
+
+**示例**：
+
+```text
+输入：nums = [9,4,1,7], k = 2
+输出：2
+解释：选 [9,7]，差值为 2
+```
+
+**思路**：先排序，这样选连续的 k 个元素差值最小。然后用滑动窗口遍历。
+
+```go
+func minimumDifference(nums []int, k int) int {
+    sort.Ints(nums)
+
+    minDiff := nums[k-1] - nums[0]
+    for i := k; i < len(nums); i++ {
+        diff := nums[i] - nums[i-k+1]
+        if diff < minDiff {
+            minDiff = diff
+        }
+    }
+    return minDiff
+}
+```
+
+---
+
+### 🟡 219. 存在重复元素 II
+
+> 判断数组中是否存在 `nums[i] == nums[j]` 且 `|i - j| <= k`。
+
+**示例**：
+
+```text
+输入：nums = [1,2,3,1], k = 3
+输出：true
+```
+
+**思路**：用 Set 维护大小为 k 的窗口，每次检查新元素是否在窗口中。
+
+```go
+func containsNearbyDuplicate(nums []int, k int) bool {
+    window := make(map[int]bool)
+
+    for i, num := range nums {
+        // 窗口超过 k 时，移除最左边的元素
+        if i > k {
+            delete(window, nums[i-k-1])
+        }
+        // 检查当前元素是否在窗口中
+        if window[num] {
+            return true
+        }
+        window[num] = true
+    }
+    return false
+}
+```
+
+---
+
+### 🟡 209. 长度最小的子数组
+
+> 找出和 ≥ target 的最短连续子数组长度。
+
+**示例**：
+
+```text
+输入：target = 7, nums = [2,3,1,2,4,3]
+输出：2
+解释：[4,3] 的和为 7，长度最短
+```
+
+**思路**：经典的「最短」滑动窗口模板。满足条件时尝试缩小窗口。
+
+```go
+func minSubArrayLen(target int, nums []int) int {
+    left, sum := 0, 0
+    minLen := math.MaxInt
+
+    for right := 0; right < len(nums); right++ {
+        sum += nums[right]
+
+        // 满足条件时，尝试缩小窗口
+        for sum >= target {
+            if right-left+1 < minLen {
+                minLen = right - left + 1
+            }
+            sum -= nums[left]
+            left++
+        }
+    }
+
+    if minLen == math.MaxInt {
+        return 0
+    }
+    return minLen
+}
+```
+
+---
+
+### 🟡 2379. 得到 K 个黑块的最少涂色次数
+
+> 字符串由 'W'(白) 和 'B'(黑) 组成，求最少涂几次能得到连续 k 个黑块。
+
+**示例**：
+
+```text
+输入：blocks = "WBBWWBBWBW", k = 7
+输出：3
+```
+
+**思路**：问题转化为：找长度为 k 的窗口，使窗口内白块最少。
+
+```go
+func minimumRecolors(blocks string, k int) int {
+    // 计算第一个窗口的白块数
+    whiteCnt := 0
+    for i := 0; i < k; i++ {
+        if blocks[i] == 'W' {
+            whiteCnt++
+        }
+    }
+    minWhite := whiteCnt
+
+    // 滑动窗口
+    for i := k; i < len(blocks); i++ {
+        if blocks[i] == 'W' {
+            whiteCnt++
+        }
+        if blocks[i-k] == 'W' {
+            whiteCnt--
+        }
+        if whiteCnt < minWhite {
+            minWhite = whiteCnt
+        }
+    }
+    return minWhite
+}
+```
+
+---
+
+### 🟡 3. 无重复字符的最长子串
+
+> 找出字符串中不含重复字符的最长子串长度。
+
+**示例**：
+
+```text
+输入：s = "abcabcbb"
+输出：3
+解释：最长子串是 "abc"
+```
+
+**思路**：经典的「最长」滑动窗口模板。遇到重复字符时收缩窗口。
+
+```go
+func lengthOfLongestSubstring(s string) int {
+    window := make(map[byte]int) // 记录字符最后出现的位置
+    left, maxLen := 0, 0
+
+    for right := 0; right < len(s); right++ {
+        ch := s[right]
+
+        // 如果字符在窗口内出现过，收缩左边界
+        if idx, ok := window[ch]; ok && idx >= left {
+            left = idx + 1
+        }
+
+        window[ch] = right
+
+        if right-left+1 > maxLen {
+            maxLen = right - left + 1
+        }
+    }
+    return maxLen
+}
+```
+
+---
+
+## 总结
+
+| 场景 | 窗口操作 | 更新时机 |
+| --- | --- | --- |
+| 固定窗口 | 窗口大小恒定为 k | 每次移动更新 |
+| 找最长 | 不满足时缩小 | 满足条件时更新 |
+| 找最短 | 满足时缩小 | 满足条件时更新 |
+
+> [!NOTE]
+>
+> **练习建议**
+>
+> 滑动窗口的核心在于「边界移动的时机」。建议先用模板做几道题，形成肌肉记忆后再尝试变体题目。

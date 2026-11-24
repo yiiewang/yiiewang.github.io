@@ -1,0 +1,14 @@
+# 系统设计
+
+> 大规模系统的设计方法与案例分析。
+
+## 📖 知识条目
+
+| 条目 | 难度 | 状态 | 简介 |
+| --- | --- | --- | --- |
+| [开闭原则：状态上移、原子下沉](<https://cloaks.cn/knowledge/tech/architecture/system-design/open-closed-principle/index.md>) | 中级 | 🟢 有效 | 执行与决策分离，用包装与协调代替给稳定代码加状态 |
+| [Go 服务幂等设计实战](<https://cloaks.cn/knowledge/tech/architecture/system-design/idempotency/index.md>) | 中级 | 🟢 有效 | 四层防重设计：幂等键、唯一约束+事务、失败恢复、可观测性 |
+
+---
+
+*维护人：yiiewang · 最后更新：2026-09-06*

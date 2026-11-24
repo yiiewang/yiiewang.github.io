@@ -1,0 +1,177 @@
+# 双指针：从「背模板」到「懂不变量」
+
+双指针是用两个下标在线性结构上协同移动的技巧，能把一大类 O(n²) 的问题压到 O(n)。但「两端往中间走」「一快一慢」这些口诀不是重点——重点是：**指针每移动一步，你凭什么敢扔掉一批候选？** 这个「凭据」叫不变量（invariant），它是双指针正确性的全部。
+
+先说结论：背模板的人写对是运气，写不变量的人写对是必然。下面把三类双指针的正确性论证一个个补齐。
+
+## 1\. 暴力解到底浪费在哪
+
+以 LeetCode 167（有序数组中找两数之和等于 target）为例，暴力解是这样的：
+
+```go
+for i := 0; i < n; i++ {
+    for j := i + 1; j < n; j++ {
+        if numbers[i]+numbers[j] == target {
+            return []int{i + 1, j + 1}
+        }
+    }
+}
+```
+
+O(n²) 的开销花在哪？它**不记得任何结论**。`numbers[i]` 和某个数配出来太小这件事，内层循环换个 `i` 就忘了，同一批「不可能的配对」被反复检查。
+
+双指针版本：
+
+```go
+left, right := 0, len(numbers)-1
+for left < right {
+    sum := numbers[left] + numbers[right]
+    if sum == target {
+        return []int{left + 1, right + 1}
+    } else if sum < target {
+        left++ // 淘汰 numbers[left]
+    } else {
+        right-- // 淘汰 numbers[right]
+    }
+}
+```
+
+关键在 `sum < target` 时 `left++` 那一步为什么安全。数组非递减，所以对区间内任何 `j < right`，都有：
+
+`numbers[left] + numbers[j] <= numbers[left] + numbers[right] < target`
+
+也就是说，`numbers[left]` 跟**谁**配都不够——它被证明不可能是答案的一半，扔掉无罪。`sum > target` 时对称地扔掉 `right`。
+
+> [!TIP]
+>
+> **不变量**
+>
+> `[left, right]` 区间之外的每个数，都已被证明不可能是答案的组成部分。 每次移动淘汰一个数，最多 n 步出结果——这就是 O(n) 的来源。
+
+一句话概括：**双指针不是「减少循环」，是「把暴力解重复劳动里的结论存下来」**。
+
+## 2\. 相向双指针：正确性从「单调性」来
+
+167 能用相向指针，靠的是有序数组的单调性。同一招式还吃两类题。
+
+**两端藏着最值**。LeetCode 977（有序数组的平方）：负数平方后可能反超，最大值只可能出现在数组两端。从两端取较大的填进结果尾部：
+
+```go
+func sortedSquares(nums []int) []int {
+    n := len(nums)
+    result := make([]int, n)
+    left, right := 0, n-1
+    for pos := n - 1; pos >= 0; pos-- {
+        l2, r2 := nums[left]*nums[left], nums[right]*nums[right]
+        if l2 > r2 {
+            result[pos] = l2
+            left++
+        } else {
+            result[pos] = r2
+            right--
+        }
+    }
+    return result
+}
+```
+
+不变量：`result[pos+1:]` 已填满，且都大于等于剩余所有候选——所以每次取两端较大者填 `pos` 是安全的。
+
+**对称位置交换**。反转字符串（344）是最简形态——`left` 和 `right` 交换后各自靠近一步。轮转数组（189）把它玩出了花：向右轮转 k 位 = 整体反转 + 前 k 个反转 + 后 n-k 个反转，三次 O(n) 反转替代 O(k·n) 的逐位搬移。同族还有 557（反转单词）、2000（反转前缀），本质都是同一个对称性。
+
+## 3\. 快慢指针：一点小学问
+
+链表不能随机访问、也没有下标，「找中点」「判环」「找倒数第 N 个」这类位置问题，朴素做法得两趟遍历或者上额外空间。快慢指针一趟搞定，但每一道都有必要把「为什么对」说穿。
+
+**判环（141）：相对速度是 1**。慢指针每步走 1、快指针每步走 2，相对速度恒为 1。若链表有环，两者都进环之后，每一轮两者的距离缩短 1——距离是有限整数，迟早减到 0，即相遇。若 3 步快指针呢？相对速度 2，在长度为偶数的环上可能**永远错开**（距离差始终是偶数，减不到 0）。步长不是随便选的。
+
+```go
+func hasCycle(head *ListNode) bool {
+    slow, fast := head, head
+    for fast != nil && fast.Next != nil {
+        slow = slow.Next
+        fast = fast.Next.Next
+        if slow == fast {
+            return true
+        }
+    }
+    return false
+}
+```
+
+**找中点（876）：为什么恰好 2 步**。快指针速度是慢指针的 2 倍，快指针走完全程时，慢指针正好走了一半——这个比例关系就是证明。换成 3 步，慢指针会停在 ⅓ 处，中点直接跳过去。速度比和目标位置是绑定的，这是快慢指针里最容易被忽略的设计约束。
+
+```go
+func middleNode(head *ListNode) *ListNode {
+    slow, fast := head, head
+    for fast != nil && fast.Next != nil {
+        slow = slow.Next
+        fast = fast.Next.Next
+    }
+    return slow
+}
+```
+
+**倒数第 N 个（19）：距离恒定**。快指针先走 `n+1` 步，把两指针的距离「预置」成 `n+1`；之后同步移动，快指针到 `nil` 时，慢指针恰好停在待删节点的前驱。哨兵节点把「删除头结点」这个特殊分支消灭掉：
+
+```go
+func removeNthFromEnd(head *ListNode, n int) *ListNode {
+    dummy := &ListNode{Next: head}
+    slow, fast := dummy, dummy
+    for i := 0; i <= n; i++ {
+        fast = fast.Next
+    }
+    for fast != nil {
+        slow = slow.Next
+        fast = fast.Next
+    }
+    slow.Next = slow.Next.Next
+    return dummy.Next
+}
+```
+
+> [!WARNING]
+>
+> **空指针的坑**
+>
+> 快指针跳两步，循环条件必须同时检查 `fast != nil` **和** `fast.Next != nil`。 少检查一个，奇偶长度的链表总有一个会让你 panic。
+
+## 4\. 同向双指针与它的「儿子」滑动窗口
+
+前两类指针在同一个数组上你追我赶，同向双指针则是**两个序列各持一个指针**。
+
+LeetCode 392（判断 s 是否为 t 的子序列）：`i` 扫 s、`j` 扫 t，字符匹配时 `i` 前进，`j` 无条件前进。结束时 `i` 走完 s 即是子序列：
+
+```go
+func isSubsequence(s string, t string) bool {
+    i, j := 0, 0
+    for i < len(s) && j < len(t) {
+        if s[i] == t[j] {
+            i++
+        }
+        j++
+    }
+    return i == len(s)
+}
+```
+
+贪心正确性一句话：每个字符都匹配**最早出现的位置**，不会让后续匹配更差——早匹配留出的余地只会更多。
+
+滑动窗口是同向双指针的特化：左右边界同向移动，额外维护一个「区间合法性」约束，不合法就收缩左边界、合法就扩张右边界。专题展开见 [滑动窗口算法详解](</blog/posts/2023/02/03/>)。
+
+## 5\. 踩坑清单
+
+- ⚠️ **终止条件靠画图，不靠背**。相向是 `left < right` 还是 `left <= right`？快慢是 `fast != nil && fast.Next != nil`？拿空链表、单节点、双节点三个最小 case 在纸上走一遍，比背十个模板可靠。
+- ⚠️ **链表删除必上哨兵**。`dummy := &ListNode{Next: head}`，删头结点不再是特例。
+- ⚠️ **Go 切片是视图**。`nums[:k]` 和 `nums[k:]` 共享底层数组，原地反转时没有拷贝开销，但传参后修改会影响原切片——惊喜和惊吓都在这里。
+- ✅ **写代码前先写不变量注释**。一句话说清「区间外都是已淘汰/已确认的」，写的时候就有锚点，review 的时候就有依据。
+
+## 小结
+
+识别口诀还是那三句：**有序找配对 → 相向；链表找位置 → 快慢；序列做匹配 → 同向。** 但比口诀更重要的是那道自问：指针移动的每一步，淘汰了谁，凭什么？
+
+把这个论证写成不变量注释，双指针就从「背模板」变成了「设计」——毕竟 O(n) 不是天上掉下来的，是单调性、速度比、距离恒定这些结构性质换来的。
+
+---
+
+*最后更新：2026-09-14*

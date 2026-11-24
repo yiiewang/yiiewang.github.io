@@ -1,0 +1,191 @@
+# 「满：等消费者腾地方」——把这句注释实测一遍
+
+[前作](<https://cloaks.cn/blog/posts/2026/09/07-1/index.md>)的归并写者里有一段转发循环，队列满时 `runtime.Gosched()`，注释写着"满：等消费者腾地方"。有读者追问了两句：这个循环串行阻塞着，为什么还要让出？它和 park/唤醒又是什么关系？
+
+第一问的前提就错了：那个循环根本不是阻塞，是自旋。第二问的答案藏在运行时状态机里。这篇把三种"等"拆开讲清，再用真实数据验证——包括一个被我自己的实验打脸的结论。
+
+## 1\. 阻塞是假象，自旋是真的
+
+`Push` 失败返回 `false`，`for` 立刻重试。这个 goroutine 从头到尾处于 `_Grunning`：没 park、没睡、没让核，调度器眼里它和正常干活的 G 没有任何区别。
+
+所以问题从来不是"阻塞了要不要让出"，而是"自旋时让不让别人跑"。而它等的进度在别人手里：队列满意味着只有消费者 `Pop` 释放槽位，`Push` 才可能成功——消费者在另一条 goroutine 上，此刻可能根本没在跑。
+
+`GOMAXPROCS=1` 时尤其致命：不退出的紧循环占着唯一的 P，消费者从哪冒出来？这就是 `Gosched()` 存在的理由。
+
+## 2\. park/唤醒：睡的是 G，不是线程
+
+讲让出之前先把 park/唤醒说透——它是 Go 调度器的原子操作，channel、mutex、timer、select 全踩在它上面。G 的状态机简化成三步：
+
+```text
+_Grunning（在跑）--gopark--> _Gwaiting（睡着）--goready--> _Grunnable（进队列）--> 被调度
+```
+
+park 侧，简化自 [runtime/proc.go](<https://github.com/golang/go/blob/go1.24.0/src/runtime/proc.go>)：
+
+```go
+func gopark(unlockf func(*g, unsafe.Pointer) bool, lock unsafe.Pointer,
+            reason waitReason, ...) {
+    gp := getg().m.curg
+    gp.waitreason = reason // 记下"为什么睡"，执行轨迹里可见
+    mcall(park_m)          // 切到 g0 执行收尾
+}
+
+func park_m(gp *g) {
+    casgstatus(gp, _Grunning, _Gwaiting) // ① 标记等待
+    dropg()                              // ② G 与 M 解绑
+    if fn := mp.waitunlockf; fn != nil {
+        fn(gp, mp.waitlock)              // ③ 释放它拿着的锁（如 hchan.lock）
+    }
+    schedule()                           // ④ 换下一个 G 上 P
+}
+```
+
+三个细节定义了 park 的性格：
+
+- **睡的是 G，不是线程**。M 解绑后立刻去跑别的 G，全程用户态，没有系统调用、没有线程切换——这是 Go 与 1:1 线程模型最大的分野
+- **睡在哪由调用方决定**。channel 把 G 包成 sudog 挂进 `sendq`/`recvq`；mutex、WaitGroup 挂进 semtable 的 treap；timer 挂进每 P 的堆。`gopark` 只管状态机，不管队列
+- **waitReason 是一等公民**。`ChanSend`、`Semacquire`、`Sleep`、`Preempted`……execution trace 里你看到的"阻塞原因"就是它
+
+唤醒侧，channel 接收方捡到等待中的发送者时（runtime/chan.go）：
+
+```go
+func send(c *hchan, sg *sudog, ep unsafe.Pointer, unlockf func(), skip int) {
+    sendDirect(c.elemtype, sg, ep) // 值直接从发送者栈拷到接收者栈
+    gp := sg.g
+    unlockf()
+    gp.param = unsafe.Pointer(sg)
+    sg.success = true
+    goready(gp, skip+1)            // 唤醒
+}
+```
+
+```go
+func ready(gp *g, traceskip int, next bool) {
+    casgstatus(gp, _Gwaiting, _Grunnable) // 睡 → 可跑
+    runqput(mp.p.ptr(), gp, next)         // next=true：塞进 runnext 插队
+    wakep()                               // 有空闲 P 就拉一个起来
+}
+```
+
+**唤醒不是"通知"，是插队**。`goready` 固定 `next=true`，被唤醒的 G 直接占据当前 P 的 runnext 槽位，下一个就跑它。加上 `sendDirect` 的栈对栈拷贝，unbuffered channel 一次交接的热路径就是：拷值 + 改两处状态 + 塞 runnext。
+
+mutex 和 WaitGroup 底层的 sema 也是这套（runtime/sema.go）：semtable 是 251 个桶的数组，按信号量地址哈希，每桶一棵 sudog treap；`semrelease` 从 treap 摘队头，经 `readyWithTime` 走到 `goready`。竞争激烈时 mutex 切饥饿模式，`handoff` 直接把票交给队头，唤醒链路更短。
+
+> [!TIP]
+>
+> 所以"park/唤醒微秒级"要拆开说：同 P 直接交接实测约 250ns/次，比一次跨核缓存行乒乓还便宜；贵的是跨 P/跨 M 的完整链路——`wakep` 拉起新线程要 futex，那时才是微秒级。
+
+## 3\. runtime.Gosched：不睡觉的让位
+
+`Gosched` 走的是完全另一条路：
+
+```go
+func Gosched() {
+    checkTimeouts()
+    mcall(gosched_m)
+}
+
+func goschedImpl(gp *g, preempted bool) {
+    casgstatus(gp, _Grunning, _Grunnable) // 注意：没经过 _Gwaiting
+    dropg()
+    lock(&sched.lock)
+    globrunqput(gp) // 扔回全局队列——不是本地，更不是 runnext
+    unlock(&sched.lock)
+    if mainStarted {
+        wakep()
+    }
+    schedule()
+}
+```
+
+两个关键差异：
+
+1. **它从不睡觉**。状态从 `_Grunning` 直接改 `_Grunnable`，没有 `_Gwaiting`，也就没有"唤醒"一说——它只是把自己摘下来回炉
+2. **它进的是全局队列**。`globrunqput` 不是递给某个特定 goroutine：`Gosched` 没有"把 P 交给消费者"的语义，只有"我不跑了，大家重新排队"的语义
+
+所以 Gosched 与 park 的关系一句话：**park 是"我不行了，有结果叫我"；Gosched 是"我还能跑，但让别人先来"。** 前者睡到被唤醒，后者立刻回到就绪态重新排队。
+
+还有第三种换班你控制不了：sysmon。这个不需要 P 的后台监控线程巡逻全局，发现某个 G 在 P 上连续跑超过阈值就强制抢占：
+
+```go
+// runtime/proc.go
+const forcePreemptNS = 10 * 1000 * 1000 // 10ms
+```
+
+Go 1.14 之前，抢占只能发生在函数调用的栈检查点，纯计算紧循环（无调用）不可抢占——`GOMAXPROCS=1` 下就是真饿死（见 [Go 1.14 release notes](<https://go.dev/doc/go1.14#runtime>)）。1.14 起改用信号异步抢占，紧循环也能被切开，代价是最多 10ms 的延迟。记住这 10ms，下面的实验里全是它。
+
+## 4\. 实测：1P 是一台照妖镜
+
+完整代码在仓库 [example/park-or-spin](<https://github.com/yiiewang/yiiewang.github.io/tree/master/example/park-or-spin>)：[07.md](<https://cloaks.cn/blog/posts/2026/09/07/index.md>) 的 SPSC 原样复用，转发者模拟 MergedQ.Run，双端对称地用三种策略等（生产者等满、消费者等空）：
+
+```bash
+cd example
+go run ./2026/09/09-1/park-or-spin -exp=stall  -procs=1 -n 50000   # 满队列三策略对比
+go run ./2026/09/09-1/park-or-spin -exp=stall  -procs=2 -n 50000   # 多核对照
+go run ./2026/09/09-1/park-or-spin -exp=ladder -procs=1            # 等待成本阶梯
+GODEBUG=asyncpreemptoff=1 go run ./2026/09/09-1/park-or-spin -exp=stall -procs=1 -wait=0  # 会挂死，属预期
+```
+
+`GOMAXPROCS=1`（Go 1.24.13，n=50000，cap=1024）：
+
+| 等待策略 | 首元素延迟 | 最大弹出间隔 | \>1ms 间隔数 | 总耗时 |
+| --- | --- | --- | --- | --- |
+| 双端纯自旋 | 14-20ms | 40-60ms | \~50 | 1.92s |
+| 双端自旋+Gosched | 16-122µs | 20.1ms | 48 | 962ms |
+| 双端自旋+Sleep(100µs) | 33-130µs | 40.2ms | \~50 | 988ms |
+
+纯自旋完美验证了 10ms 节拍：最大间隔 40-60ms，是 `forcePreemptNS` 的 4-6 倍——每次换班都在等 sysmon 强制抢占。首元素延迟 14ms：消费者在程序开始后 14ms 才第一次被调度。
+
+Gosched 把首元素降到微秒级——"让出"在起步阶段确实立竿见影。但看总耗时：962ms ≈ 48 × 20ms，每个满/空转换都卡了两个 10ms 节拍。`GODEBUG=schedtrace=100` 的输出解释了原因：
+
+```text
+SCHED 105ms: gomaxprocs=1 idleprocs=0 ... runqueue=1 [0]
+SCHED 206ms: gomaxprocs=1 idleprocs=0 ... runqueue=1 [0]
+SCHED 508ms: gomaxprocs=1 idleprocs=0 ... runqueue=1 [0]
+SCHED 609ms: gomaxprocs=1 idleprocs=0 ... runqueue=0 [1]
+```
+
+全局队列里长期躺着一个 G，P 上跑着另一个。**Gosched 扔回全局队列这个动作，在两个互相等对方进度的 G 之间并没有形成想象中的 ns 级乒乓——稳态轮转仍被 sysmon 的 10ms 节拍支配。** 更狠的对照：加上 `GODEBUG=asyncpreemptoff=1`（关掉异步抢占）后，连双端都显式 Gosched 的版本也直接挂死。1P 世界里，调度进展的最终兜底是抢占节拍，不是礼让。
+
+作为对照，单端让出——只有转发者 Gosched、消费者继续纯自旋——总耗时从 7.98s 降到 3.93s（n=200000）：让出有用，但只要还有一端在忙等，账单就只打折不清零。
+
+## 5\. 多核世界与成本阶梯
+
+同一份代码换 `GOMAXPROCS=2`：
+
+| 等待策略 | 首元素延迟 | 最大弹出间隔 | 总耗时 |
+| --- | --- | --- | --- |
+| 双端纯自旋 | 68-75µs | 11-16µs | 9.6-9.8ms |
+| 双端自旋+Gosched | 15-117µs | 48-287µs | 9.1-11.2ms |
+| 双端自旋+Sleep(100µs) | 16-102µs | \~1ms | 29.5-29.9ms |
+
+**200 倍的差距**。多一个核，纯自旋立刻从灾难变最优——消费者在另一个核上实时腾地方，生产者的自旋几乎不用空转。这正是前作"核多于线程时自旋是优势，核超订阅时是灾难"的定量版。
+
+等待本身的成本阶梯（ns/往返）：
+
+| 等法 | 1P | 2P |
+| --- | --- | --- |
+| 原子标志乒乓（纯自旋，零调度参与） | — | 260 |
+| Gosched 往返 | 335 | 1745 |
+| channel 往返（2 次 park/唤醒交接） | 537 ≈ 268/次 | 476 ≈ 238/次 |
+
+park/唤醒的直接交接和一次跨核缓存行乒乓同量级——比多数人以为的便宜得多。而 Gosched 在 2P 下反而贵了 5 倍（1.7µs）：全局队列的锁 + 跨 P 唤醒，都是多核才有的税。
+
+## 6\. 注意事项
+
+- ⚠️ **等待策略不属于队列，属于使用者**。SPSC 的 `Push` 只负责返回 `false`；自旋、Gosched、Sleep、park 都是调用方的决策，队列自己不该替你选
+- ⚠️ **容器配额 1 核就是 1P 世界**。CPU limit=1 的 pod 里，第 4 节所有 1P 结论原样生效；Go 1.25 起运行时默认感知 cgroup 配额并动态下调 `GOMAXPROCS`，这类场景只会更多
+- ⚠️ **紧循环的历史包袱**：Go 1.14 前无异步抢占，1P + 无调用紧循环 = 真饿死；今天用 `asyncpreemptoff=1` 就能复现当年的世界
+- ✅ **真要稳，给等待加终点**：要么 park 住（把"满"接成 channel 语义，交给运行时的唤醒链路），要么保证生产者与消费者不在同一份 CPU 预算里抢饭
+
+## 小结
+
+回到开头两个问题。第一问：那个循环不是阻塞是自旋，让出是因为它等的进度在另一条 goroutine 手里——这半句成立。第二问：`Gosched` 不经过 `_Gwaiting`，是"回炉重排"而非"睡觉"；park/唤醒是状态机的正路，睡 G 不睡线程，唤醒即插队——机制讲清了。
+
+但我此前那句"消费者立刻被调度"被实验打了一半的脸：起步阶段成立（µs 级），1P 稳态不成立（20ms 节拍）。实测的价值就在这——**"让出"的语义是"回到队列重新排队"，不是"把 P 递给某个具体的人"**。想要确定性交接，得用有配对语义的原语（channel 的 send/recv 配对、sema 的票交接），或者干脆多给一个核。
+
+调度器在 1P 忙等场景下的队列细节（全局队列批搬、runnext 插队、retake 的抢 P 顺序）这次只挖到现象层，值得另写一篇。
+
+---
+
+*最后更新：2026-09-09*

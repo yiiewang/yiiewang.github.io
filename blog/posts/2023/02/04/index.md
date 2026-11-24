@@ -1,0 +1,192 @@
+# 二分查找算法详解
+
+二分查找（Binary Search）是一种在 **有序数组** 中查找目标值的高效算法，时间复杂度为 O(log n)。其核心思想是「减而治之」——通过比较中间元素，每次将搜索范围缩小一半。
+
+## 核心原理
+
+在升序数组中查找目标值 `target`：
+
+1. 取中间位置 `mid`，比较 `nums[mid]` 与 `target`
+2. 若相等，找到目标
+3. 若 `nums[mid] > target`，目标在左半部分
+4. 若 `nums[mid] < target`，目标在右半部分
+5. 重复直到找到或范围为空
+
+## 代码模板
+
+```go
+func binarySearch(nums []int, target int) int {
+    left, right := 0, len(nums)-1
+
+    for left <= right {
+        mid := left + (right-left)/2  // 防止溢出
+
+        if nums[mid] == target {
+            return mid
+        } else if nums[mid] > target {
+            right = mid - 1
+        } else {
+            left = mid + 1
+        }
+    }
+    return -1  // 未找到
+}
+```
+
+> [!WARNING]
+>
+> **防止整数溢出**
+>
+> 计算 `mid` 时使用 `left + (right-left)/2` 而非 `(left+right)/2`，避免大数相加溢出。
+
+---
+
+## 实战练习
+
+| 难度 | 题目 | 类型 |
+| --- | --- | --- |
+| 🟢 | 278\. 第一个错误的版本 | 找边界 |
+| 🟢 | 35\. 搜索插入位置 | 找插入点 |
+| 🟡 | 167\. 两数之和 II | 二分+遍历 |
+
+---
+
+### 🟢 278. 第一个错误的版本
+
+> 你有 n 个版本 `[1, 2, ..., n]`，某个版本开始出错，之后所有版本都是错的。 调用 `isBadVersion(version)` 判断是否出错，找出第一个错误版本。
+
+**示例**：
+
+```text
+输入：n = 5, bad = 4
+输出：4
+解释：
+  isBadVersion(3) → false
+  isBadVersion(5) → true
+  isBadVersion(4) → true
+  所以 4 是第一个错误版本
+```
+
+**思路**：二分找左边界。若当前版本是错的，答案在左侧（含当前）；否则在右侧。
+
+```go
+func firstBadVersion(n int) int {
+    left, right := 1, n
+
+    for left < right {
+        mid := left + (right-left)/2
+        if isBadVersion(mid) {
+            right = mid     // 可能是答案，不能排除
+        } else {
+            left = mid + 1  // 一定不是答案
+        }
+    }
+    return left
+}
+```
+
+---
+
+### 🟢 35. 搜索插入位置
+
+> 给定有序数组和目标值，找到目标值的索引；若不存在，返回应插入的位置。
+
+**示例**：
+
+```text
+输入：nums = [1,3,5,6], target = 5 → 输出：2
+输入：nums = [1,3,5,6], target = 2 → 输出：1
+输入：nums = [1,3,5,6], target = 7 → 输出：4
+```
+
+**思路**：找第一个 `>= target` 的位置。
+
+```go
+func searchInsert(nums []int, target int) int {
+    left, right := 0, len(nums)
+
+    for left < right {
+        mid := left + (right-left)/2
+        if nums[mid] >= target {
+            right = mid
+        } else {
+            left = mid + 1
+        }
+    }
+    return left
+}
+```
+
+---
+
+### 🟡 167. 两数之和 II（输入有序数组）
+
+> 在有序数组中找两个数，使它们的和等于 `target`。返回下标（从 1 开始）。
+
+**示例**：
+
+```text
+输入：numbers = [2,7,11,15], target = 9
+输出：[1,2]
+解释：2 + 7 = 9
+```
+
+**思路**：双指针（更优）或固定一个数后二分查找另一个。
+
+```go
+func twoSum(numbers []int, target int) []int {
+    left, right := 0, len(numbers)-1
+
+    for left < right {
+        sum := numbers[left] + numbers[right]
+        if sum == target {
+            return []int{left + 1, right + 1}
+        } else if sum < target {
+            left++
+        } else {
+            right--
+        }
+    }
+    return []int{-1, -1}
+}
+```
+
+```go
+func twoSum(numbers []int, target int) []int {
+    for i := 0; i < len(numbers); i++ {
+        // 在 i 右侧二分查找 target-numbers[i]
+        left, right := i+1, len(numbers)-1
+        need := target - numbers[i]
+
+        for left <= right {
+            mid := left + (right-left)/2
+            if numbers[mid] == need {
+                return []int{i + 1, mid + 1}
+            } else if numbers[mid] > need {
+                right = mid - 1
+            } else {
+                left = mid + 1
+            }
+        }
+    }
+    return []int{-1, -1}
+}
+```
+
+---
+
+## 总结
+
+| 场景 | 循环条件 | 返回值 |
+| --- | --- | --- |
+| 查找精确值 | `left <= right` | `mid` 或 `-1` |
+| 查找左边界 | `left < right` | `left` |
+| 查找插入位置 | `left < right` | `left` |
+
+> [!TIP]
+>
+> **二分查找的关键**
+>
+> - 确定搜索区间是 `[left, right]` 还是 `[left, right)`
+> - 根据区间类型决定循环条件和边界更新方式
+> - 防止死循环：确保每次迭代搜索空间都在缩小

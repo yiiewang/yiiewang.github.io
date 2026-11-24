@@ -1,0 +1,22 @@
+# Go 语言
+
+> Go 语言深度使用经验：并发编程、网络编程、类型系统、工具链。结合 ChainMaker 区块链项目实战沉淀。
+
+## 📖 知识条目
+
+| 条目 | 难度 | 状态 | 简介 |
+| --- | --- | --- | --- |
+| [atomic.Value 存接口值的装箱惯用法](<https://cloaks.cn/knowledge/tech/languages/go/atomic-value-boxing/index.md>) | 中级 | 🟢 有效 | 固定外壳存接口，实现间热切换不 panic |
+| [多分片求交集：缺失交易查询的三种实现](<https://cloaks.cn/knowledge/tech/languages/go/shard-missing-intersection/index.md>) | 中级 | 🟢 有效 | 删除/重建/计数三版对照，计数法一次判定胜出 |
+| [位寻址与掩码置位：i/8、i%8 与 1\<\<(7-i%8)](<https://cloaks.cn/knowledge/tech/languages/go/bit-addressing/index.md>) | 入门 | 🟢 有效 | i/8 定位字节、移位造掩码、或赋值置位 |
+| [整数向上取整惯用法：(N+7)/8](<https://cloaks.cn/knowledge/tech/languages/go/ceiling-division/index.md>) | 入门 | 🟢 有效 | 向上取整的整数技巧与位打包应用 |
+| [Go 并发编程：锁与同步全景](<https://cloaks.cn/knowledge/tech/languages/go/go-concurrency/index.md>) | 高级 | 🟢 有效 | 15 个常见反模式及正确做法、死锁公式、自检清单 |
+
+## 🔗 相关资源
+
+- [Go 博客文章](</blog/>)（搜索标签 `Go`、`并发编程`）
+- [Go 官方文档](<https://go.dev/doc/>)
+
+---
+
+*维护人：yiiewang · 最后更新：2026-09-29*

@@ -1,0 +1,68 @@
+# Hexo 使用技巧补充
+
+在使用 Hexo 的过程中，我发现了一些官方文档中没有详细介绍的内容，在此做个记录。
+
+## Post 与 Page 的区别
+
+Post 和 Page 都是博客的发布形式，但有本质区别：
+
+### Post（文章）
+
+- 一般的博客文章，按时间逆序排列在首页
+- 可以关联分类和标签
+- 适合发布技术文章、生活记录等时效性内容
+
+### Page（页面）
+
+- 独立页面，如"关于我"、"联系方式"等
+- 内容相对固定，不受时间规则影响
+- 不会出现在首页文章列表中
+- 无法关联分类和标签
+
+## 文章摘要功能
+
+[官方文档](<https://hexo.io/zh-cn/docs/variables>) 中提到了 `page.excerpt` 和 `post.excerpt` 变量，但没有详细说明使用方法。
+
+### 使用方法
+
+在文章中使用 `<!-- more -->` 标记来分隔摘要和正文：
+
+```markdown
+---
+title: 文章标题
+date: 2022-12-16 23:52:46
+---
+
+这里是文章摘要，会显示在首页列表中。
+
+<!-- more -->
+
+这里是正文内容，只在文章详情页显示。
+```
+
+### 首页展示效果
+
+[![首页摘要效果](<https://cloaks.cn/blog/posts/2022/12/image-20221217000842772.png>)](<https://cloaks.cn/blog/posts/2022/12/image-20221217000842772.png>)
+
+### 实现原理
+
+在 `themes/landscape/layout/_partial/article.ejs` 中有如下逻辑：
+
+```text
+<% if (post.excerpt && index){ %>
+  <%- post.excerpt %> 
+  <% if (theme.excerpt_link){ %>
+    <a href="<%- url_for(post.path) %>#more"><%= theme.excerpt_link %></a>
+  <% } %>
+<% } else { %>
+  <%- post.content %>
+<% } %>
+```
+
+当摘要不为空且处于首页（`index` 为 `true`）时，只显示摘要内容，并添加"阅读更多"链接。
+
+> [!TIP]
+>
+> **配置**
+>
+> `theme.excerpt_link` 可在 `themes/landscape/_config.yml` 中配置。
