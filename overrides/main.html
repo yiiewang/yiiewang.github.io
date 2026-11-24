@@ -213,5 +213,9 @@
 <!-- Add scripts that need to run before here -->
 {{ super() }}
 <!-- Add scripts that need to run afterwards here -->
-<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+{#- Umami Cloud：纯 GitHub Pages 无服务端，采集脚本直连托管实例。
+    website_id 未配置时不注入，避免向无效 ID 发送采集请求。 -#}
+{% if config.extra.umami.website_id %}
+<script defer src="https://cloud.umami.is/script.js" data-website-id="{{ config.extra.umami.website_id | e }}"></script>
+{% endif %}
 {% endblock %}

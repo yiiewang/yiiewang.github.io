@@ -12,6 +12,7 @@
 - 启用官方 `rss` 插件（0.0.65+）：`match_path = "blog/posts/.*"` 限定只收录博文，`date_from_meta.as_creation = "date"` 配合 `datetime_format = "%Y-%m-%d"` 让 `pubDate` 取 frontmatter 日期并按最新 20 篇排序；产物为 `feed_rss_created.xml`、`feed_rss_updated.xml`、两个 JSON Feed 与 `rss.xsl`。未配 `date_from_meta` 时所有日期会退化为构建时间、且收录最老的 20 篇。
 - 启用官方 `social` 插件（0.0.67+）按页生成社交卡。`theme.logo` 是 ICO，插件不支持该格式，直接启用会报 `RuntimeError: unsupported social background format`；需用 `[project.plugins.social.cards_layout_options] logo = "docs/assets/images/logo.png"` 覆盖，且该路径从项目根解析（不是 docs_dir）。实测 0.1.3 的原生实现无需额外 Python / 系统依赖。
 - 新增根目录 `CHANGELOG.md`，记录本次升级与官方插件迁移。
+- 新增站点统计（Umami Cloud 托管方案）：`zensical.toml` 增加 `[project.extra.umami].website_id` 作为采集脚本唯一配置入口，留空时 `overrides/main.html` 的 scripts 块不注入脚本，避免向无效 ID 发送采集请求；配置后以 `defer` 加载 `https://cloud.umami.is/script.js`。新增 `docs/stats/index.md` 静态引导页并挂入 `nav`，通过 Share URL 只读链接跳转公开面板——本站为纯 GitHub Pages，无服务端可配 nginx 反代，且 Umami 的 `ALLOWED_FRAME_URLS` 是自建实例的 build-time 变量（Cloud 端不可设），故不使用 iframe 嵌入。GA（`extra.analytics`）保持原样。
 
 ### Changed
 
@@ -29,5 +30,6 @@
 
 ### Removed
 
+- 移除页脚不蒜子计数：`zensical.toml` 的 `copyright` 只保留版权与备案号（删掉两个 `busuanzi_container_*` span 及 `<br/>` / `|` 分隔符），`overrides/main.html` 的 scripts 块删除 `busuanzi.pure.mini.js`。不蒜子的历史累计 PV/UV 与 Umami 会话级口径不一致且无法迁移，站点统计统一由 `docs/stats/index.md` 跳转的 Umami 只读 Share 面板承担。
 - 删除 `scripts/gen_seo.py`（自建 SEO / RSS 生成脚本）与 `docs/rss.xml`。
 - 从 git 索引移除此前被跟踪的 `docs/llms.txt` / `docs/llms-full.txt` 生成物（未提交，删除随下次提交生效）。
