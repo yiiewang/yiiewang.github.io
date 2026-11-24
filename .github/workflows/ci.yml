@@ -48,13 +48,6 @@ jobs:
 
       # --user 让容器以 runner 用户身份运行：否则 site/ 归 root 所有，
       # 下一步的 touch 会因权限不足失败（touch: Permission denied）。
-      # SEO 产物（llms.txt / llms-full.txt / rss.xml）构建前生成进 docs/，
-      # 随站点发布；不入库（见 .gitignore），保证永远与内容同步。
-      - name: Generate SEO files
-        run: |
-          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/docs \
-            --entrypoint python3 "$DOCKER_IMAGE" scripts/gen_seo.py
-
       - name: Build site
         run: |
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/docs "$DOCKER_IMAGE" build -f zensical.toml --clean

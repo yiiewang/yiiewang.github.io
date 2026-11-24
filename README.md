@@ -22,7 +22,7 @@ make dev
 
 ```bash
 # 安装 Zensical（版本需与 .github/workflows/Dockerfile 一致 —— 全仓唯一版本源）
-pip install "zensical==0.0.63"
+pip install "zensical==0.1.3"
 
 # 开发服务器（增量构建 + 热重载）
 make serve
@@ -51,7 +51,7 @@ make build
 
 ## 🔧 配置说明
 
-- **构建工具**：Zensical 0.0.63
+- **构建工具**：Zensical 0.1.3
 - **语言**：中文
 - **功能特性**：
   - 博客系统（文章列表由 `scripts/blog_macros.py` 的 `blog_list()` 宏渲染）
@@ -62,8 +62,9 @@ make build
 
 ### 博客列表宏
 
-Zensical 0.0.x 尚未实现 blog 插件，`docs/blog/index.md` 通过
-`{{ blog_list() }}` 调用 `scripts/blog_macros.py` 中的宏，扫描
+本站未接入官方 blog 插件（保留自定义分类、按月年度归档等定制逻辑），
+`docs/blog/index.md` 通过 `{{ blog_list() }}` 调用
+`scripts/blog_macros.py` 中的宏，扫描
 `docs/blog/posts/` 下的全部文章并按时间倒序渲染卡片。
 
 宏通过 `zensical.toml` 的 `[project.plugins.macros]` 加载，配置项：
@@ -89,7 +90,7 @@ Zensical 0.0.x 尚未实现 blog 插件，`docs/blog/index.md` 通过
 
 配置文件：`.github/workflows/ci.yml`
 
-> 版本一致性：`zensical==0.0.63` 只固定在 `.github/workflows/Dockerfile`（全仓唯一版本源），
+> 版本一致性：`zensical==0.1.3` 只固定在 `.github/workflows/Dockerfile`（全仓唯一版本源），
 > Makefile 与 `.github/workflows/ci.yml` 的镜像 tag 都从它推导。升级时只需改 Dockerfile
 > 中的版本号，再 `make docker-build` 并推送镜像。
 
@@ -102,7 +103,7 @@ Zensical 自带差分构建缓存（`.cache/`），重复构建只需数秒：
 ```bash
 # 保留缓存卷，跨容器复用构建缓存
 docker run --rm -v $(pwd):/docs -v zensical-cache:/docs/.cache \
-  cloaks/zensical:0.0.63 build -f zensical.toml
+  cloaks/zensical:0.1.3 build -f zensical.toml
 ```
 
 ### 限制资源使用
@@ -113,7 +114,7 @@ docker run --rm \
   --memory="2g" \
   -v $(pwd):/docs \
   -p 8000:8000 \
-  cloaks/zensical:0.0.63 \
+  cloaks/zensical:0.1.3 \
   serve -f zensical.toml -a 0.0.0.0:8000
 ```
 

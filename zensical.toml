@@ -12,6 +12,12 @@ site_description = "Cloaks｜Yiiewang 的个人站点 —— 博客记录思考�
 site_name = "Cloaks｜Yiiewang"
 site_url = "https://cloaks.cn"
 
+# 图源不随产物发布（Zensical 0.0.70+ 原生支持）
+exclude_docs = '''
+**/_*.ditaa.txt
+**/_*.svgbob.txt
+'''
+
 # ---------------------------------------------------------------------------
 # Repository
 # ---------------------------------------------------------------------------
@@ -494,15 +500,37 @@ pymdownx.tilde = {}
 # ---------------------------------------------------------------------------
 # Plugins
 #
-# Zensical 未支持的插件（blog / rss / social / privacy / optimize）不再列出，
-# 对应功能现状：
-#   blog     → 文章列表改由 scripts/blog_macros.py 的 blog_list() 宏渲染
-#   rss      → feed 由 scripts/gen_seo.py 构建时生成（docs/rss.xml，构建前经 make seo / CI 注入）
-#   social   → 不再生成社交分享卡片（OG 图）；分享预览统一使用 assets/images/og-card.png
+# 插件现状（rss / llmstxt / social 用官方原生插件，blog 不接入，保留自建宏）：
+#   blog     → 文章列表由 scripts/blog_macros.py 的宏渲染
 #   privacy  → 外部 CDN 资源已手动本地化（mermaid/katex → assets/vendor/）
-#   optimize → 不再压缩图片、不生成 srcset 响应式变体
+#   optimize → 不压缩图片、不生成 srcset 响应式变体
 # 兼容列表：https://zensical.org/docs/compatibility/mkdocs/plugins/
 # ---------------------------------------------------------------------------
+[project.plugins.llmstxt]
+# 官方插件生成 llms.txt 索引、各页 Markdown 副本与全文文件；替代原 gen_seo.py 的两段逻辑
+markdown_description = "中文技术博客与知识库。核心话题：Go 与系统编程、存储与并发设计、区块链工程、架构设计、算法、量化交易与读书思考。文章面向工程师，重推导过程与可复现细节。"
+full_output = "llms-full.txt"
+
+[project.plugins.llmstxt.sections]
+"首页" = ["index.md", "about.md"]
+"博客" = ["blog/**/*.md"]
+"知识库" = ["knowledge/**/*.md"]
+"软考·架构师" = ["ruankao/**/*.md"]
+"设计模式" = ["design-patterns/**/*.md"]
+"实验室" = ["lab/**/*.md"]
+
+[project.plugins.rss]
+match_path = "blog/posts/.*"
+
+[project.plugins.rss.date_from_meta]
+as_creation = "date"
+datetime_format = "%Y-%m-%d"
+
+[project.plugins.social]
+# theme.logo 是 ICO，插件不支持该格式；用 PNG 覆盖卡片 logo
+[project.plugins.social.cards_layout_options]
+logo = "docs/assets/images/logo.png"
+
 [project.plugins.macros]
 # 白名单模式：只有显式声明 render_macros: true 的页面（如 docs/blog/index.md）
 # 才走 Jinja 渲染，避免代码块中的 {{ }} 被误渲染
@@ -560,10 +588,10 @@ icon = "material/emoticon-sad-outline"
 name = "此页面可以改进。"
 note = '''感谢您的反馈！请通过<a href="https://github.com/yiiewang/yiiewang.github.io/issues/new?labels=feedback&amp;title=%E9%A1%B5%E9%9D%A2%E5%8F%8D%E9%A6%88%EF%BC%9A{title}&amp;body=%23%23%23%20%E6%9D%A5%E6%BA%90%E9%A1%B5%E9%9D%A2%0A-%20%E6%A0%87%E9%A2%98%EF%BC%9A{title}%0A-%20%E5%9C%B0%E5%9D%80%EF%BC%9A{url}%0A%0A%23%23%23%20%E5%8F%8D%E9%A6%88%E7%B1%BB%E5%9E%8B%0A%3C%21--%20%E5%86%85%E5%AE%B9%E6%9C%89%E8%AF%AF%20%2F%20%E5%86%85%E5%AE%B9%E8%BF%87%E6%97%B6%20%2F%20%E8%A1%A8%E8%BF%B0%E4%B8%8D%E6%B8%85%20%2F%20%E5%BB%BA%E8%AE%AE%E8%A1%A5%E5%85%85%20%2F%20%E6%98%BE%E7%A4%BA%E5%BC%82%E5%B8%B8%20%2F%20%E5%85%B6%E4%BB%96%20--%3E%0A%0A%23%23%23%20%E9%97%AE%E9%A2%98%E6%8F%8F%E8%BF%B0%0A%3C%21--%20%E8%AF%B7%E5%85%B7%E4%BD%93%E6%8F%8F%E8%BF%B0%E9%97%AE%E9%A2%98%E6%88%96%E6%94%B9%E8%BF%9B%E5%BB%BA%E8%AE%AE%20--%3E%0A%0A%23%23%23%20%E4%BD%A0%E7%9A%84%E8%81%94%E7%B3%BB%E6%96%B9%E5%BC%8F%EF%BC%88%E9%80%89%E5%A1%AB%EF%BC%89%0A%3C%21--%20%E9%82%AE%E7%AE%B1%E6%88%96%E5%85%B6%E4%BB%96%E8%81%94%E7%B3%BB%E6%96%B9%E5%BC%8F%EF%BC%8C%E6%96%B9%E4%BE%BF%E6%88%91%E4%BB%AC%E5%9B%9E%E5%A4%8D%E4%BD%A0%20--%3E" target="_blank" rel="noopener">反馈表</a>告诉我们具体问题（来源页面已自动附上），我们会在 issue 中回复你。'''
 
-# RSS 订阅：feed 由 scripts/gen_seo.py 构建时生成到 docs/rss.xml（构建前运行）
+# RSS 订阅：feed_rss_created.xml 由官方 rss 插件生成
 [[project.extra.social]]
 icon = "simple/rss"
-link = "https://cloaks.cn/rss.xml"
+link = "https://cloaks.cn/feed_rss_created.xml"
 
 [[project.extra.social]]
 icon = "fontawesome/brands/github"

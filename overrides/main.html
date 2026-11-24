@@ -52,10 +52,10 @@
       - canonical / author meta 不再重复输出：主题 base.html 已带
       - URL 拼接改用 page.canonical_url：原 `site_url ~ page.url` 缺斜杠
         （如 https://cloaks.cnblog/posts/...）
-      - 新增 og:image / twitter:image（默认分享卡 og-card.png，
-        由 scripts/og_card.py 生成）
+      - og:image / twitter:image 改由官方 social 插件按页输出，
+        本模板只保留其余 OG / Twitter / JSON-LD 定制
       - dateModified 支持 frontmatter 的 updated 字段（缺省回落 date）
-      - 新增 RSS autodiscovery（rss.xml 由 scripts/gen_seo.py 构建时生成）
+      - 新增 RSS autodiscovery（feed_rss_created.xml 由官方 rss 插件生成）
       - 移除虚构的 SearchAction：站点没有 ?q= 搜索结果页
       ================================================================ -#}
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
@@ -67,15 +67,16 @@
   <meta name="llms" content="allowed">
 
   {#- RSS 订阅发现（阅读器与 AI 助手据此发现新内容） -#}
-  {#- 注意：site_url 约定不带末尾斜杠（mkdocs 惯例，与主题 canonical 同一契约） -#}
+  {#- Zensical 0.1.3 起 config.site_url 规范化为带末尾斜杠，拼接时不再补 "/" -#}
   <link rel="alternate" type="application/rss+xml"
         title="{{ config.site_name }}"
-        href="{{ config.site_url }}/rss.xml">
+        href="{{ config.site_url }}feed_rss_created.xml">
 
-  {#- Open Graph / Twitter Card（主题不输出这些标签，分享预览全靠这里） -#}
+  {#- Open Graph / Twitter Card：og:image / twitter:image 由官方 social 插件输出 -#}
   {#- Zensical 模板引擎是 minijinja：无 truncate / startswith / trim(chars) 等
       Python-Jinja 能力，只做纯拼接与白名单 filter。 -#}
-  {% set og_image = config.site_url ~ '/assets/images/og-card.png' %}
+  {#- og_image 仅供 JSON-LD 的 image 字段使用（结构化数据仍指向统一固定卡） -#}
+  {% set og_image = config.site_url ~ 'assets/images/og-card.png' %}
   <meta property="og:site_name" content="{{ config.site_name }}">
   <meta property="og:locale" content="zh_CN">
   <meta property="og:type" content="{% if page and page.meta and page.meta.date %}article{% else %}website{% endif %}">
@@ -86,9 +87,6 @@
   {% else %}
   <meta property="og:description" content="{{ config.site_description | e }}">
   {% endif %}
-  <meta property="og:image" content="{{ og_image }}">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
 
   {#- 文章页附加的时间信号（Meta/Slack 等消费 article:*） -#}
   {% if page and page.meta and page.meta.date %}
@@ -102,8 +100,6 @@
   {% if page and page.meta and page.meta.description %}
   <meta name="twitter:description" content="{{ page.meta.description | e }}">
   {% endif %}
-  <meta name="twitter:image" content="{{ og_image }}">
-
   {#- JSON-LD：站点级 -#}
   <script type="application/ld+json">
   {

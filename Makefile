@@ -20,7 +20,7 @@ DOCKER_USER  := --user "$(shell id -u):$(shell id -g)"
 
 # Dockerfile 内容哈希（前 16 位）：构建时写入镜像 label，用于判断镜像是否过期
 DOCKERFILE_HASH := $(shell sha256sum $(DOCKERFILE) 2>/dev/null | cut -c1-16)
-# 从 Dockerfile 提取固定的 zensical 版本号（如 0.0.60）—— 全仓唯一版本源
+# 从 Dockerfile 提取固定的 zensical 版本号（如 0.1.3）—— 全仓唯一版本源
 PINNED_VERSION  := $(shell sed -n 's/.*"zensical==\([0-9][0-9.]*\)".*/\1/p' $(DOCKERFILE) | head -1)
 # 镜像 tag 由 PINNED_VERSION 推导：升级版本只需改 Dockerfile，tag 自动跟随
 DOCKER_IMAGE := cloaks/zensical:$(PINNED_VERSION)
@@ -78,21 +78,14 @@ check-upstream:
 
 # ========== 开发 / 构建 / 预览 ==========
 
-# SEO / AI 检索产物：llms.txt / llms-full.txt / rss.xml（构建前生成进 docs/，
-# 随站点发布；不入库——见 .gitignore，保证永远与内容同步，不再手写腐化）
-seo: ensure-image
-	@echo ">>> 生成 SEO / AI 检索文件（llms.txt / llms-full.txt / rss.xml）"
-	docker run --rm $(DOCKER_USER) $(DOCS_MOUNT) --entrypoint python3 $(DOCKER_IMAGE) \
-		scripts/gen_seo.py
-
 # 开发服务器：增量构建 + 热重载
-dev serve: seo
+dev serve: ensure-image
 	@echo ">>> 开发服务器 http://localhost:$(DEV_PORT)"
 	docker run --rm $(DOCKER_USER) $(DOCS_MOUNT) -p $(DEV_PORT):8000 $(DOCKER_IMAGE) \
 		serve -f zensical.toml -a 0.0.0.0:8000
 
 # 生产构建：clean 清缓存，产物在 site/
-build prod: seo
+build prod: ensure-image
 	@echo ">>> 生产构建中..."
 	docker run --rm $(DOCKER_USER) $(DOCS_MOUNT) $(DOCKER_IMAGE) build -f zensical.toml --clean
 	@echo ">>> 完成，产物在 site/"
@@ -111,8 +104,8 @@ preview: ensure-image
 #       make diagrams 会在同目录生成 _名称.svg，源文件与产物都提交仓库
 #       （同 hero.bundle.js 哲学：CI 不依赖渲染工具）。
 # 约定：
-#   - 源文件下划线前缀：标识"图源"（zensical 不支持 exclude_docs，
-#     .txt 会随产物发布，约 1KB/张，无害——已验证 0.0.66 无此配置项）
+#   - 源文件下划线前缀：标识"图源"，由 zensical.toml 的 exclude_docs 排除，
+#     不随产物发布；只有 make diagrams 生成的 _名称.svg 会发布
 #   - 中文字符在 ditaa 源码里按 1 列计数（与编辑器视觉宽度不同，注意对齐）
 #   - 请求必须带 charset=utf-8（否则中文 400）；产物字号统一归一为 13
 #     （ditaa 对 CJK/ASCII 混排会给出 10-15 的散乱字号）
