@@ -11,7 +11,8 @@ hide:
     <h1>站点统计</h1>
     <p class="hero__desc">本站的公开访问数据，由 Umami 托管统计。面板只读、无需登录，不暴露后台。</p>
     <div class="hero__actions">
-      <a href="https://cloud.umami.is/share/gpFmtULP2Aczln3S" class="btn btn--primary" target="_blank" rel="noopener">打开统计面板 →</a>
+      <a href="https://cloud.umami.is/share/j3r8ghol6H3YegzA" class="btn btn--primary" target="_blank" rel="noopener">打开统计面板 →</a>
+      <!-- <a href="https://cloud.umami.is/share/gpFmtULP2Aczln3S" class="btn btn--primary" target="_blank" rel="noopener">打开统计面板 →</a> -->
     </div>
   </div>
 </div>
